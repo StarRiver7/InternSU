@@ -44,7 +44,7 @@ class HybridRetriever:
         final_k: int | None = None,
         score_threshold: float | None = None,
         doc_ids: list[str] | None = None,
-        tenant_id: str | None = None,
+        space_id: str | None = None,
     ) -> list[dict]:
         """Execute hybrid search.
 
@@ -61,7 +61,7 @@ class HybridRetriever:
             top_k=top_k,
             score_threshold=0.0,  # Get all, filter after fusion
             doc_ids=doc_ids,
-            tenant_id=tenant_id,
+            space_id=space_id,
         )
 
         # ---- Phase 2: BM25 Keyword Search ----
@@ -166,3 +166,4 @@ class HybridRetriever:
 
 
 hybrid_retriever = HybridRetriever()
+

@@ -1,5 +1,6 @@
 package com.company.aiplatform.thirdparty.config;
 
+import com.company.aiplatform.common.trace.TraceIdExchangeFilterFunction;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
@@ -18,10 +19,16 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 /**
- * AI 服务客户端配置类
- * <p>
- * 负责创建和配置 WebClient，用于与 Python AI 后端服务通信
- * </p>
+ * AI 服务客户端配置类。
+ *
+ * <p>创建并装配 WebClient，用于与 Python AI 后端服务通信。
+ * 关键过滤器链（按注册顺序执行）：
+ * <ol>
+ *   <li>traceId 注入 —— 从 MDC 中提取 traceId 并写入 {@code X-Trace-Id} 请求头</li>
+ *   <li>API Key 认证 —— 自动附加服务间鉴权密钥</li>
+ *   <li>请求日志</li>
+ *   <li>响应日志</li>
+ * </ol>
  */
 @Slf4j
 @Configuration
@@ -44,18 +51,16 @@ public class AIServiceClientConfig {
     private int writeTimeout;
 
     /**
-     * 创建 WebClient Bean
-     * <p>
-     * 配置内容包括：
-     * <ul>
-     *     <li>基础 URL：AI 后端服务地址</li>
-     *     <li>超时控制：连接超时、读取超时、写入超时</li>
-     *     <li>自动认证：每个请求自动添加 API Key</li>
-     *     <li>日志记录：记录请求和响应信息</li>
-     * </ul>
-     * </p>
+     * 创建 AI 后端 WebClient Bean。
      *
-     * @return 配置好的 WebClient 实例
+     * <p>配置项：
+     * <ul>
+     *     <li>基础 URL —— AI 后端服务地址</li>
+     *     <li>超时控制 —— 连接、读取、写入超时</li>
+     *     <li>Trace ID 传播 —— 自动注入 {@code X-Trace-Id} 到出站请求头</li>
+     *     <li>API Key 认证 —— 每条请求自动附加 {@code X-Api-Key}</li>
+     *     <li>请求/响应日志</li>
+     * </ul>
      */
     @Bean
     public WebClient aiBackendWebClient() {
@@ -69,37 +74,37 @@ public class AIServiceClientConfig {
         return WebClient.builder()
                 .baseUrl(aiBackendUrl)
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
-                .filter(apiKeyFilter())   // 自动添加 API Key 认证
-                .filter(logRequest())     // 记录请求日志
-                .filter(logResponse())    // 记录响应日志
+                .filter(traceIdFilter())    // 优先级最高：注入 traceId
+                .filter(apiKeyFilter())     // 服务间认证
+                .filter(logRequest())       // 请求日志
+                .filter(logResponse())      // 响应日志
                 .build();
     }
 
     /**
-     * API Key 认证过滤器
-     * <p>
-     * 为每个 HTTP 请求自动添加 X-Api-Key 请求头
-     * </p>
+     * 链路追踪过滤器 —— 将 MDC 中的 traceId 写入 HTTP 请求头 {@code X-Trace-Id}。
      *
-     * @return 请求处理器过滤器
+     * <p>下游 Python 服务应从请求头中读取此字段并写入自身的日志上下文，
+     * 实现端到端的分布式链路追踪。
      */
-    private ExchangeFilterFunction apiKeyFilter() {
-        return ExchangeFilterFunction.ofRequestProcessor(clientRequest -> {
-            return Mono.just(
-                    org.springframework.web.reactive.function.client.ClientRequest.from(clientRequest)
-                            .header("X-Api-Key", apiKey)
-                            .build()
-            );
-        });
+    private ExchangeFilterFunction traceIdFilter() {
+        return new TraceIdExchangeFilterFunction();
     }
 
     /**
-     * 请求日志过滤器
-     * <p>
-     * 记录每个 HTTP 请求的方法和 URL
-     * </p>
-     *
-     * @return 请求处理器过滤器
+     * API Key 认证过滤器 —— 为每个 HTTP 请求自动添加 {@code X-Api-Key} 请求头。
+     */
+    private ExchangeFilterFunction apiKeyFilter() {
+        return ExchangeFilterFunction.ofRequestProcessor(clientRequest ->
+                Mono.just(
+                        org.springframework.web.reactive.function.client.ClientRequest.from(clientRequest)
+                                .header("X-Api-Key", apiKey)
+                                .build()
+                ));
+    }
+
+    /**
+     * 请求日志过滤器 —— 记录每个 HTTP 请求的方法和 URL。
      */
     private ExchangeFilterFunction logRequest() {
         return ExchangeFilterFunction.ofRequestProcessor(clientRequest -> {
@@ -111,12 +116,7 @@ public class AIServiceClientConfig {
     }
 
     /**
-     * 响应日志过滤器
-     * <p>
-     * 记录每个 HTTP 响应的状态码，错误响应会记录详细信息
-     * </p>
-     *
-     * @return 响应处理器过滤器
+     * 响应日志过滤器 —— 记录每个 HTTP 响应的状态码。
      */
     private ExchangeFilterFunction logResponse() {
         return ExchangeFilterFunction.ofResponseProcessor(clientResponse -> {

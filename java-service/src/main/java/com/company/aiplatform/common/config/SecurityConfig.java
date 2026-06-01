@@ -3,6 +3,7 @@ package com.company.aiplatform.common.config;
 import com.company.aiplatform.common.filter.JwtAuthenticationFilter;
 import com.company.aiplatform.common.handler.RestAccessDeniedHandler;
 import com.company.aiplatform.common.handler.RestAuthenticationEntryPoint;
+import com.company.aiplatform.common.trace.TraceIdFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +17,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+/**
+ * Spring Security 全局安全配置。
+ *
+ * <p>过滤器链执行顺序（从上到下）：
+ * <ol>
+ *   <li>{@link TraceIdFilter} —— 最早执行：初始化 traceId 到 MDC</li>
+ *   <li>{@link JwtAuthenticationFilter} —— 提取并校验 JWT Token</li>
+ *   <li>{@code UsernamePasswordAuthenticationFilter} —— Spring Security 内置</li>
+ * </ol>
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -23,6 +34,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final TraceIdFilter traceIdFilter;
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
     private final RestAccessDeniedHandler accessDeniedHandler;
 
@@ -43,7 +55,7 @@ public class SecurityConfig {
                                 "/v3/api-docs/**", "/doc.html",
                                 "/webjars/**"
                         ).permitAll()
-                        // 认证相关接口（logout 需要 Token，其他不需要）
+                        // 认证相关接口
                         .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/refresh").permitAll()
                         .requestMatchers("/auth/register").permitAll()
                         // 其余全部需要认证
@@ -53,12 +65,12 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 // 配置异常处理
                 .exceptionHandling(exception -> exception
-                        // 未登录或 Token 无效时的处理
                         .authenticationEntryPoint(authenticationEntryPoint)
-                        // 权限不足时的处理
                         .accessDeniedHandler(accessDeniedHandler)
                 )
-                // 在 UsernamePasswordAuthenticationFilter 之前插入 JWT 过滤器
+                // TraceIdFilter 在最前：确保所有后续过滤器的日志都携带 traceId
+                .addFilterBefore(traceIdFilter, JwtAuthenticationFilter.class)
+                // JWT 过滤器在 UsernamePasswordAuthenticationFilter 之前
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

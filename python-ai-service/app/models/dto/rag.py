@@ -7,7 +7,7 @@ class RagSearchRequest(BaseModel):
     top_k: int = 5
     score_threshold: Optional[float] = None
     doc_ids: Optional[list[int]] = None
-    tenant_id: Optional[str] = None
+    space_id: Optional[str] = None
 
 
 class RagSearchResponse(BaseModel):
@@ -19,4 +19,5 @@ class RagIndexRequest(BaseModel):
     file_path: str
     file_id: int
     metadata: Optional[dict] = None
-    tenant_id: Optional[str] = "default"
+    space_id: Optional[str] = "default"
+

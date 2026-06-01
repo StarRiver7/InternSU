@@ -1,8 +1,15 @@
 """
-Embedding Engine — BGE model wrapper with batch optimization.
+Embedding Engine — BGE-M3 (1024-dim) with runtime dimension guard.
 
-Supports BGE-M3 (1024-dim) and BGE-small (512-dim).
-Features: dense embeddings, optional sparse weights, FP16 acceleration.
+硬合规约束:
+  - 模型固定为 BAAI/bge-m3 (1024 维)，不支持降级到其他模型
+  - 每次 encode 后硬断言维度 == 1024，不匹配直接抛 ValueError
+  - 设备自适应: CUDA → GPU+FP16, MPS → MPS, fallback → CPU
+
+Architecture:
+  本模块是 Milvus 向量库的唯一 Embedding 入口。
+  Milvus collection 按 1024 维创建，任何非 1024 维向量都会导致插入/检索崩溃。
+  因此维度校验是防御性必须，不是可选项。
 """
 import time
 import numpy as np
@@ -12,70 +19,123 @@ from app.core.logger import get_logger
 
 logger = get_logger(__name__)
 
+# ═══════════════════════════════════════════════════════════════
+# 硬编码常量 — 不允许从配置覆盖
+# ═══════════════════════════════════════════════════════════════
+_MODEL_NAME = "BAAI/bge-m3"
+_REQUIRED_DIM = 1024
+_BATCH_SIZE = 32
+_MAX_SEQ_LENGTH = 8192
+
+
+def _detect_device() -> str:
+    """检测最佳可用设备: CUDA > MPS > CPU."""
+    try:
+        import torch
+        if torch.cuda.is_available():
+            logger.info("Device detection: CUDA GPU found → using 'cuda'")
+            return "cuda"
+        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            logger.info("Device detection: Apple MPS found → using 'mps'")
+            return "mps"
+    except ImportError:
+        pass
+    logger.info("Device detection: no GPU → using 'cpu'")
+    return "cpu"
+
 
 class EmbeddingEngine:
-    """BGE-M3 embedding engine with automatic batch processing."""
+    """BGE-M3 embedding engine — 1024-dim, device-adaptive, dimension-guarded.
 
-    BATCH_SIZE = 32  # Optimal batch size for BGE-M3
+    使用 BGEM3FlagModel 加载 BAAI/bge-m3，输出 dense 向量。
+    设备自适应：GPU → CUDA+FP16, 否则 CPU。
+    每次 encode 后硬断言维度 == 1024。
+
+    Usage:
+        engine = EmbeddingEngine()
+        vec = await engine.embed_query("hello")
+        # vec 保证是 len=1024 的 float 列表
+    """
 
     def __init__(self):
         self._model = None
-        self._model_name = settings.bge_model_name
-        self._dim = settings.embedding_dim
-        self._device = settings.bge_device
+        self._device = _detect_device()
+        self._use_fp16 = (self._device == "cuda")
+        self._dim = _REQUIRED_DIM
+
+    # ═══════════════════════════════════════════════════════════
+    # 模型加载（单例 + 维度验证）
+    # ═══════════════════════════════════════════════════════════
 
     async def _ensure_model(self):
         if self._model is not None:
             return self._model
 
-        logger.info(f"Loading embedding model: {self._model_name} on {self._device}...")
+        logger.info(
+            "Loading BGE-M3 model: %s on %s (fp16=%s)...",
+            _MODEL_NAME, self._device, self._use_fp16,
+        )
         start = time.time()
 
         try:
-            from FlagEmbedding import FlagModel, BGEM3FlagModel
+            from FlagEmbedding import BGEM3FlagModel
         except ImportError:
             raise ImportError(
                 "FlagEmbedding not installed. Run: pip install FlagEmbedding"
             )
 
-        # Auto-detect model type: M3 models use BGEM3FlagModel, others use FlagModel
-        is_m3 = "m3" in self._model_name.lower()
         try:
-            if is_m3:
+            self._model = BGEM3FlagModel(
+                _MODEL_NAME,
+                use_fp16=self._use_fp16,
+                device=self._device,
+            )
+        except Exception as e:
+            # GPU 加载失败 → 降级到 CPU 重试
+            if self._device != "cpu":
+                logger.warning(
+                    "BGE-M3 failed on %s: %s. Fallback to CPU.", self._device, e
+                )
+                self._device = "cpu"
+                self._use_fp16 = False
                 self._model = BGEM3FlagModel(
-                    self._model_name,
-                    use_fp16=settings.bge_use_fp16,
-                    device=self._device,
+                    _MODEL_NAME,
+                    use_fp16=False,
+                    device="cpu",
                 )
             else:
-                self._model = FlagModel(
-                    self._model_name,
-                    use_fp16=settings.bge_use_fp16,
-                    normalize_embeddings=True,
-                )
-        except Exception as e:
-            # Fallback: try FlagModel for any model
-            logger.warning(f"BGEM3FlagModel failed, trying FlagModel: {e}")
-            self._model = FlagModel(
-                self._model_name,
-                use_fp16=settings.bge_use_fp16,
-                normalize_embeddings=True,
-            )
+                raise
 
         elapsed = time.time() - start
-        logger.info(f"Embedding model loaded in {elapsed:.1f}s, dim={self._dim}")
+        logger.info("BGE-M3 loaded in %.1fs on %s", elapsed, self._device)
 
-        # Verify dimension by encoding a test string
-        if is_m3:
-            test_vec = self._model.encode(["test"], batch_size=1)["dense_vecs"]
-        else:
-            test_vec = self._model.encode(["test"])
-        actual_dim = test_vec.shape[1] if hasattr(test_vec, 'shape') else len(test_vec[0])
-        if actual_dim != self._dim:
-            logger.warning(f"Dimension mismatch: expected {self._dim}, got {actual_dim}. Auto-correcting.")
-            self._dim = actual_dim
+        # ── 启动时维度自校验 ──
+        test_output = self._model.encode(
+            ["dimension probe"],
+            batch_size=1,
+            max_length=_MAX_SEQ_LENGTH,
+            return_dense=True,
+            return_sparse=False,
+            return_colbert_vecs=False,
+        )
+        test_vec = test_output["dense_vecs"]
+        actual_dim = test_vec.shape[1] if hasattr(test_vec, "shape") else len(test_vec[0])
 
+        if actual_dim != _REQUIRED_DIM:
+            raise ValueError(
+                f"FATAL: BGE-M3 dimension mismatch. "
+                f"Expected {_REQUIRED_DIM}, got {actual_dim}. "
+                f"Model: {_MODEL_NAME}, device: {self._device}. "
+                f"Milvus collection requires exactly {_REQUIRED_DIM}-dim vectors. "
+                f"Check your FlagEmbedding installation or model cache."
+            )
+
+        logger.info("BGE-M3 dimension verified: %d ✓", actual_dim)
         return self._model
+
+    # ═══════════════════════════════════════════════════════════
+    # 批量编码 + 逐向量维度断言
+    # ═══════════════════════════════════════════════════════════
 
     async def embed_texts(
         self,
@@ -83,49 +143,92 @@ class EmbeddingEngine:
         *,
         return_sparse: bool = False,
     ) -> list[list[float]]:
-        """Batch-embed texts into dense vectors."""
+        """Batch-embed texts into 1024-dim dense vectors.
+
+        Raises:
+            ValueError: 任何输出向量维度 != 1024
+        """
         if not texts:
             return []
 
         model = await self._ensure_model()
         start = time.time()
-        batch_size = min(self.BATCH_SIZE, max(1, len(texts)))
+        batch_size = min(_BATCH_SIZE, max(1, len(texts)))
 
-        is_m3 = "m3" in self._model_name.lower()
-        if is_m3:
-            output = model.encode(
-                texts,
-                batch_size=batch_size,
-                max_length=8192,
-                return_dense=True,
-                return_sparse=return_sparse,
-                return_colbert_vecs=False,
-            )
-            dense = output["dense_vecs"]
-        else:
-            dense = model.encode(texts, batch_size=batch_size)
+        output = model.encode(
+            texts,
+            batch_size=batch_size,
+            max_length=_MAX_SEQ_LENGTH,
+            return_dense=True,
+            return_sparse=return_sparse,
+            return_colbert_vecs=False,
+        )
+        dense = output["dense_vecs"]
 
+        # ── 逐向量维度断言 ──
         if isinstance(dense, np.ndarray):
-            dense = dense.tolist()
+            if dense.ndim != 2:
+                raise ValueError(
+                    f"FATAL: BGE-M3 output shape mismatch. "
+                    f"Expected 2D array, got {dense.ndim}D. "
+                    f"Shape: {dense.shape}."
+                )
+            actual_dim = dense.shape[1]
+            if actual_dim != _REQUIRED_DIM:
+                raise ValueError(
+                    f"FATAL: BGE-M3 vector dimension mismatch in batch. "
+                    f"Expected {_REQUIRED_DIM}, got {actual_dim}. "
+                    f"Batch size: {len(texts)}, model: {_MODEL_NAME}. "
+                    f"Milvus will reject non-{_REQUIRED_DIM}-dim vectors. "
+                    f"Check your model cache or re-download BGE-M3."
+                )
+            result = dense.tolist()
+        else:
+            # List of arrays fallback
+            result = []
+            for i, vec in enumerate(dense):
+                if hasattr(vec, "shape"):
+                    vec = vec.tolist()
+                if len(vec) != _REQUIRED_DIM:
+                    raise ValueError(
+                        f"FATAL: BGE-M3 vector[{i}] dimension mismatch. "
+                        f"Expected {_REQUIRED_DIM}, got {len(vec)}. "
+                        f"Text: '{texts[i][:80]}...'"
+                    )
+                result.append(vec)
 
         elapsed = (time.time() - start) * 1000
-        logger.debug(f"Embedded {len(texts)} texts in {elapsed:.0f}ms "
-                     f"({elapsed/len(texts):.1f}ms/text)")
+        logger.debug(
+            "Embedded %d texts in %.0fms (%.1fms/text), dim=%d ✓",
+            len(texts), elapsed,
+            elapsed / len(texts) if texts else 0,
+            _REQUIRED_DIM,
+        )
 
-        return dense
+        return result
 
     async def embed_query(self, query: str) -> list[float]:
-        """Embed a single query string."""
+        """Embed a single query → 1024-dim vector."""
         results = await self.embed_texts([query])
         return results[0]
 
+    # ═══════════════════════════════════════════════════════════
+    # 属性
+    # ═══════════════════════════════════════════════════════════
+
     @property
     def dim(self) -> int:
-        return self._dim
+        """向量维度 — 硬件码 1024."""
+        return _REQUIRED_DIM
 
     @property
     def is_ready(self) -> bool:
         return self._model is not None
 
+    @property
+    def device(self) -> str:
+        return self._device
 
+
+# 全局单例
 embedding_engine = EmbeddingEngine()

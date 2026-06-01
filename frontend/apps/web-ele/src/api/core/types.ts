@@ -28,6 +28,8 @@ export interface ChatRequest {
   message: string;
   model?: string;
   stream?: boolean;
+  use_rag?: boolean;
+  use_tools?: boolean;
 }
 
 export interface ChatResponse {

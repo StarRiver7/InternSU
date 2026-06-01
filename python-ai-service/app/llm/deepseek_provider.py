@@ -1,7 +1,12 @@
 from typing import AsyncIterator
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, AuthenticationError
 from app.core.config import settings
 from app.llm.base import BaseLLMProvider, LLMResponse, ProviderType
+
+_DEEPSEEK_AUTH_ERROR_MSG = (
+    "DeepSeek API Key 无效 —— 请检查 DEEPSEEK_API_KEY 是否正确。"
+    "DeepSeek Key 可从 https://platform.deepseek.com/api_keys 获取。"
+)
 
 
 class DeepSeekProvider(BaseLLMProvider):
@@ -55,3 +60,34 @@ class DeepSeekProvider(BaseLLMProvider):
 
     async def embed(self, texts: list[str], model: str | None = None) -> list[list[float]]:
         raise NotImplementedError("DeepSeek does not provide embedding API")
+
+    # ── 启动探活 ──────────────────────────────────────────────────────
+
+    async def validate_key(self) -> bool:
+        """验证 DeepSeek API Key 有效性。
+
+        策略: 先尝试 models.list()（零 Token），
+        若 DeepSeek 不支持该端点则回退到最小化 chat completion（max_tokens=1）。
+        """
+        try:
+            # 首选: models.list() — 零 Token，最快
+            await self._client.models.list()
+            return True
+        except AuthenticationError:
+            raise
+        except Exception:
+            pass  # 可能是不支持 models 端点，回退到 chat
+
+        # 回退: 最小化 completion，单 token
+        try:
+            await self._client.chat.completions.create(
+                model=self._default_model,
+                messages=[{"role": "user", "content": "hi"}],
+                max_tokens=1,
+            )
+            return True
+        except AuthenticationError:
+            raise
+        except Exception:
+            # 其他异常视为暂时性故障，给予信任
+            return True

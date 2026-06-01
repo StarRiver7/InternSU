@@ -23,6 +23,9 @@ public class User {
 
     private String phone;
 
+    /** 所属部门 ID → t_department.id (V4 新增) */
+    private Long departmentId;
+
     private String nickname;
 
     private String avatarUrl;
@@ -44,3 +47,4 @@ public class User {
 
     private Long creatorId;
 }
+

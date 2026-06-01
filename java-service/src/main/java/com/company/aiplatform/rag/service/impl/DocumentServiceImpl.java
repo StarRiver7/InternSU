@@ -3,31 +3,50 @@ package com.company.aiplatform.rag.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.company.aiplatform.rag.entity.ChatHistory;
+import com.company.aiplatform.common.enums.ResultCode;
+import com.company.aiplatform.common.exception.BusinessException;
 import com.company.aiplatform.rag.entity.Document;
 import com.company.aiplatform.rag.entity.DocumentPermission;
 import com.company.aiplatform.rag.mapper.DocumentMapper;
 import com.company.aiplatform.rag.mapper.DocumentPermissionMapper;
 import com.company.aiplatform.rag.service.DocumentService;
 import com.company.aiplatform.thirdparty.client.AIServiceClient;
+import com.company.aiplatform.thirdparty.dto.AIChatResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import reactor.core.scheduler.Schedulers;
 
+/**
+ * 文档管理服务实现 — V4 重构版.
+ *
+ * <h2>核心变更（vs 旧版）</h2>
+ * <ol>
+ *   <li>权限模型：基于 {@code selectAccessibleDocumentIds(userId, deptId)} 做纵深防御</li>
+ *   <li>状态机：processing_status 严格流转 (UPLOADED→PARSING→CHUNKING→EMBEDDING→READY/FAILED)</li>
+ *   <li>字段对齐：space_id / file_hash / error_msg / creator_id 全面替代旧字段</li>
+ *   <li>去重：SHA-256 哈希检测重复上传</li>
+ * </ol>
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -39,6 +58,8 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     @Value("${file.upload.path:./uploads}")
     private String uploadPath;
 
+    // ======================== 文件工具 ========================
+
     @Override
     public Path getUploadDir() throws IOException {
         Path uploadDir = Paths.get(uploadPath).toAbsolutePath().normalize();
@@ -49,40 +70,59 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         return uploadDir;
     }
 
-    @Override
-    public Page<Document> listDocuments(Long userId, Integer pageNum, Integer pageSize) {
-        List<Long> accessibleDocIds = baseMapper.selectAccessibleDocumentIds(userId);
-        Page<Document> page = new Page<>(pageNum, pageSize);
-        if (accessibleDocIds.isEmpty()) {
-            return page;
-        }
-        return this.page(page, new LambdaQueryWrapper<Document>()
-                .in(Document::getId, accessibleDocIds)
-                .orderByDesc(Document::getCreateTime));
-    }
+    // ======================== 查询 ========================
 
     @Override
-    public Document uploadDocument(Long userId, String title, MultipartFile file) throws IOException {
+    public Page<Document> listDocuments(Long userId, Long deptId, Long spaceId,
+                                        Integer pageNum, Integer pageSize) {
+        // ★ 纵深防御第一步：仅返回用户有权访问的文档 ID
+        List<Long> accessibleIds = baseMapper.selectAccessibleDocumentIds(userId, deptId);
+
+        Page<Document> page = new Page<>(pageNum, pageSize);
+        if (accessibleIds.isEmpty()) {
+            return page; // 空页，总数为 0
+        }
+
+        LambdaQueryWrapper<Document> wrapper = new LambdaQueryWrapper<Document>()
+                .in(Document::getId, accessibleIds);
+
+        // 可选：按知识空间过滤
+        if (spaceId != null) {
+            wrapper.eq(Document::getSpaceId, spaceId);
+        }
+
+        wrapper.orderByDesc(Document::getCreateTime);
+        return this.page(page, wrapper);
+    }
+
+    // ======================== 上传 ========================
+
+    @Override
+    @Transactional
+    public Document uploadDocument(Long userId, Long spaceId, MultipartFile file) throws IOException {
+        // ── 1. 参数校验 ──
         if (file.isEmpty()) {
-            throw new RuntimeException("File cannot be empty");
+            throw new BusinessException(ResultCode.BAD_REQUEST, "文件不能为空");
         }
 
         String originalFilename = file.getOriginalFilename();
         if (originalFilename == null || originalFilename.trim().isEmpty()) {
-            throw new RuntimeException("File name cannot be empty");
+            throw new BusinessException(ResultCode.BAD_REQUEST, "文件名不能为空");
         }
 
         String fileExt = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
         List<String> allowedExts = List.of(".txt", ".pdf", ".doc", ".docx", ".md", ".csv", ".xlsx");
         if (!allowedExts.contains(fileExt)) {
-            throw new RuntimeException("Unsupported file type: " + fileExt + ". Supported: " + String.join(", ", allowedExts));
+            throw new BusinessException(ResultCode.BAD_REQUEST,
+                    "不支持的文件类型: " + fileExt + "。支持: " + String.join(", ", allowedExts));
         }
 
-        long maxSize = 100 * 1024 * 1024;
+        long maxSize = 100 * 1024 * 1024; // 100MB
         if (file.getSize() > maxSize) {
-            throw new RuntimeException("File size must not exceed 100MB");
+            throw new BusinessException(ResultCode.BAD_REQUEST, "文件大小不能超过 100MB");
         }
 
+        // ── 2. 存储文件到本地（计算 SHA-256 哈希） ──
         String newFileName = UUID.randomUUID() + fileExt;
         Path uploadDir = getUploadDir();
         Path destPath = uploadDir.resolve(newFileName);
@@ -90,74 +130,168 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         file.transferTo(destFile);
         String absolutePath = destPath.toString();
 
+        // 计算文件哈希
+        String fileHash = sha256Hex(destFile);
+
+        // ── 3. 去重检测 ──
+        Document existing = this.getOne(new LambdaQueryWrapper<Document>()
+                .eq(Document::getFileHash, fileHash)
+                .eq(Document::getSpaceId, spaceId)
+                .eq(Document::getIsDeleted, 0));
+        if (existing != null) {
+            // 同空间同哈希 → 删除刚上传的文件，返回已有记录
+            if (!destFile.delete()) {
+                log.warn("Failed to delete duplicate upload file: {}", absolutePath);
+            }
+            log.info("Duplicate document detected: existingId={}, hash={}", existing.getId(), fileHash);
+            return existing;
+        }
+
+        // ── 4. 持久化文档元数据 ──
         Document document = new Document();
-        document.setTitle(title);
+        document.setSpaceId(spaceId);
         document.setFileName(originalFilename);
-        document.setFilePath(absolutePath);
         document.setFileSize(file.getSize());
-        document.setFileType(fileExt);
-        document.setUserId(userId);
-        document.setStatus(0);
+        document.setFileType(fileExt.replace(".", ""));
+        document.setFilePath(absolutePath);
+        document.setFileHash(fileHash);
+        document.setProcessingStatus(Document.STATUS_UPLOADED); // 0 - 上传完成
+        document.setChunkCount(0);
+        document.setCreatorId(userId);
         document.setCreateTime(LocalDateTime.now());
-        document.setTenantId("default");
         this.save(document);
 
-        DocumentPermission permission = new DocumentPermission();
-        permission.setDocumentId(document.getId());
-        permission.setPrincipalType("user");
-        permission.setPrincipalId(String.valueOf(userId));
-        permission.setPermission("write");
-        permission.setCreateTime(LocalDateTime.now());
-        documentPermissionMapper.insert(permission);
+        // ── 5. 写入文档权限（上传者默认 write 权限） ──
+        DocumentPermission perm = new DocumentPermission();
+        perm.setDocumentId(document.getId());
+        perm.setPrincipalType("user");
+        perm.setPrincipalId(String.valueOf(userId));
+        perm.setPermission("write");
+        perm.setCreateTime(LocalDateTime.now());
+        perm.setCreatorId(userId);
+        documentPermissionMapper.insert(perm);
 
-        this.processDocumentAsync(document.getId(), absolutePath, originalFilename);
+        log.info("Document uploaded: id={}, spaceId={}, fileName={}, hash={}, size={}",
+                document.getId(), spaceId, originalFilename, fileHash, file.getSize());
+
+        // ── 6. 异步触发解析 Pipeline ──
+        this.processDocumentAsync(document.getId(), absolutePath, fileHash);
 
         return document;
     }
 
+    // ======================== 异步文档处理 ========================
+
     @Override
     @Async("ragTaskExecutor")
-    public void processDocumentAsync(Long documentId, String filePath, String fileName) {
-        try {
-            File file = new File(filePath);
-            if (!file.exists()) {
-                log.error("File not found: {}", filePath);
-                Document document = this.getById(documentId);
-                if (document != null) {
-                    document.setStatus(-1);
-                    this.updateById(document);
-                }
-                return;
-            }
+    public void processDocumentAsync(Long documentId, String filePath, String fileHash) {
+        log.info("Document processing started: id={}", documentId);
 
-            Map<String, Object> result = aiBackendClient.indexDocumentAsync(
-                    documentId, filePath, null, "default"
-            ).block();
+        // ── Step 1: 同步检查文件存在（快速操作） ──
+        File file = new File(filePath);
+        if (!file.exists()) {
+            transitionStatus(documentId, Document.STATUS_FAILED,
+                    "文件不存在: " + filePath);
+            return;
+        }
 
-            if (result != null) {
-                Document document = this.getById(documentId);
-                if (document != null) {
-                    document.setStatus(1);
-                    Integer chunkCount = (Integer) result.get("chunk_count");
-                    document.setChunksProcessed(chunkCount);
-                    this.updateById(document);
-                }
-                log.info("Document {} indexed: {} chunks", documentId, result.get("chunk_count"));
-            }
-        } catch (Exception e) {
-            log.error("Failed to process document {}", documentId, e);
+        // ── Step 2-4: 快速状态流转（DB UPDATE，毫秒级） ──
+        transitionStatus(documentId, Document.STATUS_PARSING, null);
+        transitionStatus(documentId, Document.STATUS_CHUNKING, null);
+        transitionStatus(documentId, Document.STATUS_EMBEDDING, null);
+
+        // ── Step 5: 反应式调用 Python AI 服务，不阻塞池线程 ──
+        // .publishOn(Schedulers.boundedElastic()) 确保 MyBatis DB 操作在 Spring 管理的线程上执行
+        aiBackendClient.indexDocumentAsync(documentId, filePath, null, null)
+                .publishOn(Schedulers.boundedElastic())
+                .subscribe(
+                        result -> onIndexSuccess(documentId, result),
+                        error -> onIndexError(documentId, error)
+                );
+    }
+
+    /** 索引成功回调 —— 在 boundedElastic 线程上执行，MyBatis 操作安全. */
+    private void onIndexSuccess(Long documentId, Map<String, Object> result) {
+        if (result != null) {
             Document document = this.getById(documentId);
             if (document != null) {
-                document.setStatus(-1);
+                document.setProcessingStatus(Document.STATUS_READY);
+                Integer chunkCount = result.get("chunk_count") != null
+                        ? ((Number) result.get("chunk_count")).intValue() : 0;
+                document.setChunkCount(chunkCount);
                 this.updateById(document);
             }
+            log.info("Document indexed: id={}, chunks={}", documentId, result.get("chunk_count"));
+        } else {
+            transitionStatus(documentId, Document.STATUS_FAILED, "AI 服务返回空结果");
         }
     }
 
+    /** 索引失败回调 —— 在 boundedElastic 线程上执行. */
+    private void onIndexError(Long documentId, Throwable error) {
+        log.error("Document processing failed: id={}", documentId, error);
+        transitionStatus(documentId, Document.STATUS_FAILED, truncateMsg(error.getMessage()));
+    }
+
+    // ======================== 状态流转工具 ========================
+
+    /**
+     * 更新文档的 processing_status 和 error_msg（原子操作）.
+     *
+     * <p>仅做 UPDATE，不重新查询实体，避免并发覆盖.
+     */
+    private void transitionStatus(Long documentId, int newStatus, String errorMsg) {
+        Document doc = new Document();
+        doc.setId(documentId);
+        doc.setProcessingStatus(newStatus);
+        if (errorMsg != null) {
+            doc.setErrorMsg(errorMsg);
+        }
+        this.updateById(doc);
+        log.debug("Document status transition: id={}, status={}, error={}",
+                documentId, newStatus, errorMsg);
+    }
+
+    // ======================== 删除 ========================
+
+    @Override
+    public void deleteDocument(Long documentId, Long userId, Long deptId) {
+        // ★ 纵深防御第二步：检查用户是否有权访问此文档
+        List<Long> accessibleIds = baseMapper.selectAccessibleDocumentIds(userId, deptId);
+        if (!accessibleIds.contains(documentId)) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "无权删除此文档");
+        }
+
+        Document document = this.getById(documentId);
+        if (document == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "文档不存在");
+        }
+
+        // 逻辑删除
+        this.removeById(documentId);
+
+        // 异步通知 Python 删除向量索引（fire-and-forget）
+        try {
+            aiBackendClient.deleteDocumentAsync(String.valueOf(documentId)).subscribe();
+        } catch (Exception e) {
+            log.error("Failed to notify AI backend for document deletion: id={}", documentId, e);
+        }
+
+        // 删除本地物理文件
+        File file = new File(document.getFilePath());
+        if (file.exists() && !file.delete()) {
+            log.warn("Failed to delete local file: {}", document.getFilePath());
+        }
+
+        log.info("Document deleted: id={}, spaceId={}, fileName={}",
+                documentId, document.getSpaceId(), document.getFileName());
+    }
+
+    // ======================== AI 对话 ========================
+
     @Override
     public Map<String, Object> chat(Long userId, String query, List<Long> docIds) {
-        com.company.aiplatform.thirdparty.dto.AIChatResponse response =
-                aiBackendClient.chat(userId, null, query, true, true);
+        AIChatResponse response = aiBackendClient.chat(userId, null, query, true, true);
 
         Map<String, Object> result = new HashMap<>();
         result.put("answer", response.getContent());
@@ -167,27 +301,27 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         return result;
     }
 
-    @Override
-    public void deleteDocument(Long documentId, Long userId) {
-        Document document = this.getById(documentId);
-        if (document == null) {
-            throw new RuntimeException("Document not found");
-        }
-        if (!document.getUserId().equals(userId)) {
-            throw new RuntimeException("No permission to delete this document");
-        }
+    // ======================== 内部工具 ========================
 
-        this.removeById(documentId);
-
-        try {
-            aiBackendClient.deleteDocumentAsync(String.valueOf(documentId)).subscribe();
-        } catch (Exception e) {
-            log.error("Failed to delete AI backend index for document {}", documentId, e);
-        }
-
-        File file = new File(document.getFilePath());
-        if (file.exists() && !file.delete()) {
-            log.warn("Failed to delete local file: {}", document.getFilePath());
+    /** 计算文件 SHA-256 哈希（用于去重）. */
+    private String sha256Hex(File file) throws IOException {
+        try (FileInputStream fis = new FileInputStream(file)) {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = fis.read(buf)) != -1) {
+                md.update(buf, 0, n);
+            }
+            return HexFormat.of().formatHex(md.digest());
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 not available", e);
         }
     }
+
+    /** 截断过长错误信息（防止日志/数据库字段溢出）. */
+    private static String truncateMsg(String msg) {
+        if (msg == null) return null;
+        return msg.length() <= 1000 ? msg : msg.substring(0, 997) + "...";
+    }
 }
+

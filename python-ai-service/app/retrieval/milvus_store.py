@@ -2,7 +2,7 @@
 Milvus Lite Vector Store — in-process vector database.
 
 Uses milvus-lite for zero-dependency embedded deployment.
-Stores: id, doc_id, content, embedding, metadata, tenant_id.
+Stores: id, doc_id, content, embedding, metadata, space_id.
 """
 import time
 from typing import Optional
@@ -81,7 +81,7 @@ class MilvusVectorStore:
         metadatas: list[dict],
         *,
         doc_id: str = "",
-        tenant_id: str = "default",
+        space_id: str = "default",
     ) -> list[int]:
         """Insert vectors with content and metadata.
 
@@ -97,7 +97,7 @@ class MilvusVectorStore:
                 "content": doc,
                 "doc_id": doc_id,
                 "chunk_index": i,
-                "tenant_id": tenant_id,
+                "space_id": space_id,
                 "file_name": meta.get("file_name", ""),
                 "file_type": meta.get("file_type", ""),
                 "char_start": meta.get("char_start", 0),
@@ -121,7 +121,7 @@ class MilvusVectorStore:
         top_k: int = 20,
         score_threshold: float = 0.3,
         doc_ids: list[str] | None = None,
-        tenant_id: str | None = None,
+        space_id: str | None = None,
     ) -> list[dict]:
         """Search for similar vectors.
 
@@ -138,8 +138,8 @@ class MilvusVectorStore:
         if doc_ids and len(doc_ids) > 0:
             ids_str = ", ".join(f'"{d}"' for d in doc_ids)
             filter_parts.append(f"doc_id in [{ids_str}]")
-        if tenant_id:
-            filter_parts.append(f'tenant_id == "{tenant_id}"')
+        if space_id:
+            filter_parts.append(f'space_id == "{space_id}"')
 
         filter_expr = " and ".join(filter_parts) if filter_parts else None
 
@@ -201,3 +201,4 @@ class MilvusVectorStore:
 
 
 milvus_store = MilvusVectorStore()
+

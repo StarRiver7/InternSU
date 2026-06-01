@@ -30,11 +30,11 @@ class Settings(BaseSettings):
     openai_default_model: str = "gpt-4o"
 
     # ---- Embedding: BGE-M3 ----
-    bge_model_name: str = "BAAI/bge-small-zh-v1.5"
-    embedding_model: str = "BAAI/bge-small-zh-v1.5"
+    bge_model_name: str = "BAAI/bge-m3"
+    embedding_model: str = "BAAI/bge-m3"
     bge_device: str = "cpu"
     bge_use_fp16: bool = False
-    embedding_dim: int = 512
+    embedding_dim: int = 1024
 
     # ---- Rerank: BGE-Reranker ----
     bge_reranker_model: str = "BAAI/bge-reranker-v2-m3"
@@ -42,7 +42,7 @@ class Settings(BaseSettings):
 
     # ---- Milvus Lite ----
     milvus_db_path: str = "./data/milvus_lite.db"
-    milvus_collection: str = "internsu_rag"
+    milvus_collection: str = "internsu_rag_v2"
 
     # ---- RAG Pipeline ----
     chunk_size: int = 512
@@ -86,3 +86,6 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+

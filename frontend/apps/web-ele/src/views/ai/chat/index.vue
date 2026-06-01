@@ -8,6 +8,7 @@ import AgentPanel from '#/components/trace/AgentPanel.vue';
 import SourcePanel from '#/components/citation/SourcePanel.vue';
 import { useChatStore } from '#/store/ai-chat';
 import type { SessionItem } from '#/components/ai/ConversationSidebar.vue';
+import { chatStreamSSE, HttpError } from '#/api';
 
 const route = useRoute();
 const router = useRouter();
@@ -31,7 +32,7 @@ const sidebarSessions = computed<SessionItem[]>(() =>
     id: c.id,
     title: c.title,
     updatedAt: c.updatedAt,
-  }))
+  })),
 );
 
 // ── Lifecycle ──
@@ -88,7 +89,7 @@ function handleDeleteSession(id: string) {
   }
 }
 
-// ── Send message (SSE) ──
+// ── Send message (SSE) — 通过 Java 安全网关代理 ──
 async function sendMessage(content: string) {
   if (!content.trim() || store.isStreaming) return;
 
@@ -104,28 +105,23 @@ async function sendMessage(content: string) {
   router.replace({ query: { conv: convId } });
 
   store.startStreaming();
-  abortController = new AbortController();
 
   try {
-    const token = localStorage.getItem('flowmind_token') ?? '';
-    const response = await fetch('/ai/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: token ? `Bearer ${token}` : '',
-      },
-      body: JSON.stringify({
-        user_id: '1',
-        conversation_id: convId,
-        message: content,
-        model: 'deepseek-chat',
-        stream: true,
-        rag_enabled: ragEnabled.value,
-      }),
-      signal: abortController.signal,
+    // 通过 Java 网关发起 SSE 流式请求（JWT 鉴权 + 服务间认证 + 链路追踪）
+    //
+    // 对比旧代码：
+    //   - URL:        /ai/chat         → /api/ai/chat（走 Java 网关）
+    //   - Token 来源: localStorage      → useAccessStore（与请求拦截器统一）
+    //   - 错误处理:    throw Error       → HttpError（区分 401/429/500）
+    const response = await chatStreamSSE({
+      user_id: '1',
+      conversation_id: convId,
+      message: content,
+      model: 'deepseek-chat',
+      use_rag: ragEnabled.value,
+      use_tools: true,
     });
 
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     if (!response.body) throw new Error('No response body');
 
     const reader = response.body.getReader();
@@ -150,14 +146,34 @@ async function sendMessage(content: string) {
           try {
             const event = JSON.parse(data);
             handleSSEEvent(event);
-          } catch { /* skip malformed */ }
+          } catch {
+            // 非 JSON 数据跳过（Python 端偶发空 chunk）
+          }
         }
       }
     }
-  } catch (err: any) {
-    if (err.name === 'AbortError') return;
-    if (!store.streamingContent) {
-      store.streamingContent = '收到老师～连接暂时中断，请稍后再试～';
+  } catch (err: unknown) {
+    // ── 分类错误处理 ──
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      // 用户主动取消，静默处理
+      return;
+    }
+
+    if (err instanceof HttpError) {
+      // 网关层错误（401/429/500）：展示具体原因
+      store.streamingContent = err.message;
+
+      if (err.status === 401) {
+        // JWT 过期 — 触发全局 Token 刷新或跳转登录
+        // accessStore 的响应拦截器会自动处理，这里仅显示提示
+      }
+    } else {
+      // 网络异常或其他未知错误
+      const msg = err instanceof Error ? err.message : '未知错误';
+      if (!store.streamingContent) {
+        store.streamingContent = '收到老师～连接暂时中断，请稍后再试～';
+      }
+      console.error('[SSE Error]', msg);
     }
   } finally {
     store.finishStreaming();
@@ -189,13 +205,16 @@ function handleSSEEvent(event: any) {
       if (event.sources) {
         store.setSources(event.sources);
       } else if (event.document_name) {
-        store.setSources([...store.sources, {
-          document_name: event.document_name,
-          page_number: event.page_number,
-          relevance_score: event.score || event.relevance_score,
-          knowledge_base: event.knowledge_base || '',
-          excerpt: event.excerpt || '',
-        }]);
+        store.setSources([
+          ...store.sources,
+          {
+            document_name: event.document_name,
+            page_number: event.page_number,
+            relevance_score: event.score || event.relevance_score,
+            knowledge_base: event.knowledge_base || '',
+            excerpt: event.excerpt || '',
+          },
+        ]);
       }
       break;
     case 'done':
@@ -207,7 +226,11 @@ function handleSSEEvent(event: any) {
     case 'heartbeat':
       break;
     default:
-      if (event.content && typeof event.content === 'string' && !store.streamingContent) {
+      if (
+        event.content &&
+        typeof event.content === 'string' &&
+        !store.streamingContent
+      ) {
         store.streamingContent = event.content;
       }
   }
@@ -237,9 +260,18 @@ function handleSSEEvent(event: any) {
       :style="{ left: showSidebar ? '280px' : '0' }"
       @click="showSidebar = !showSidebar"
     >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-           :style="{ transform: showSidebar ? '' : 'rotate(180deg)' }">
-        <polyline points="15 18 9 12 15 6"/>
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        :style="{ transform: showSidebar ? '' : 'rotate(180deg)' }"
+      >
+        <polyline points="15 18 9 12 15 6" />
       </svg>
     </button>
 
@@ -255,7 +287,9 @@ function handleSSEEvent(event: any) {
           v-if="store.messages.length === 0 && !store.isStreaming"
           class="flex flex-col items-center justify-center h-full text-center"
         >
-          <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-500 mb-5 shadow-lg shadow-blue-200">
+          <div
+            class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-500 mb-5 shadow-lg shadow-blue-200"
+          >
             <span class="text-xl font-bold text-white">SU</span>
           </div>
           <h1 class="text-xl font-bold text-gray-800 tracking-tight mb-1">
@@ -293,26 +327,51 @@ function handleSSEEvent(event: any) {
           class="mb-5 flex gap-3 animate-isu-fade-in"
         >
           <div class="shrink-0 mt-1">
-            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white text-[13px] font-semibold">SU</div>
+            <div
+              class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white text-[13px] font-semibold"
+            >
+              SU
+            </div>
           </div>
           <div class="max-w-[85%] flex-1">
             <div class="isu-bubble-assistant px-5 py-3">
-              <div class="mb-1.5 text-[11px] font-semibold text-blue-500 tracking-wide uppercase">internSU</div>
-              <div class="isu-markdown text-[15px] whitespace-pre-wrap leading-relaxed"
-                   v-html="store.streamingContent" />
-              <span class="inline-block w-1.5 h-5 bg-blue-500 animate-pulse align-text-bottom ml-0.5 rounded-sm" />
+              <div
+                class="mb-1.5 text-[11px] font-semibold text-blue-500 tracking-wide uppercase"
+              >
+                internSU
+              </div>
+              <div
+                class="isu-markdown text-[15px] whitespace-pre-wrap leading-relaxed"
+                v-html="store.streamingContent"
+              />
+              <span
+                class="inline-block w-1.5 h-5 bg-blue-500 animate-pulse align-text-bottom ml-0.5 rounded-sm"
+              />
             </div>
 
             <!-- Streaming sources -->
-            <div v-if="store.sources.length > 0" class="mt-2 flex flex-wrap gap-1.5">
+            <div
+              v-if="store.sources.length > 0"
+              class="mt-2 flex flex-wrap gap-1.5"
+            >
               <span
                 v-for="(src, i) in store.sources"
                 :key="i"
                 class="inline-flex items-center gap-1 rounded-md bg-gray-50 border border-gray-100 px-2.5 py-1
                        text-[11px] text-gray-500"
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
                 </svg>
                 {{ src.document_name }}
               </span>
@@ -322,13 +381,26 @@ function handleSSEEvent(event: any) {
 
         <!-- Streaming loading state -->
         <div
-          v-if="store.isStreaming && !store.streamingContent && store.traceSteps.length === 0"
+          v-if="
+            store.isStreaming &&
+            !store.streamingContent &&
+            store.traceSteps.length === 0
+          "
           class="flex items-center gap-3 px-8 py-4"
         >
           <div class="flex gap-1">
-            <span class="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 0ms" />
-            <span class="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 150ms" />
-            <span class="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 300ms" />
+            <span
+              class="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+              style="animation-delay: 0ms"
+            />
+            <span
+              class="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+              style="animation-delay: 150ms"
+            />
+            <span
+              class="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+              style="animation-delay: 300ms"
+            />
           </div>
           <span class="text-sm text-gray-400">收到老师～ 正在思考中...</span>
         </div>
@@ -353,35 +425,54 @@ function handleSSEEvent(event: any) {
       :style="{ right: showAgentPanel ? '380px' : '0' }"
       @click="showAgentPanel = !showAgentPanel"
     >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-           :style="{ transform: showAgentPanel ? 'rotate(180deg)' : '' }">
-        <polyline points="15 18 9 12 15 6"/>
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        :style="{ transform: showAgentPanel ? 'rotate(180deg)' : '' }"
+      >
+        <polyline points="15 18 9 12 15 6" />
       </svg>
     </button>
 
     <!-- Right: Agent + Source Panel -->
     <Transition name="slide-right">
-      <aside v-show="showAgentPanel" class="w-[380px] shrink-0 h-full border-l border-gray-100 bg-white flex flex-col overflow-hidden">
+      <aside
+        v-show="showAgentPanel"
+        class="w-[380px] shrink-0 h-full border-l border-gray-100 bg-white flex flex-col overflow-hidden"
+      >
         <!-- Tabs -->
         <div class="shrink-0 flex border-b border-gray-100">
           <button
             class="flex-1 py-2.5 text-xs font-medium text-center transition-all border-b-2"
-            :class="agentTab === 'trace'
-              ? 'text-blue-600 border-blue-500 bg-blue-50/30'
-              : 'text-gray-500 border-transparent hover:text-gray-700'"
+            :class="
+              agentTab === 'trace'
+                ? 'text-blue-600 border-blue-500 bg-blue-50/30'
+                : 'text-gray-500 border-transparent hover:text-gray-700'
+            "
             @click="agentTab = 'trace'"
           >
             工作过程
           </button>
           <button
             class="flex-1 py-2.5 text-xs font-medium text-center transition-all border-b-2"
-            :class="agentTab === 'sources'
-              ? 'text-blue-600 border-blue-500 bg-blue-50/30'
-              : 'text-gray-500 border-transparent hover:text-gray-700'"
+            :class="
+              agentTab === 'sources'
+                ? 'text-blue-600 border-blue-500 bg-blue-50/30'
+                : 'text-gray-500 border-transparent hover:text-gray-700'
+            "
             @click="agentTab = 'sources'"
           >
             引用来源
-            <span v-if="store.sources.length > 0" class="ml-1 text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full">
+            <span
+              v-if="store.sources.length > 0"
+              class="ml-1 text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full"
+            >
               {{ store.sources.length }}
             </span>
           </button>
@@ -394,10 +485,7 @@ function handleSSEEvent(event: any) {
             :traces="store.traceSteps"
             :streaming="store.isStreaming"
           />
-          <SourcePanel
-            v-else
-            :sources="store.sources"
-          />
+          <SourcePanel v-else :sources="store.sources" />
         </div>
       </aside>
     </Transition>

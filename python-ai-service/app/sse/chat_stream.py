@@ -1,13 +1,15 @@
-
 """InternSU SSE 流式处理器。
 
 统一管理 SSE 事件发送，支持:
   - trace: 工作过程追踪事件
   - token: 逐字输出事件
-  - meta: 元数据事件 (sources, tokens)
+  - meta: 元数据事件 (sources, tokens, trace_id)
   - error: 错误事件
-  - done: 完成事件
+  - done: 完成事件 (含 trace_id)
   - heartbeat: 心跳保活
+
+v2 变更: meta 和 done 事件支持传递 trace_id，确保流式 SSE 路径
+        下 Java 网关也能通过解析事件体获取链路追踪 ID。
 """
 
 import json
@@ -55,34 +57,58 @@ class StreamSender:
         return _sse_event("token", {"content": content})
 
     @staticmethod
-    async def meta(sources: list | None = None, tokens_used: int = 0, model_name: str = "") -> str:
+    async def meta(
+        sources: list | None = None,
+        tokens_used: int = 0,
+        model_name: str = "",
+        trace_id: str = "",
+    ) -> str:
         """发送元数据。
 
-        在 token 流结束前或结束后发送 Source 引用和 Token 统计。
+        在 token 流开始前或结束后发送 Source 引用、Token 统计和 trace_id。
+        trace_id 用于 Java 网关在流式路径下实现全链路追踪关联。
         """
-        return _sse_event("meta", {
+        data = {
             "sources": sources or [],
             "tokens_used": tokens_used,
             "model_name": model_name,
-        })
+        }
+        if trace_id:
+            data["trace_id"] = trace_id
+        return _sse_event("meta", data)
 
     @staticmethod
-    async def error(message: str, code: str = "UNKNOWN", detail: dict | None = None) -> str:
+    async def error(
+        message: str, code: str = "UNKNOWN", detail: dict | None = None,
+        trace_id: str = "",
+    ) -> str:
         """发送错误事件。"""
         data = {"code": code, "message": message}
         if detail:
             data["detail"] = detail
+        if trace_id:
+            data["trace_id"] = trace_id
         return _sse_event("error", data)
 
     @staticmethod
-    async def done(intent: str = "chat", sources: list | None = None,
-                   conversation_id: str = "") -> str:
-        """发送完成事件。"""
-        return _sse_event("done", {
+    async def done(
+        intent: str = "chat",
+        sources: list | None = None,
+        conversation_id: str = "",
+        trace_id: str = "",
+    ) -> str:
+        """发送完成事件。
+
+        trace_id 用于 Java 网关在流式路径下实现全链路追踪关联。
+        """
+        data = {
             "intent": intent,
             "sources": sources or [],
             "conversation_id": conversation_id,
-        })
+        }
+        if trace_id:
+            data["trace_id"] = trace_id
+        return _sse_event("done", data)
 
     @staticmethod
     async def heartbeat() -> str:
@@ -128,6 +154,7 @@ class InternSSEHandler:
         tokens_used: int = 0,
         model_name: str = "",
         conversation_id: str = "",
+        trace_id: str = "",
     ) -> list[str]:
         """将最终回答转为完整 SSE 事件流。
 
@@ -141,6 +168,7 @@ class InternSSEHandler:
             sources=sources or [],
             tokens_used=tokens_used,
             model_name=model_name,
+            trace_id=trace_id,
         ))
 
         # 逐 token 发送
@@ -152,6 +180,7 @@ class InternSSEHandler:
             intent=intent,
             sources=sources or [],
             conversation_id=conversation_id,
+            trace_id=trace_id,
         ))
 
         return events

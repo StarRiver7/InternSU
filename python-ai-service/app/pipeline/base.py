@@ -38,13 +38,14 @@ class IndexResult:
 
 class BasePipeline(ABC):
     @abstractmethod
-    async def index(self, source: str, doc_id: str, *, metadata: Optional[dict] = None, tenant_id: str = "default") -> IndexResult:
+    async def index(self, source: str, doc_id: str, *, metadata: Optional[dict] = None, space_id: str = "default") -> IndexResult:
         ...
 
     @abstractmethod
-    async def search(self, query: str, *, top_k: int = 5, doc_ids: Optional[list[str]] = None, tenant_id: Optional[str] = None) -> list[dict]:
+    async def search(self, query: str, *, top_k: int = 5, doc_ids: Optional[list[str]] = None, space_id: Optional[str] = None) -> list[dict]:
         ...
 
     @abstractmethod
     async def delete(self, doc_id: str):
         ...
+

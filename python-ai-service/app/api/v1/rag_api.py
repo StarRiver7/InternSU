@@ -14,7 +14,7 @@ async def search(req: RagSearchRequest):
         use_rerank=True,
         with_citation=True,
         doc_ids=[str(d) for d in req.doc_ids] if req.doc_ids else None,
-        tenant_id=req.tenant_id or "default",
+        space_id=req.space_id or "default",
     )
     return RagSearchResponse(chunks=chunks, total=len(chunks))
 
@@ -25,7 +25,7 @@ async def index_document(req: RagIndexRequest):
         file_path=req.file_path,
         doc_id=str(req.file_id),
         metadata=req.metadata,
-        tenant_id=req.tenant_id or "default",
+        space_id=req.space_id or "default",
     )
     return result
 
@@ -39,3 +39,4 @@ async def delete_document(doc_id: str):
 @router.get("/stats")
 async def get_stats():
     return await rag_pipeline.stats()
+

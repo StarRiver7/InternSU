@@ -38,7 +38,7 @@ class RAGPipeline:
         doc_id: str,
         *,
         metadata: dict | None = None,
-        tenant_id: str = "default",
+        space_id: str = "default",
     ) -> dict:
         """Full document ingestion pipeline.
 
@@ -72,7 +72,7 @@ class RAGPipeline:
             documents=chunk_texts,
             metadatas=[c["metadata"] for c in chunks],
             doc_id=doc_id,
-            tenant_id=tenant_id,
+            space_id=space_id,
         )
         logger.info(f"  [4/4] Stored {len(ids)} vectors in Milvus")
 
@@ -96,7 +96,7 @@ class RAGPipeline:
         use_rerank: bool = True,
         with_citation: bool = True,
         doc_ids: list[str] | None = None,
-        tenant_id: str | None = None,
+        space_id: str | None = None,
     ) -> list[dict]:
         """Search the knowledge base with optional re-ranking.
 
@@ -111,7 +111,7 @@ class RAGPipeline:
             top_k=top_k * 2,  # Get more for reranking
             final_k=top_k if not use_rerank else top_k * 2,
             doc_ids=doc_ids,
-            tenant_id=tenant_id,
+            space_id=space_id,
         )
 
         if not chunks:
@@ -137,7 +137,7 @@ class RAGPipeline:
         top_k: int | None = None,
         use_rerank: bool = True,
         doc_ids: list[str] | None = None,
-        tenant_id: str | None = None,
+        space_id: str | None = None,
     ) -> str:
         """Search and format results as LLM-ready context string.
 
@@ -145,7 +145,7 @@ class RAGPipeline:
         """
         chunks = await self.search(
             query, top_k=top_k, use_rerank=use_rerank,
-            with_citation=True, doc_ids=doc_ids, tenant_id=tenant_id,
+            with_citation=True, doc_ids=doc_ids, space_id=space_id,
         )
 
         if not chunks:
@@ -205,3 +205,4 @@ class RAGPipeline:
 
 
 rag_pipeline = RAGPipeline()
+

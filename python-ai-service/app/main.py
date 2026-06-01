@@ -12,7 +12,7 @@ from app.api.v1.chat_api import router as chat_router
 from app.api.v1.rag_api import router as rag_router
 from app.api.v1.health_api import router as health_router
 from app.api.v1.kb_api import router as kb_router
-from app.common.exceptions.exceptions import AppException
+from app.common.exceptions.exceptions import AppException, InvalidConfigException
 
 log_level = "DEBUG" if settings.debug else "INFO"
 log_file = "logs/internsu-ai.log" if settings.env == "prod" else None
@@ -22,9 +22,39 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info(f"[InternSU AI] Starting in {settings.env} mode...")
+    """应用生命周期管理。
+
+    Startup:
+      1. 启动 LLM Gateway 异步探活（验证所有 Provider 的 API Key）
+      2. 任一 Provider 探活失败（401）时记录 CRITICAL 日志但继续启动
+      3. 所有 Provider 均失败时抛出 InvalidConfigException（仍允许启动，但首次请求会报明确错误）
+
+    Shutdown:
+      清理资源（当前无持久连接需显式关闭）。
+    """
+    logger.info("[InternSU AI] Starting in %s mode...", settings.env)
     logger.info("  小SU 正在启动，准备帮老师们干活~")
+
+    # ── LLM Gateway 异步探活 ──
+    try:
+        from app.llm.gateway import llm_gateway
+        await llm_gateway.initialize()
+        logger.info(
+            "LLM Gateway 就绪: %s",
+            ", ".join(llm_gateway.available_providers) or "无可用 Provider",
+        )
+    except InvalidConfigException as e:
+        logger.critical(
+            "LLM Gateway 初始化失败 —— 所有 Provider 均不可用: %s",
+            e.message,
+        )
+        logger.critical("  请检查 .env 中的 DEEPSEEK_API_KEY 或 OPENAI_API_KEY")
+        # 不阻止启动 —— 允许运维人员通过 health API 查看状态后修复
+    except Exception as e:
+        logger.error("LLM Gateway 初始化异常: %s", e, exc_info=True)
+
     yield
+
     logger.info("[InternSU AI] 小SU 下班了~")
 
 
@@ -35,6 +65,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# ── 中间件按注册顺序执行（Starlette 后注册的先执行） ──
+# 执行顺序（从外到内）：
+#   1. CORSMiddleware          — 处理 CORS 预检
+#   2. RequestTracingMiddleware — 设置 traceId 到 contextvars（必须在认证之前）
+#   3. ApiKeyMiddleware         — 验证 API Key
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -42,8 +77,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(ApiKeyMiddleware)
 app.add_middleware(RequestTracingMiddleware)
+app.add_middleware(ApiKeyMiddleware)
 
 app.add_exception_handler(AppException, app_exception_handler)
 app.add_exception_handler(Exception, general_exception_handler)

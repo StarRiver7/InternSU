@@ -60,3 +60,20 @@ class BaseLLMProvider(ABC):
     @abstractmethod
     def default_model(self) -> str:
         pass
+
+    # ── 启动探活（v2） ──────────────────────────────────────────────────
+
+    async def validate_key(self) -> bool:
+        """验证 API Key 有效性 —— 尽可能低成本的异步探活。
+
+        由 LLMGateway.initialize() 在服务启动时调用。
+        具体 Provider 应覆写此方法，使用最省 Token 的方式验证 API Key。
+
+        约定:
+          - 返回 True:  Key 有效（或无法确定，给予信任）
+          - 抛出 openai.AuthenticationError: Key 确定无效（401），网关将其剔除
+          - 抛出其他异常: 视为暂时性故障，网关保留该 Provider
+
+        默认实现: 不执行任何操作，返回 True（无验证 = 给予信任）。
+        """
+        return True

@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS t_document (
     file_type         VARCHAR(16)  NOT NULL                COMMENT '文件类型: pdf/docx/txt/md',
     file_path         VARCHAR(512) NOT NULL                COMMENT 'OSS存储路径',
     file_hash         VARCHAR(64)  DEFAULT NULL            COMMENT 'SHA-256去重哈希',
-    processing_status VARCHAR(16)  NOT NULL DEFAULT 'uploaded' COMMENT 'uploaded/parsing/chunking/embedding/ready/failed',
+    processing_status TINYINT       NOT NULL DEFAULT 0               COMMENT '处理状态: 0=uploaded 1=parsing 2=chunking 3=embedding 4=ready -1=failed',
     chunk_count       INT          DEFAULT 0               COMMENT '分块数量',
     error_msg         VARCHAR(1024) DEFAULT NULL           COMMENT '处理失败错误信息',
     creator_id        BIGINT       NOT NULL                COMMENT '上传者ID',
@@ -237,3 +237,4 @@ CREATE TABLE IF NOT EXISTS t_system_config (
 -- V4 END — InternSU 结构升级完成
 -- 下一步: V5__internsu_seed_data.sql (种子数据)
 -- ============================================================
+

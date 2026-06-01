@@ -1,7 +1,11 @@
 from typing import TypedDict, Annotated, Optional
 from operator import add
 
+
 class InternState(TypedDict, total=False):
+    # ── Tracing ──
+    trace_id: str                     # 分布式链路追踪 ID，从 Java 端 X-Trace-Id 继承
+
     # ── Session ──
     conversation_id: str
     user_id: str
@@ -83,14 +87,33 @@ def create_initial_state(
     history: list[dict] = None,
     model_name: str = "deepseek-chat",
     restore_state: dict = None,
+    trace_id: str = "",
 ) -> InternState:
+    """构造 LangGraph 的初始状态。
+
+    Args:
+        trace_id: 分布式链路追踪 ID。
+                  调用方应优先从 contextvars（由中间件设置）中读取并传入；
+                  若为空字符串，则降级为读取当前 contextvars 值或自动生成。
+    """
     if model_name is None:
         model_name = "deepseek-chat"
     if restore_state is None:
         restore_state = {}
     rs = restore_state
 
+    # trace_id 三级降级策略：
+    #   1. 调用方显式传入（来自 graph.run() 从 contextvars 读取）
+    #   2. 当前异步上下文的 contextvars 值
+    #   3. 重置为空（logger 日志过滤器会显示 "-"）
+    if not trace_id:
+        from app.core.logger import get_trace_id
+        trace_id = get_trace_id()
+
     return InternState(
+        # ── Tracing ──
+        trace_id=trace_id,
+
         conversation_id=conversation_id,
         user_id=user_id,
         user_message=message,

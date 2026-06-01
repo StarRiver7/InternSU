@@ -2,21 +2,42 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.company.aiplatform.rag.mapper.DocumentMapper">
 
+    <!--
+      ============================================================
+      selectAccessibleDocumentIds — 基于 V4 知识空间权限模型的文档可见性查询
+
+      权限判定规则（OR 关系，满足任一即可见）:
+        1. 用户是文档上传者本人 (d.creator_id = userId)
+        2. 知识空间为 public 可见
+        3. 知识空间为 department 可见 且 用户与空间同部门
+        4. 用户是知识空间的创建者
+        5. 通过 t_document_permission 单独授权（读/写/管理员）
+
+      与旧版差异:
+        - 废弃 t_knowledge_base 表，改用 t_knowledge_space
+        - 新增 deptId 参数支持部门级权限过滤
+        - 移除旧的 tenant_id / principal_type / principal_id 逻辑
+      ============================================================
+    -->
     <select id="selectAccessibleDocumentIds" resultType="java.lang.Long">
         SELECT DISTINCT d.id
         FROM t_document d
-        LEFT JOIN t_knowledge_base kb ON d.id = kb.document_id
+        LEFT JOIN t_knowledge_space ks ON d.space_id = ks.id AND ks.is_deleted = 0
+        LEFT JOIN t_document_permission dp
+            ON d.id = dp.document_id
+            AND dp.principal_type = ''user''
+            AND dp.principal_id = CAST(#{userId} AS CHAR)
         WHERE d.is_deleted = 0
-        AND d.status = 1
         AND (
-            d.user_id = #{userId}
-            OR (kb.principal_type = 'user' AND kb.principal_id = CAST(#{userId} AS CHAR))
-            OR (kb.principal_type = 'role' AND kb.principal_id IN (
-                SELECT CAST(ur.role_id AS CHAR)
-                FROM t_user_role ur
-                WHERE ur.user_id = #{userId}
-            ))
+            d.creator_id = #{userId}
+            OR ks.visibility = ''public''
+            OR (ks.visibility = ''department''
+                AND ks.department_id = #{deptId}
+                AND #{deptId} IS NOT NULL)
+            OR ks.creator_id = #{userId}
+            OR dp.id IS NOT NULL
         )
+        ORDER BY d.id
     </select>
 
 </mapper>

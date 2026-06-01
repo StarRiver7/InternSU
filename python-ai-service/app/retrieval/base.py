@@ -33,7 +33,7 @@ class SearchQuery:
     top_k: int = 5
     score_threshold: float = 0.5
     doc_ids: Optional[list[str]] = None
-    tenant_id: Optional[str] = None
+    space_id: Optional[str] = None
     filters: dict[str, Any] = field(default_factory=dict)
 
 
@@ -70,7 +70,7 @@ class BaseVectorStore(ABC):
         documents: list[str],
         metadata: list[dict],
         *,
-        tenant_id: str = "default",
+        space_id: str = "default",
     ) -> list[str]:
         """Insert vectors with documents and metadata. Returns IDs."""
         ...
@@ -89,3 +89,4 @@ class BaseVectorStore(ABC):
     async def count(self) -> int:
         """Return total vector count."""
         ...
+
