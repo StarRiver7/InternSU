@@ -3,22 +3,22 @@ from operator import add
 
 
 class InternState(TypedDict, total=False):
-    # ── Tracing ──
-    trace_id: str                     # 分布式链路追踪 ID，从 Java 端 X-Trace-Id 继承
+    # -- Tracing --
+    trace_id: str                     # distributed trace ID from Java X-Trace-Id
 
-    # ── Session ──
+    # -- Session --
     conversation_id: str
     user_id: str
     user_message: str
     conversation_context: Annotated[list[dict], add]
     permission_context: dict
 
-    # ── Intent ──
+    # -- Intent --
     intent: str
     intent_confidence: float
     intent_detail: str               # "rag_query" | "sql_query" | "chat" | "clarify"
 
-    # ── Clarify ──
+    # -- Clarify --
     clarify_required: bool
     clarify_question: str
     clarify_round: int
@@ -30,45 +30,46 @@ class InternState(TypedDict, total=False):
     pending_task: str
     task_context: dict
 
-    # ── RAG Pipeline ──
+    # -- RAG Pipeline --
     rag_triggered: bool              # Whether RAG was activated
     query_rewritten: str             # LLM-rewritten query
     retrieval_query: str             # Actual query used for retrieval
     space_ids: list[int]             # Allowed knowledge bases
+    doc_ids: list[int]               # Specific document IDs to filter by
     retrieval_top_k: int             # Top-K for retrieval
     retrieval_results: list[dict]    # Raw hybrid retrieval results
     retrieval_count: int             # Number of raw hits
     retrieval_elapsed_ms: int        # Retrieval timing
 
-    # ── Rerank ──
+    # -- Rerank --
     rerank_results: list[dict]       # Re-ranked chunks
     rerank_count: int                # Post-rerank count
     rerank_elapsed_ms: int           # Rerank timing
     rerank_strategy: str             # "heuristic" | "semantic"
 
-    # ── Citation ──
+    # -- Citation --
     citations: list[dict]            # Structured citation objects
     citation_set: Optional[dict]     # Full CitationSet dict
     citation_count: int              # Number of citations
     trust_level: str                 # "high" | "medium" | "low" | "unreliable"
     citation_highlights: dict        # Source highlight map
 
-    # ── RAG Context ──
+    # -- RAG Context --
     rag_context: str                 # Formatted context for LLM
     rag_context_tokens: int          # Estimated token count
     rag_context_truncated: bool      # Whether context was truncated
     source_documents: list[dict]     # Source document info
 
-    # ── Answer ──
+    # -- Answer --
     rag_answer: str                  # Final RAG answer
     answer_sources: list[dict]       # Sources used in answer
 
-    # ── Agentic Retrieval ──
+    # -- Agentic Retrieval --
     retrieval_attempts: int          # Number of retrieval attempts
     retrieval_fallback_used: bool    # Whether fallback was triggered
     retrieval_failed: bool           # Whether all retrieval failed
 
-    # ── Graph ──
+    # -- Graph --
     current_node: str
     next_node: str
     trace_steps: list[dict]
@@ -87,14 +88,14 @@ def create_initial_state(
     history: list[dict] = None,
     model_name: str = "deepseek-chat",
     restore_state: dict = None,
+    doc_ids: list[int] = None,
     trace_id: str = "",
 ) -> InternState:
-    """构造 LangGraph 的初始状态。
+    """Construct LangGraph initial state.
 
     Args:
-        trace_id: 分布式链路追踪 ID。
-                  调用方应优先从 contextvars（由中间件设置）中读取并传入；
-                  若为空字符串，则降级为读取当前 contextvars 值或自动生成。
+        trace_id: distributed trace ID, read from contextvars by caller.
+        doc_ids: specific document IDs to restrict RAG retrieval scope.
     """
     if model_name is None:
         model_name = "deepseek-chat"
@@ -102,16 +103,11 @@ def create_initial_state(
         restore_state = {}
     rs = restore_state
 
-    # trace_id 三级降级策略：
-    #   1. 调用方显式传入（来自 graph.run() 从 contextvars 读取）
-    #   2. 当前异步上下文的 contextvars 值
-    #   3. 重置为空（logger 日志过滤器会显示 "-"）
     if not trace_id:
         from app.core.logger import get_trace_id
         trace_id = get_trace_id()
 
     return InternState(
-        # ── Tracing ──
         trace_id=trace_id,
 
         conversation_id=conversation_id,
@@ -120,6 +116,7 @@ def create_initial_state(
         conversation_context=history or [],
         permission_context=rs.get("permission_context", {}),
 
+        doc_ids=doc_ids or rs.get("doc_ids", []),
         intent=rs.get("intent", "chat"),
         intent_confidence=rs.get("intent_confidence", 0.0),
         intent_detail=rs.get("intent_detail", "chat"),

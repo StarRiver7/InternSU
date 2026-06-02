@@ -8,13 +8,13 @@ from app.graph.nodes.router_node import router_node
 from app.graph.nodes.chat_node import chat_node
 from app.graph.nodes.sql_node import sql_node
 
-# ── RAG Sub-Graph Nodes ──
+# -- RAG Sub-Graph Nodes --
 from app.graph.nodes.rag_retrieval_node import rag_retrieval_node
 from app.graph.nodes.rag_rerank_node import rag_rerank_node
 from app.graph.nodes.citation_node import citation_node
 from app.graph.nodes.rag_answer_node import rag_answer_node
 
-# ── Memory ──
+# -- Memory --
 from app.graph.nodes.memory_node import memory_node
 
 from app.graph.nodes.response_node import response_node
@@ -27,39 +27,10 @@ logger = get_logger(__name__)
 
 
 def build_intern_graph():
-    """Build the full Agentic RAG LangGraph.
-
-    Graph Structure:
-        START
-          |
-          v
-        intent_node
-          |
-          +-- clarify_node --> END
-          +-- slot_collect_node --> task_resume_node --> router_node
-          +-- router_node
-               |
-               +-- chat_node --> response_node --> memory_node --> END
-               +-- sql_node  --> response_node --> memory_node --> END
-               +-- rag_retrieval_node
-                    |
-                    +-- rag_rerank_node --> citation_node --> rag_answer_node
-                    |                                            |
-                    +-- rag_answer_node (skip rerank if no results)|
-                                                                  |
-                    +---------------------------------------------+
-                    v
-               response_node --> memory_node --> END
-
-    流式模式 (v2):
-      当 config["configurable"]["token_queue"] 存在时，chat_node 使用
-      chat_stream() 进行真流式输出，每收到一个 LLM token 即推入队列。
-      调用方（_sse_generator）实时从队列消费并 yield SSE 事件。
-      其他节点（intent / router / rag 子图）不受影响，继续阻塞执行。
-    """
+    """Build the full Agentic RAG LangGraph."""
     graph = StateGraph(InternState)
 
-    # ── Core Nodes ──
+    # -- Core Nodes --
     graph.add_node("intent_node", intent_node)
     graph.add_node("clarify_node", clarify_node)
     graph.add_node("slot_collect_node", slot_collect_node)
@@ -70,16 +41,16 @@ def build_intern_graph():
     graph.add_node("response_node", response_node)
     graph.add_node("memory_node", memory_node)
 
-    # ── RAG Sub-Graph Nodes ──
+    # -- RAG Sub-Graph Nodes --
     graph.add_node("rag_retrieval_node", rag_retrieval_node)
     graph.add_node("rag_rerank_node", rag_rerank_node)
     graph.add_node("citation_node", citation_node)
     graph.add_node("rag_answer_node", rag_answer_node)
 
-    # ── Entry ──
+    # -- Entry --
     graph.set_entry_point("intent_node")
 
-    # ── Intent -> Clarify / Slot / Router ──
+    # -- Intent -> Clarify / Slot / Router --
     graph.add_conditional_edges(
         "intent_node", route_after_intent,
         {
@@ -89,7 +60,7 @@ def build_intern_graph():
         },
     )
 
-    # ── Slot Collect -> Clarify / Task Resume ──
+    # -- Slot Collect -> Clarify / Task Resume --
     graph.add_conditional_edges(
         "slot_collect_node", route_after_slot_collect,
         {
@@ -101,7 +72,7 @@ def build_intern_graph():
     graph.add_edge("clarify_node", END)
     graph.add_edge("task_resume_node", "router_node")
 
-    # ── Router -> Chat / SQL / RAG Retrieval ──
+    # -- Router -> Chat / SQL / RAG Retrieval --
     graph.add_conditional_edges(
         "router_node", route_after_router,
         {
@@ -111,17 +82,17 @@ def build_intern_graph():
         },
     )
 
-    # ── RAG Sub-Graph: Retrieval -> Rerank / Answer (with fallback) ──
+    # -- RAG Sub-Graph: Retrieval -> Rerank / Answer (with fallback) --
     graph.add_conditional_edges(
         "rag_retrieval_node", route_after_rag_retrieval,
         {
             "rag_rerank_node": "rag_rerank_node",
             "rag_answer_node": "rag_answer_node",
-            "clarify_node": "clarify_node",  # Agentic: retry with clarification
+            "clarify_node": "clarify_node",
         },
     )
 
-    # ── Rerank -> Citation / Skip ──
+    # -- Rerank -> Citation / Skip --
     graph.add_conditional_edges(
         "rag_rerank_node", route_after_rag_rerank,
         {
@@ -130,7 +101,7 @@ def build_intern_graph():
         },
     )
 
-    # ── Citation -> Answer / Clarify (low trust) ──
+    # -- Citation -> Answer / Clarify (low trust) --
     graph.add_conditional_edges(
         "citation_node", route_after_rag_citation,
         {
@@ -139,7 +110,7 @@ def build_intern_graph():
         },
     )
 
-    # ── Answer / Chat / SQL -> Response -> Memory -> END ──
+    # -- Answer / Chat / SQL -> Response -> Memory -> END --
     graph.add_edge("chat_node", "response_node")
     graph.add_edge("sql_node", "response_node")
     graph.add_edge("rag_answer_node", "response_node")
@@ -150,13 +121,7 @@ def build_intern_graph():
 
 
 class InternGraph:
-    """Agentic InternSU LangGraph with full RAG pipeline.
-
-    提供两种执行模式:
-      - run():       阻塞式，等待 Graph 完整执行后返回（供非流式端点）
-      - run_stream():流式模式，通过 config 注入 token_queue，
-                     chat_node 实时推送 LLM token（供 SSE 流式端点）
-    """
+    """Agentic InternSU LangGraph with full RAG pipeline."""
 
     def __init__(self):
         self._graph = build_intern_graph()
@@ -169,9 +134,9 @@ class InternGraph:
         history: list[dict] = None,
         model_name: str = "deepseek-chat",
         restore_state: dict = None,
+        doc_ids: list[int] = None,
     ) -> dict:
-        """阻塞式执行 Graph（供非流式 /ai/chat?stream=false 使用）。"""
-        # ── trace_id 多轮延续 ──
+        """Blocking graph execution (for non-streaming /ai/chat?stream=false)."""
         trace_id = ""
         if restore_state and restore_state.get("trace_id"):
             trace_id = restore_state["trace_id"]
@@ -187,6 +152,7 @@ class InternGraph:
             history=history,
             model_name=model_name,
             restore_state=restore_state,
+            doc_ids=doc_ids,
             trace_id=trace_id,
         )
 
@@ -219,22 +185,10 @@ class InternGraph:
         history: list[dict] = None,
         model_name: str = "deepseek-chat",
         restore_state: dict = None,
+        doc_ids: list[int] = None,
         config: dict = None,
     ) -> dict:
-        """流式执行 Graph（供 SSE 端点 _sse_generator 使用）。
-
-        通过 config["configurable"]["token_queue"] 将令牌队列注入到 chat_node。
-        chat_node 在接收到 LLM token 时实时写入队列，上层 _sse_generator
-        从队列消费并 yield SSE 事件，实现全链路真流式。
-
-        Args:
-            config: RunnableConfig dict，必须包含:
-                    config["configurable"]["token_queue"] = asyncio.Queue
-
-        Returns:
-            完整 Graph 执行结果（token 已通过队列流式推送完毕）。
-        """
-        # ── trace_id 多轮延续 ──
+        """Streaming graph execution (for SSE endpoint)."""
         trace_id = ""
         if restore_state and restore_state.get("trace_id"):
             trace_id = restore_state["trace_id"]
@@ -250,6 +204,7 @@ class InternGraph:
             history=history,
             model_name=model_name,
             restore_state=restore_state,
+            doc_ids=doc_ids,
             trace_id=trace_id,
         )
 
@@ -259,9 +214,6 @@ class InternGraph:
             restore_state.get("clarify_pending") if restore_state else False,
         )
 
-        # ── config 透传到每个节点的第二个参数 ──
-        # LangGraph 会将 RunnableConfig 传递给每个节点函数的 config 参数。
-        # chat_node 从 config["configurable"]["token_queue"] 提取队列。
         result = await self._graph.ainvoke(state, config=config)
 
         logger.info(

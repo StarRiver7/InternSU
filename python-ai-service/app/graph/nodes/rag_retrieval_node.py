@@ -73,6 +73,7 @@ async def rag_retrieval_node(state: InternState) -> InternState:
             user_id=user_id,
             department_id=department_id,
             space_ids=space_ids,
+            document_ids=state.get("doc_ids") or None,
             enable_rewrite=False,  # Already rewritten above
             enable_rerank=False,   # Separate node handles this
             enable_merge=False,    # Separate node handles this

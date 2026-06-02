@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@MapperScan("com.company.aiplatform.auth.mapper")
+@MapperScan({"com.company.aiplatform.auth.mapper", "com.company.aiplatform.rag.mapper", "com.company.aiplatform.tool.mapper", "com.company.aiplatform.chat.persistence"})
 public class MyBatisPlusConfig {
 
     /**

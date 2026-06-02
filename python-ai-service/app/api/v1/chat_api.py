@@ -158,6 +158,7 @@ async def _sse_generator(req: ChatRequest):
                 history=history,
                 model_name=req.model or "deepseek-chat",
                 restore_state=restore_state,
+                doc_ids=req.doc_ids,
                 config=config,
             )
 
@@ -311,7 +312,7 @@ async def _sse_generator(req: ChatRequest):
 # Graph 执行器（非流式保留，供 /ai/chat?stream=false 使用）
 # ============================================================
 
-async def _run_graph(req, history=None, restore_state=None):
+async def _run_graph(req, history=None, restore_state=None):`r`n    """Execute LangGraph and return full result (blocking, for non-streaming endpoint)."""
     """执行 LangGraph 并返回完整结果（阻塞式，供非流式端点使用）。"""
     result = await intern_graph.run(
         user_id=req.user_id,
@@ -320,31 +321,5 @@ async def _run_graph(req, history=None, restore_state=None):
         history=history,
         model_name=req.model or "deepseek-chat",
         restore_state=restore_state,
+        doc_ids=req.doc_ids,
     )
-    return result
-
-
-# ============================================================
-# Conversation management
-# ============================================================
-# trace_id 自动注入: ApiResponse.trace_id 通过 default_factory 从 contextvars 读取
-
-@router.get("/conversations")
-async def list_conversations(user_id: str = Query(...)):
-    convs = memory_manager.get_user_conversations(user_id)
-    return ApiResponse(data={"conversations": convs, "total": len(convs)}).model_dump()
-
-
-@router.get("/conversations/{conversation_id}/messages")
-async def get_messages(conversation_id: str, limit: int = Query(default=50, le=200)):
-    messages = memory_manager.get_message_history(conversation_id, limit)
-    return ApiResponse(data={"messages": messages, "total": len(messages)}).model_dump()
-
-
-@router.post("/conversations")
-async def create_conversation(
-    user_id: str = Query(...),
-    title: str = Query(default=""),
-):
-    conv_id = await memory_manager.start_conversation(user_id, title)
-    return ApiResponse(data={"conversation_id": conv_id}).model_dump()

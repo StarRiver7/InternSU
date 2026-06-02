@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
+import reactor.core.publisher.Mono;
 
 /**
  * 文档管理 Controller — V4 重构版.
@@ -92,15 +93,14 @@ public class RagController {
 
     @Operation(summary = "基于文档上下文的 AI 对话")
     @PostMapping("/chat")
-    public Result<Map<String, Object>> chat(
+    public Mono<Result<Map<String, Object>>> chat(
             @CurrentUserId Long userId,
             @Valid @RequestBody ChatRequest chatRequest) {
 
-        Map<String, Object> result = documentService.chat(
+        return documentService.chat(
                 userId,
                 chatRequest.getQuery(),
                 chatRequest.getDocumentIds()
-        );
-        return Result.success(result);
+        ).map(Result::success);
     }
 }

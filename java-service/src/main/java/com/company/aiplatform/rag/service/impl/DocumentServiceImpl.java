@@ -12,6 +12,10 @@ import com.company.aiplatform.rag.mapper.DocumentPermissionMapper;
 import com.company.aiplatform.rag.service.DocumentService;
 import com.company.aiplatform.thirdparty.client.AIServiceClient;
 import com.company.aiplatform.thirdparty.dto.AIChatResponse;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
+import com.company.aiplatform.chat.service.ChatPersistenceService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,7 +38,6 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import reactor.core.scheduler.Schedulers;
 
 /**
  * 文档管理服务实现 — V4 重构版.
@@ -54,6 +57,8 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
 
     private final DocumentPermissionMapper documentPermissionMapper;
     private final AIServiceClient aiBackendClient;
+    private final ChatPersistenceService chatPersistenceService;
+    private final ObjectMapper objectMapper;
 
     @Value("${file.upload.path:./uploads}")
     private String uploadPath;
@@ -254,6 +259,31 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
 
     // ======================== 删除 ========================
 
+    /** Persist chat record to MySQL on bounded elastic scheduler. */
+    private Mono<Void> persistChatRecord(Long userId, String query, AIChatResponse response) {
+        return Mono.fromRunnable(() -> {
+            try {
+                String sourcesJson = null;
+                if (response.getSources() != null) {
+                    sourcesJson = objectMapper.writeValueAsString(response.getSources());
+                }
+                chatPersistenceService.saveChatTurn(
+                        userId,
+                        response.getConversationId(),
+                        null,
+                        query,
+                        response.getContent(),
+                        response.getIntent(),
+                        sourcesJson,
+                        null
+                );
+            } catch (Exception e) {
+                log.warn("Failed to persist chat record: {}", e.getMessage());
+            }
+        }).subscribeOn(Schedulers.boundedElastic()).then();
+    }
+
+
     @Override
     public void deleteDocument(Long documentId, Long userId, Long deptId) {
         // ★ 纵深防御第二步：检查用户是否有权访问此文档
@@ -290,15 +320,18 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     // ======================== AI 对话 ========================
 
     @Override
-    public Map<String, Object> chat(Long userId, String query, List<Long> docIds) {
-        AIChatResponse response = aiBackendClient.chat(userId, null, query, true, true);
+    public Mono<Map<String, Object>> chat(Long userId, String query, List<Long> docIds) {
+        return aiBackendClient.chat(userId, null, query, true, true, docIds)
+                .flatMap(response -> {
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("answer", response.getContent());
+                    result.put("sources", response.getSources());
+                    result.put("conversation_id", response.getConversationId());
+                    result.put("intent", response.getIntent());
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("answer", response.getContent());
-        result.put("sources", response.getSources());
-        result.put("intent", response.getIntent());
-        result.put("conversation_id", response.getConversationId());
-        return result;
+                    return persistChatRecord(userId, query, response)
+                            .then(Mono.just(result));
+                });
     }
 
     // ======================== 内部工具 ========================

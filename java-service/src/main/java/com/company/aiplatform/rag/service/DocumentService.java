@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import reactor.core.publisher.Mono;
 
 /**
  * 文档管理服务接口 — V4 重构版.
@@ -45,7 +46,7 @@ public interface DocumentService {
     void processDocumentAsync(Long documentId, String filePath, String fileHash);
 
     /** AI 对话（基于文档上下文） */
-    Map<String, Object> chat(Long userId, String query, List<Long> docIds);
+    Mono<Map<String, Object>> chat(Long userId, String query, List<Long> docIds);
 
     /**
      * 删除文档（含越权拦截）.

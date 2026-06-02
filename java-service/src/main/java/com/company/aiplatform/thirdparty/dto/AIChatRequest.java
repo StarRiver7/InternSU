@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -33,4 +35,7 @@ public class AIChatRequest {
     @Builder.Default
     @JsonProperty("use_tools")
     private boolean useTools = true;
+
+    @JsonProperty("doc_ids")
+    private List<Long> docIds;
 }
