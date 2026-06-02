@@ -54,6 +54,11 @@ async def chat(req: ChatRequest, request: Request):
       - SSE 响应: _sse_generator 内部读取并注入到 meta / done / error 事件
       - 响应头: RequestTracingMiddleware 自动设置 X-Trace-Id
     """
+    # Auto-generate conversation_id if not provided (ad-hoc chat)
+    if not req.conversation_id:
+        req.conversation_id = memory_manager.generate_conversation_id()
+        logger.info("Auto-generated conversation_id: %s", req.conversation_id)
+
     if req.stream:
         return StreamingResponse(
             _sse_generator(req),

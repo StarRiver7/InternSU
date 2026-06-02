@@ -3,12 +3,10 @@ from app.rag.chunk.chunk_strategy import ChunkStrategy, ChunkConfig
 from app.rag.chunk.chunk_metadata import ChunkMetadata, build_chunk_metadata
 from app.rag.chunk.token_counter import token_counter, TokenCounter, TokenCount
 from app.rag.chunk.chunk_storage import chunk_storage, ChunkStorage
-from app.rag.chunk.chunk_service import chunk_service, ChunkService
 
 __all__ = [
     "ChunkStrategy", "ChunkConfig",
     "ChunkMetadata", "build_chunk_metadata",
     "token_counter", "TokenCounter", "TokenCount",
     "chunk_storage", "ChunkStorage",
-    "chunk_service", "ChunkService",
 ]
