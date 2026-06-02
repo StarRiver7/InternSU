@@ -65,7 +65,7 @@ export const useKnowledgeStore = defineStore('internsu-kb', () => {
     uploading.value = true;
     uploadProgress.value = '上传中...';
     try {
-      await uploadDocument(file.name, file);
+      await uploadDocument(spaceId, file);
       uploadProgress.value = '上传完成';
       await loadDocuments();
       return true;

@@ -69,7 +69,7 @@ public class RagController {
         } catch (BusinessException e) {
             return Result.fail(e.getCode(), e.getMessage());
         } catch (Exception e) {
-            log.error("Upload failed: userId={}, spaceId={}", userId, spaceId, e);
+            log.error("上传失败: userId={}, spaceId={}", userId, spaceId, e);
             return Result.fail(ResultCode.UPLOAD_FAILED, "上传失败: " + e.getMessage());
         }
     }

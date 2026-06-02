@@ -2,7 +2,9 @@ package com.company.aiplatform.common.trace;
 
 import org.slf4j.MDC;
 import org.springframework.web.reactive.function.client.ClientRequest;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
+import org.springframework.web.reactive.function.client.ExchangeFunction;
 import reactor.core.publisher.Mono;
 
 /**
@@ -31,7 +33,7 @@ import reactor.core.publisher.Mono;
 public class TraceIdExchangeFilterFunction implements ExchangeFilterFunction {
 
     @Override
-    public Mono<ClientRequest> filter(ClientRequest request, ExchangeFunction next) {
+    public Mono<ClientResponse> filter(ClientRequest request, ExchangeFunction next) {
         // 从当前线程（可能是 HTTP 线程或线程池工作线程）的 MDC 中读取 traceId
         String traceId = MDC.get(TraceIdFilter.MDC_KEY);
 

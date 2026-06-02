@@ -1,5 +1,7 @@
 package com.company.aiplatform.thirdparty.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -8,7 +10,7 @@ import lombok.NoArgsConstructor;
 
 @Data
 @Builder
-@NoArgsConstructor
+@JsonInclude(Include.NON_NULL)`n@NoArgsConstructor
 @AllArgsConstructor
 public class AIChatRequest {
 

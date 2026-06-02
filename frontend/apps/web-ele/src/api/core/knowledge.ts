@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 知识库 API — Java 文档管理 + Python RAG
  */
 import { aiRequestClient, requestClient } from '#/api/request';
@@ -12,13 +12,11 @@ export async function getDocuments(pageNum: number = 1, pageSize: number = 10) {
 }
 
 /** POST /api/v1/documents/upload — 上传文档 */
-export function uploadDocument(title: string, file: File): Promise<any> {
+export function uploadDocument(spaceId: number, file: File): Promise<any> {
   const formData = new FormData();
-  formData.append('title', title);
+  formData.append('space_id', String(spaceId));
   formData.append('file', file);
-  return requestClient.post('/v1/documents/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  return requestClient.post('/v1/documents/upload', formData);
 }
 
 /** DELETE /api/v1/documents/:id — 删除文档 */

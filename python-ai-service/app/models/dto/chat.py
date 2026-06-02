@@ -1,10 +1,11 @@
+import uuid
 from pydantic import BaseModel, Field
 from typing import Optional, Literal
 
 
 class ChatRequest(BaseModel):
     """Chat request forwarded from Java service."""
-    conversation_id: str = Field(..., description="Conversation ID")
+    conversation_id: Optional[str] = Field(default=None, description="Conversation ID")
     user_id: str = Field(..., description="User ID")
     message: str = Field(..., min_length=1, max_length=32000, description="User message")
     model: Optional[str] = Field(default=None, description="Model name, uses default if not set")

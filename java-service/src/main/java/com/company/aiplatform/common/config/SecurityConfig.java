@@ -69,7 +69,7 @@ public class SecurityConfig {
                         .accessDeniedHandler(accessDeniedHandler)
                 )
                 // TraceIdFilter 在最前：确保所有后续过滤器的日志都携带 traceId
-                .addFilterBefore(traceIdFilter, JwtAuthenticationFilter.class)
+                .addFilterBefore(traceIdFilter, UsernamePasswordAuthenticationFilter.class)
                 // JWT 过滤器在 UsernamePasswordAuthenticationFilter 之前
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
