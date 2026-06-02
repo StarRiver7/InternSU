@@ -70,6 +70,8 @@ class MemoryManager:
 # ---- Agent state save/restore ----
 
     async def save_graph_state(self, user_id, conv_id, graph_state):
+        if graph_state is None:
+            return
         await state_memory.save_state(user_id, conv_id, graph_state)
         slots = graph_state.get("collected_slots", {})
         if slots:

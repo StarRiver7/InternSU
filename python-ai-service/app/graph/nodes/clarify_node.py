@@ -16,6 +16,19 @@ async def clarify_node(state: InternState) -> InternState:
     slots = slot_manager.get_slots(intent_key)
     collected = state.get("collected_slots", {})
     missing = slot_manager.check_missing(slots, collected)
+
+    # Try to extract slots from the original user message before declaring them missing
+    if slots and missing:
+        try:
+            extracted = await slot_manager.extract_slots_from_response(message, slots)
+            if extracted:
+                collected.update(extracted)
+                state["collected_slots"] = collected
+                missing = slot_manager.check_missing(slots, collected)
+                logger.info(f"ClarifyNode: auto-extracted slots={list(extracted.keys())}, still missing={missing}")
+        except Exception as e:
+            logger.warning(f"ClarifyNode: auto-extract slots failed: {e}")
+
     state["clarify_slots"] = slots
     state["missing_slots"] = missing
     if not slots or not missing:

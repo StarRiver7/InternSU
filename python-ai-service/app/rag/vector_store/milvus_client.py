@@ -70,10 +70,16 @@ class MilvusClient:
 
         # Create index
         index_params = build_index_params(self._index_config)
-        self._client.create_index(
-            collection_name=COLLECTION_NAME,
-            index_params=index_params,
-        )
+        try:
+            self._client.create_index(
+                collection_name=COLLECTION_NAME,
+                index_params=index_params,
+            )
+        except Exception as e:
+            if 'already exists' in str(e).lower():
+                logger.info(f'[Milvus] Index already exists, skipping creation')
+            else:
+                raise
 
         self._client.load_collection(COLLECTION_NAME)
         logger.info(
@@ -164,7 +170,7 @@ class MilvusClient:
             data=[query_vector],
             limit=top_k,
             filter=filter_expr,
-            anns_field="embedding",
+            anns_field="vector",
             search_params=search_params,
             output_fields=OUTPUT_FIELDS,
         )

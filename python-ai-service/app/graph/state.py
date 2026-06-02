@@ -63,6 +63,7 @@ class InternState(TypedDict, total=False):
     # -- Answer --
     rag_answer: str                  # Final RAG answer
     answer_sources: list[dict]       # Sources used in answer
+    sources: list[dict]              # Sources output (for API response)
 
     # -- Agentic Retrieval --
     retrieval_attempts: int          # Number of retrieval attempts

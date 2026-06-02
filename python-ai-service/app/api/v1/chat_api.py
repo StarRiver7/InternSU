@@ -312,7 +312,8 @@ async def _sse_generator(req: ChatRequest):
 # Graph 执行器（非流式保留，供 /ai/chat?stream=false 使用）
 # ============================================================
 
-async def _run_graph(req, history=None, restore_state=None):`r`n    """Execute LangGraph and return full result (blocking, for non-streaming endpoint)."""
+async def _run_graph(req, history=None, restore_state=None):
+    """Execute LangGraph and return full result (blocking, for non-streaming endpoint)."""
     """执行 LangGraph 并返回完整结果（阻塞式，供非流式端点使用）。"""
     result = await intern_graph.run(
         user_id=req.user_id,
@@ -323,3 +324,4 @@ async def _run_graph(req, history=None, restore_state=None):`r`n    """Execute L
         restore_state=restore_state,
         doc_ids=req.doc_ids,
     )
+    return result

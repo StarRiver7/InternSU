@@ -18,11 +18,17 @@ from app.core.config import settings
 from app.core.logger import get_logger
 
 logger = get_logger(__name__)
+# Force offline mode to avoid HuggingFace connection timeouts
+# Model must be pre-downloaded to local cache (e.g. via HF_ENDPOINT=https://hf-mirror.com)
+import os as _os
+_os.environ.setdefault("HF_HUB_OFFLINE", "1")
+_os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+
 
 # ═══════════════════════════════════════════════════════════════
 # 硬编码常量 — 不允许从配置覆盖
 # ═══════════════════════════════════════════════════════════════
-_MODEL_NAME = "BAAI/bge-m3"
+_MODEL_NAME = r"C:\Users\Xiang\.cache\huggingface\hub\models--BAAI--bge-m3\snapshots\5617a9f61b028005a4858fdac845db406aefb181"
 _REQUIRED_DIM = 1024
 _BATCH_SIZE = 32
 _MAX_SEQ_LENGTH = 8192

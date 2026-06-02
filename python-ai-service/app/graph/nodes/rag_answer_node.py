@@ -144,6 +144,7 @@ async def rag_answer_node(state: InternState) -> InternState:
             }
             for i, c in enumerate(citations)
         ]
+        state["sources"] = state["answer_sources"]
 
         duration_ms = int((time.time() - t0) * 1000)
         _finish_trace(state, "已基于知识库生成回答", t0)

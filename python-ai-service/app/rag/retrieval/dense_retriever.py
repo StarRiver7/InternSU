@@ -62,6 +62,7 @@ class DenseRetriever:
             filter_expr=access_filter,
         )
 
+
         # Normalize COSINE scores to [0, 1] range
         results = self._normalize_scores(results)
 

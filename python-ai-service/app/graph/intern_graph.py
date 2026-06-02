@@ -88,6 +88,7 @@ def build_intern_graph():
         {
             "rag_rerank_node": "rag_rerank_node",
             "rag_answer_node": "rag_answer_node",
+            "rag_retrieval_node": "rag_retrieval_node",
             "clarify_node": "clarify_node",
         },
     )

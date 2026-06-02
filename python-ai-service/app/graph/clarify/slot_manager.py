@@ -43,9 +43,29 @@ class SlotManager:
             return {}
         slot_names = [s["name"] for s in slots]
         import json, re
-        msg = "Extract values from: " + user_response
+
+        # Build context for LLM: describe what slots to look for
+        slot_descs = []
+        for s in slots:
+            hint = s.get("hint", "")
+            slot_descs.append(f"  - {s['name']} ({s.get('label', s['name'])}): {hint}")
+        slot_context = "\n".join(slot_descs)
+
+        system_msg = (
+            "Extract slot values from the user's message.\n"
+            "Return ONLY a JSON object with slot names as keys.\n"
+            f"Slots to look for:\n{slot_context}\n"
+            "If a slot value is not found, omit it. Never include null values.\n"
+            "Example output: {\"topic\": \"onboarding\"}"
+        )
         try:
-            resp = await llm_gateway.chat([{"role": "user", "content": msg}], temperature=0.0, max_tokens=256)
+            resp = await llm_gateway.chat(
+                [
+                    {"role": "system", "content": system_msg},
+                    {"role": "user", "content": f"Message: {user_response}"},
+                ],
+                temperature=0.0, max_tokens=256,
+            )
             m = re.search(r"{[^}]+}", resp.content)
             if m:
                 extracted = json.loads(m.group())

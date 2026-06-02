@@ -65,23 +65,16 @@ async def rag_retrieval_node(state: InternState) -> InternState:
     # ── Phase 2: Hybrid Retrieval ──
     _add_trace(state, "正在进行混合检索...")
     try:
-        result = await retriever.retrieve(
+        # Use hybrid_retriever (Path A) via lazy import to avoid circular dependency
+        from app.retrieval.hybrid_retriever import hybrid_retriever
+        doc_id_strs = [str(d) for d in state.get("doc_ids")] if state.get("doc_ids") else None
+        chunks = await hybrid_retriever.search(
             query=search_query,
             top_k=settings.rag_top_k,
-            final_k=settings.rag_final_k * 2,  # Get extra for rerank
-            score_threshold=0.0,  # Filter after rerank
-            user_id=user_id,
-            department_id=department_id,
-            space_ids=space_ids,
-            document_ids=state.get("doc_ids") or None,
-            enable_rewrite=False,  # Already rewritten above
-            enable_rerank=False,   # Separate node handles this
-            enable_merge=False,    # Separate node handles this
-            enable_citation=False, # Separate node handles this
-            build_context=False,   # Separate node handles this
+            final_k=settings.rag_final_k * 2,
+            doc_ids=doc_id_strs,
+            space_id=str(space_ids[0]) if space_ids else None,
         )
-
-        chunks = result.merged_chunks if result.merged_chunks else result.chunks
 
         # Permission filter
         if permission_ctx and chunks:

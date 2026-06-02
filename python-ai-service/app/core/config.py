@@ -76,6 +76,10 @@ class Settings(BaseSettings):
     # ---- CORS ----
     cors_origins: list[str] = ["*"]
 
+    # ---- HuggingFace ----
+    hf_hub_offline: bool = False
+    transformers_offline: bool = False
+
     @property
     def mysql_write_url(self) -> str:
         return (

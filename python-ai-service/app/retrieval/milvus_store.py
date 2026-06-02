@@ -65,10 +65,16 @@ class MilvusVectorStore:
             metric_type=self.METRIC_TYPE,
             params={"nlist": self.NLIST},
         )
-        self._client.create_index(
-            collection_name=self.COLLECTION_NAME,
-            index_params=index_params,
-        )
+        try:
+            self._client.create_index(
+                collection_name=self.COLLECTION_NAME,
+                index_params=index_params,
+            )
+        except Exception as e:
+            if 'already exists' in str(e).lower():
+                logger.info(f'Index already exists, skipping creation')
+            else:
+                raise
 
         # Load collection into memory (required before search)
         self._client.load_collection(self.COLLECTION_NAME)

@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 
 def route_after_rag_retrieval(
     state: InternState,
-) -> Literal["rag_rerank_node", "rag_answer_node", "clarify_node"]:
+) -> Literal["rag_rerank_node", "rag_answer_node", "rag_retrieval_node", "clarify_node"]:
     """After retrieval: rerank if results exist, skip to answer if none.
 
     If retrieval completely failed → try clarify (maybe query was too vague).
@@ -33,11 +33,11 @@ def route_after_rag_retrieval(
         return "rag_answer_node"
 
     if not results:
-        # Try one more retrieval attempt with fallback
+        # Retry retrieval with rewritten query (agentic fallback)
         if attempts < 2:
-            logger.info(f"[RAGRouter] No results, attempt {attempts + 1}/2 → clarify")
-            return "clarify_node"
-        logger.info("[RAGRouter] No results → answer_node (will report empty)")
+            logger.info(f"[RAGRouter] No results, attempt {attempts}/2 → retry retrieval")
+            return "rag_retrieval_node"
+        logger.info("[RAGRouter] No results after retries → answer_node")
         return "rag_answer_node"
 
     logger.info(f"[RAGRouter] {len(results)} results → rerank_node")

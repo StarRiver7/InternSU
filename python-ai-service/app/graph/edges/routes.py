@@ -40,7 +40,7 @@ def route_after_router(
 
 def route_after_rag_retrieval(
     state: InternState,
-) -> Literal["rag_rerank_node", "rag_answer_node", "clarify_node"]:
+) -> Literal["rag_rerank_node", "rag_answer_node", "rag_retrieval_node", "clarify_node"]:
     """After RAG retrieval: rerank, skip to answer, or clarify (agentic retry)."""
     return _route_rag_retrieval(state)
 

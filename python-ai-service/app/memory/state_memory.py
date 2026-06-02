@@ -6,6 +6,9 @@ logger = get_logger(__name__)
 
 class StateMemory:
     async def save_state(self, user_id, conv_id, graph_state):
+        if graph_state is None:
+            logger.warning("save_state called with None graph_state, skipping")
+            return
         data = {
             "intent": graph_state.get("intent"),
             "intent_confidence": graph_state.get("intent_confidence"),

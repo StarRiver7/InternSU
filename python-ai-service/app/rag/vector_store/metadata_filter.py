@@ -62,9 +62,11 @@ class MetadataFilter:
 
     @staticmethod
     def build_document_filter(document_ids: list[int]) -> str:
-        """Filter to specific documents."""
-        ids_str = ", ".join(str(did) for did in document_ids)
-        return f"document_id in [{ids_str}]"
+        """Filter to specific documents.
+        Uses doc_id (string) to match Path A ingestion schema.
+        """
+        ids_str = ", ".join(f'"{did}"' for did in document_ids)
+        return f"doc_id in [{ids_str}]"
 
     @staticmethod
     def build_combined_filter(
@@ -76,19 +78,20 @@ class MetadataFilter:
         """Build a combined metadata filter.
 
         Combines access control + space/doc filters.
+        When document_ids is specified, skip access control (doc-level filtering suffices).
         """
         parts = []
 
-        # Access control
-        access = MetadataFilter.build_access_filter(
-            user_id, department_id, space_ids
-        )
-        if access:
-            parts.append(access)
-
-        # Document filter
+        # Document filter (uses doc_id string field from Path A schema)
         if document_ids:
             parts.append(MetadataFilter.build_document_filter(document_ids))
+        else:
+            # Access control (only when no specific documents requested)
+            access = MetadataFilter.build_access_filter(
+                user_id, department_id, space_ids
+            )
+            if access:
+                parts.append(access)
 
         if not parts:
             return None
