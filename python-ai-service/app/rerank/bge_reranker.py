@@ -49,7 +49,7 @@ class BGEReranker:
             chunk["rerank_score"] = chunk.get("score", 0)
             chunk["combined_score"] = chunk.get("score", 0)
 
-        logger.debug(f"Reranking skipped, returning {min(top_n, len(chunks))} chunks sorted by original score")
+        logger.debug(f"[BGEReranker] 跳过重排序，返回 {min(top_n, len(chunks))} 条按原始分数排序的结果")
 
         return chunks[:top_n]
 

@@ -155,7 +155,7 @@ async def sql_query(req: SqlQueryRequest):
         )
 
     except Exception as e:
-        logger.error(f"SQL query failed: {str(e)}", exc_info=True)
+        logger.error(f"SQL 查询失败: {str(e)}", exc_info=True)
         execution_time = int((asyncio.get_event_loop().time() - start_time) * 1000)
         return SqlQueryResponse(
             answer=f"查询失败：{str(e)}",

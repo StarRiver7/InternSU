@@ -76,7 +76,7 @@ class DocumentLoader:
             for i, doc in enumerate(docs):
                 parts.append(f"[Page {i + 1}]\n{doc.page_content}")
             text = "\n\n".join(parts)
-            logger.info(f"PDF loaded: {len(docs)} pages, {len(text)} chars")
+            logger.info(f"PDF 已加载: {len(docs)} 页，{len(text)} 字符")
             return text
         except ImportError:
             return self._load_pdf_fallback(file_path)
@@ -103,7 +103,7 @@ class DocumentLoader:
             for doc in docs:
                 parts.append(doc.page_content)
             text = "\n\n".join(parts)
-            logger.info(f"DOCX loaded: {len(text)} chars")
+            logger.info(f"DOCX 已加载: {len(text)} 字符")
             return text
         except ImportError:
             return self._load_docx_fallback(file_path)

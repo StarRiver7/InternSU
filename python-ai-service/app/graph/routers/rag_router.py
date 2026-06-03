@@ -29,18 +29,18 @@ def route_after_rag_retrieval(
 
     if retrieval_failed and attempts >= 2:
         # All attempts exhausted → go straight to answer (will say "not found")
-        logger.info("[RAGRouter] All retrieval attempts exhausted → answer_node")
+        logger.info("[RAGRouter] 所有检索尝试均已用尽 → answer_node")
         return "rag_answer_node"
 
     if not results:
         # Retry retrieval with rewritten query (agentic fallback)
         if attempts < 2:
-            logger.info(f"[RAGRouter] No results, attempt {attempts}/2 → retry retrieval")
+            logger.info(f"[RAGRouter] 无检索结果，第 {attempts}/2 次尝试 → 重试检索")
             return "rag_retrieval_node"
-        logger.info("[RAGRouter] No results after retries → answer_node")
+        logger.info("[RAGRouter] 重试后仍无结果 → answer_node")
         return "rag_answer_node"
 
-    logger.info(f"[RAGRouter] {len(results)} results → rerank_node")
+    logger.info(f"[RAGRouter] {len(results)} 条结果 → rerank_node")
     return "rag_rerank_node"
 
 
@@ -50,9 +50,9 @@ def route_after_rerank(
     """重排序后: 如果结果存在则构建引用。"""
     results = state.get("rerank_results", [])
     if not results:
-        logger.info("[RAGRouter] No rerank results → answer_node")
+        logger.info("[RAGRouter] 无重排序结果 → answer_node")
         return "rag_answer_node"
-    logger.info(f"[RAGRouter] {len(results)} reranked → citation_node")
+    logger.info(f"[RAGRouter] {len(results)} 条重排序结果 → citation_node")
     return "citation_node"
 
 
@@ -63,9 +63,9 @@ def route_after_citation(
     citations = state.get("citation_count", 0)
     trust = state.get("trust_level", "medium")
     if citations > 0:
-        logger.info(f"[RAGRouter] {citations} citations (trust={trust}) → answer_node")
+        logger.info(f"[RAGRouter] {citations} 条引用 (可信度={trust}) → answer_node")
         return "rag_answer_node"
-    logger.info("[RAGRouter] No citations → clarify_node")
+    logger.info("[RAGRouter] 无引用 → clarify_node")
     return "clarify_node"
 
 

@@ -38,7 +38,7 @@ class MilvusVectorStore:
         db_dir = Path(self._db_path).parent
         db_dir.mkdir(parents=True, exist_ok=True)
 
-        logger.info(f"Connecting to Milvus Lite: {self._db_path}")
+        logger.info(f"正在连接 Milvus Lite: {self._db_path}")
         self._client = MilvusClient(self._db_path)
         self._ensure_collection()
         return self._client
@@ -48,7 +48,7 @@ class MilvusVectorStore:
             self._client.load_collection(self.COLLECTION_NAME)
             return
 
-        logger.info(f"Creating collection: {self.COLLECTION_NAME}")
+        logger.info(f"正在创建集合: {self.COLLECTION_NAME}")
         self._client.create_collection(
             collection_name=self.COLLECTION_NAME,
             dimension=self.DIM,
@@ -72,13 +72,13 @@ class MilvusVectorStore:
             )
         except Exception as e:
             if 'already exists' in str(e).lower():
-                logger.info(f'Index already exists, skipping creation')
+                logger.info(f'索引已存在，跳过创建')
             else:
                 raise
 
         # Load collection into memory (required before search)
         self._client.load_collection(self.COLLECTION_NAME)
-        logger.info(f"Collection {self.COLLECTION_NAME} loaded")
+        logger.info(f"集合 {self.COLLECTION_NAME} 已加载")
 
     async def insert(
         self,
@@ -117,7 +117,7 @@ class MilvusVectorStore:
 
         elapsed = (time.time() - start) * 1000
         ids = result.get("ids", [])
-        logger.info(f"Inserted {len(ids)} vectors in {elapsed:.0f}ms")
+        logger.info(f"已插入 {len(ids)} 个向量，耗时 {elapsed:.0f}ms")
         return ids
 
     async def search(

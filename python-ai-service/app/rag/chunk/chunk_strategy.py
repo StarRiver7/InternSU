@@ -99,7 +99,7 @@ class ChunkStrategy:
         )
 
         raw_chunks = splitter.split_text(text)
-        logger.debug(f"[ChunkStrategy] RecursiveSplit: {len(text)} chars → {len(raw_chunks)} chunks")
+        logger.debug(f"[ChunkStrategy] 递归分割: {len(text)} 字符 → {len(raw_chunks)} 个 chunk")
 
         # Step 2: 后处理 — 定位页码、标题、质量检查
         results: list[ChunkResult] = []
@@ -213,8 +213,8 @@ class ChunkStrategy:
 
             if len(text) > self.config.max_chunk_size:
                 logger.warning(
-                    f"[ChunkStrategy] 超长 chunk #{c.index}: {len(text)} chars "
-                    f"(max={self.config.max_chunk_size})"
+                    f"[ChunkStrategy] 超长 chunk #{c.index}: {len(text)} 字符 "
+                    f"(最大={self.config.max_chunk_size})"
                 )
 
             c.content = text

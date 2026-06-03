@@ -77,7 +77,7 @@ class Reranker:
 
         elapsed = int((time.time() - start) * 1000)
         logger.debug(
-            f"[Reranker] '{query[:40]}': {len(chunks)} → {len(filtered)} in {elapsed}ms"
+            f"[Reranker] '{query[:40]}': {len(chunks)} → {len(filtered)} 条结果，耗时 {elapsed}ms"
         )
         return filtered
 
@@ -126,13 +126,13 @@ class Reranker:
         try:
             from FlagEmbedding import FlagReranker
             self._model = FlagReranker(model_name, use_fp16=True)
-            logger.info(f"[Reranker] Loaded: {model_name}")
+            logger.info(f"[Reranker] 已加载模型: {model_name}")
             return True
         except ImportError:
-            logger.warning("[Reranker] FlagEmbedding not installed")
+            logger.warning("[Reranker] FlagEmbedding 未安装")
             return False
         except Exception as e:
-            logger.error(f"[Reranker] Failed to load: {e}")
+            logger.error(f"[Reranker] 加载失败: {e}")
             return False
 
     @property

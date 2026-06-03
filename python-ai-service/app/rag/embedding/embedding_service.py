@@ -58,14 +58,14 @@ class EmbeddingService:
 
         chunks = chunk_storage.get_chunks_by_document(db, document_id, limit=10000)
         if not chunks:
-            logger.warning(f"[EmbeddingService] No chunks for doc_id={document_id}")
+            logger.warning(f"[EmbeddingService] 文档 {document_id} 没有 Chunk")
             return {"document_id": document_id, "chunk_count": 0, "vectors": []}
 
         texts = [c.content for c in chunks]
         chunk_ids = [c.id for c in chunks]
         total = len(texts)
 
-        logger.info(f"[EmbeddingService] Embedding {total} chunks for doc_id={document_id}")
+        logger.info(f"[EmbeddingService] 正在向量化文档 {document_id} 的 {total} 个 Chunk")
 
         # Use batch processor for cache-aware embedding
         vectors = await self._batch.embed_batch(

@@ -24,7 +24,7 @@ class SQLSummarizer:
             resp = await llm_gateway.chat(messages, temperature=0.3, max_tokens=1024)
             return resp.content.strip()
         except Exception as e:
-            logger.error(f"SQL summarization failed: {e}")
+            logger.error(f"SQL 总结失败: {e}")
             return self._fallback_summary(row_count, query_result.get("columns", []))
     def _fallback_summary(self, row_count: int, columns: list) -> str:
         if row_count == 0:

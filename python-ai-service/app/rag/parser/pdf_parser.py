@@ -60,7 +60,7 @@ class PdfParser(BaseParser):
         doc.close()
         full_text = "\n\n".join(all_text_parts)
         title_path = [h.text for h in headings if h.level <= 2]
-        logger.info(f"[PdfParser:fitz] {file_name}: {total_pages}p, {len(full_text)}chars, {len(headings)}headings")
+        logger.info(f"[PdfParser:fitz] {file_name}: {total_pages}页, {len(full_text)}字符, {len(headings)}个标题")
         return ParsedDocument(file_name=file_name, file_type="pdf", total_chars=len(full_text), total_pages=total_pages, full_text=full_text, pages=pages, paragraphs=paragraphs, headings=headings, title_path=title_path, metadata={"parser": "PyMuPDF", "page_count": total_pages}, parse_errors=errors)
 
     def _parse_pypdf(self, content: bytes, file_name: str) -> ParsedDocument:
@@ -94,7 +94,7 @@ class PdfParser(BaseParser):
 
         full_text = "\n\n".join(all_text_parts)
         title_path = [h.text for h in headings if h.level <= 2]
-        logger.info(f"[PdfParser:pypdf] {file_name}: {total_pages}p, {len(full_text)}chars")
+        logger.info(f"[PdfParser:pypdf] {file_name}: {total_pages}页, {len(full_text)}字符")
         return ParsedDocument(file_name=file_name, file_type="pdf", total_chars=len(full_text), total_pages=total_pages, full_text=full_text, pages=pages, paragraphs=paragraphs, headings=headings, title_path=title_path, metadata={"parser": "pypdf", "page_count": total_pages}, parse_errors=errors)
 
 

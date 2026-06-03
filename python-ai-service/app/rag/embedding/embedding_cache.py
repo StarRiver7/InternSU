@@ -95,7 +95,7 @@ class EmbeddingCache:
         self._cache.clear()
         self._hits = 0
         self._misses = 0
-        logger.info("[EmbeddingCache] Cleared")
+        logger.info("[EmbeddingCache] 已清空")
 
 
 embedding_cache = EmbeddingCache()

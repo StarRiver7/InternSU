@@ -14,7 +14,7 @@ async def check_info_sufficient(intent, user_message, history=None):
             data = json.loads(m.group())
             return data.get("sufficient", True), data
     except Exception as e:
-        logger.warning(f"Check info failed: {e}")
+        logger.warning(f"[ClarifyDetector] 信息检查失败: {e}")
     return True, {}
 
 clarify_detector = check_info_sufficient

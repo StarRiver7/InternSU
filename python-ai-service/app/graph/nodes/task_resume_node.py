@@ -101,7 +101,7 @@ async def task_resume_node(state: InternState) -> InternState:
         "timestamp": _now()
     }
 
-    logger.info(f"TaskResume: intent={orig_intent}, collected={list(collected.keys())}")
+    logger.info(f"[TaskResume] 恢复任务: 意图={orig_intent}, 已收集槽位={list(collected.keys())}")
     return state
 
 def _now():

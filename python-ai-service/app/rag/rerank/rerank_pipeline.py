@@ -108,8 +108,8 @@ class RerankPipeline:
         logger.info(
             f"[RerankPipeline] '{query[:40]}': "
             f"{original_count} → {before_dedup} → {len(chunks)} "
-            f"in {elapsed}ms "
-            f"(threshold={score_threshold}, top_n={top_n})"
+            f"耗时 {elapsed}ms "
+            f"（阈值={score_threshold}, top_n={top_n}）"
         )
 
         return chunks

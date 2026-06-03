@@ -82,7 +82,7 @@ async def rag_rerank_node(state: InternState) -> InternState:
         )
 
     except Exception as e:
-        logger.warning(f"Rerank failed, using original order: {e}")
+        logger.warning(f"[RAGRerank] 重排序失败，使用原始顺序: {e}")
         # 降级回退：使用原始检索顺序而非重排序
         state["rerank_results"] = chunks[:settings.rag_final_k]
         state["rerank_count"] = min(len(chunks), settings.rag_final_k)

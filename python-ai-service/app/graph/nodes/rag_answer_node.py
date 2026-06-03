@@ -205,7 +205,7 @@ async def rag_answer_node(state: InternState) -> InternState:
         _finish_trace(state, "LLM generated answer", t0)
 
     except Exception as e:
-        logger.error(f"RAG answer failed: {e}")
+        logger.error(f"[RAGAnswer] RAG 回答生成失败: {e}")
         # 降级处理：返回友好提示而非错误信息
         state["rag_answer"] = "收到老师～小SU遇到了问题，请稍后重试～"
         state["final_answer"] = state["rag_answer"]

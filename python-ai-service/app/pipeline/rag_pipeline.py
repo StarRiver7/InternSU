@@ -45,11 +45,11 @@ class RAGPipeline:
         Returns ingestion summary with chunk count and timing.
         """
         start = time.time()
-        logger.info(f"Ingesting: {file_path} (doc_id={doc_id})")
+        logger.info(f"正在摄入文档: {file_path}（文档ID={doc_id}）")
 
         # Stage 1: Load
         doc: LoadedDocument = await document_loader.load(file_path)
-        logger.info(f"  [1/4] Loaded: {doc.file_name} ({doc.size_bytes:,} bytes)")
+        logger.info(f"  [1/4] 已加载: {doc.file_name}（{doc.size_bytes:,} 字节）")
 
         # Stage 2: Split
         base_meta = {
@@ -59,12 +59,12 @@ class RAGPipeline:
             "source": str(doc.metadata.get("source", file_path)),
         }
         chunks = text_splitter.split(doc.content, base_meta)
-        logger.info(f"  [2/4] Split into {len(chunks)} chunks")
+        logger.info(f"  [2/4] 已切分为 {len(chunks)} 个块")
 
         # Stage 3: Embed
         chunk_texts = [c["content"] for c in chunks]
         vectors = await embedding_engine.embed_texts(chunk_texts)
-        logger.info(f"  [3/4] Embedded {len(vectors)} vectors")
+        logger.info(f"  [3/4] 已嵌入 {len(vectors)} 个向量")
 
         # Stage 4: Store
         ids = await milvus_store.insert(
@@ -74,7 +74,7 @@ class RAGPipeline:
             doc_id=doc_id,
             space_id=space_id,
         )
-        logger.info(f"  [4/4] Stored {len(ids)} vectors in Milvus")
+        logger.info(f"  [4/4] 已存储 {len(ids)} 个向量到 Milvus")
 
         elapsed = time.time() - start
         result = {
@@ -85,7 +85,7 @@ class RAGPipeline:
             "size_bytes": doc.size_bytes,
             "elapsed_seconds": round(elapsed, 2),
         }
-        logger.info(f"Ingestion complete: {result}")
+        logger.info(f"文档摄入完成: {result}")
         return result
 
     async def search(
@@ -115,7 +115,7 @@ class RAGPipeline:
         )
 
         if not chunks:
-            logger.debug(f"No results for query: {query[:50]}...")
+            logger.debug(f"查询无结果: {query[:50]}...")
             return []
 
         # Stage 2: Rerank
@@ -127,7 +127,7 @@ class RAGPipeline:
             chunks = self._add_citation(chunks, query)
 
         elapsed = (time.time() - start) * 1000
-        logger.debug(f"Search complete: {len(chunks)} results in {elapsed:.0f}ms")
+        logger.debug(f"搜索完成: {len(chunks)} 个结果，耗时 {elapsed:.0f}ms")
         return chunks
 
     async def search_context(

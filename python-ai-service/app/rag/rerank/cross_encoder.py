@@ -50,17 +50,16 @@ class CrossEncoder:
                 self._model_name,
                 use_fp16=settings.bge_use_fp16,
             )
-            logger.info(f"[CrossEncoder] Loaded: {self._model_name}")
+            logger.info(f"[CrossEncoder] 已加载: {self._model_name}")
             return True
         except ImportError:
             logger.warning(
-                "[CrossEncoder] FlagEmbedding not installed. "
-                "Using heuristic fallback. "
-                "Install with: pip install FlagEmbedding"
+                "[CrossEncoder] FlagEmbedding 未安装，使用启发式回退。"
+                "安装命令: pip install FlagEmbedding"
             )
             return False
         except Exception as e:
-            logger.error(f"[CrossEncoder] Failed to load: {e}")
+            logger.error(f"[CrossEncoder] 加载失败: {e}")
             return False
 
     def compute_scores(
@@ -89,8 +88,8 @@ class CrossEncoder:
 
         elapsed = int((time.time() - start) * 1000)
         logger.debug(
-            f"[CrossEncoder] {len(documents)} pairs in {elapsed}ms "
-            f"(transformer={self._model is not None})"
+            f"[CrossEncoder] {len(documents)} 个文档对，耗时 {elapsed}ms，"
+            f"（transformer={self._model is not None}）"
         )
         return scores
 

@@ -69,7 +69,7 @@ class DuplicateFilter:
         if removed > 0:
             logger.debug(
                 f"[DuplicateFilter] {original_count} → {len(result)} "
-                f"({removed} removed) in {elapsed}ms"
+                f"（移除 {removed} 个）耗时 {elapsed}ms"
             )
 
         return result

@@ -76,7 +76,7 @@ async def router_node(state: InternState) -> InternState:
         "timestamp": _now(),
     }]
 
-    logger.info(f"RouterNode: intent={intent} -> {next_node}")
+    logger.info(f"[RouterNode] 路由决策: 意图={intent} -> {next_node}")
     return state
 
 

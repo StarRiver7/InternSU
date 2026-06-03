@@ -134,7 +134,7 @@ async def rag_retrieval_node(state: InternState) -> InternState:
         state["retrieved_docs"] = filtered
 
     except Exception as e:
-        logger.warning(f"Retrieval failed: {e}")
+        logger.warning(f"[RAGRetrieval] 检索失败: {e}")
         state["retrieval_results"] = []
         state["retrieval_count"] = 0
         state["retrieved_docs"] = []
@@ -156,7 +156,7 @@ async def rag_retrieval_node(state: InternState) -> InternState:
         # 所有重试次数用尽，标记为失败
         state["retrieval_failed"] = True
         _add_trace(state, "多次检索后仍未找到相关内容")
-        logger.warning("[RAGRetrieval] All attempts exhausted, no results")
+        logger.warning("[RAGRetrieval] 所有尝试均已用尽，无检索结果")
     else:
         # 检索成功
         state["retrieval_failed"] = False

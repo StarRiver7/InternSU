@@ -81,7 +81,7 @@ async def rag_node(state: InternState) -> InternState:
             with_citation=True,
         )
         hit_count = len(raw_chunks)
-        logger.debug(f"RAG raw hits: {hit_count}")
+        logger.debug(f"RAG 原始命中: {hit_count}")
 
         # 【Phase 2】权限过滤：基于部门和知识空间隔离
         if permission_ctx:
@@ -151,7 +151,7 @@ async def rag_node(state: InternState) -> InternState:
 
     except Exception as e:
         # 【容错设计】检索失败降级为空结果
-        logger.warning(f"RAG retrieval failed (continuing without): {e}")
+        logger.warning(f"RAG 检索失败（继续无上下文）: {e}")
         state["retrieved_docs"] = []
         state["filtered_docs"] = []
         state["sources"] = []

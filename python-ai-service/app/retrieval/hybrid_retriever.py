@@ -128,8 +128,8 @@ class HybridRetriever:
 
         elapsed = (time.time() - start) * 1000
         logger.debug(
-            f"Hybrid search: vector={len(vector_results)}, "
-            f"bm25={len(bm25_results)}, fused={len(fused)} in {elapsed:.0f}ms"
+            f"混合检索: 向量={len(vector_results)}, "
+            f"BM25={len(bm25_results)}, 融合={len(fused)}，耗时 {elapsed:.0f}ms"
         )
         return fused
 

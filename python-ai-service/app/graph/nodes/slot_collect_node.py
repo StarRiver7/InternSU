@@ -108,7 +108,7 @@ async def slot_collect_node(state: InternState) -> InternState:
         "timestamp": _now()
     }
 
-    logger.info(f"SlotCollect: extracted={list(extracted.keys())}, still missing={missing}")
+    logger.info(f"[SlotCollect] 提取槽位={list(extracted.keys())}, 仍缺失={missing}")
     return state
 
 def _now():

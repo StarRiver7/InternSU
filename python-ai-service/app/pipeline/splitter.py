@@ -89,8 +89,8 @@ class TextSplitter:
                 },
             })
 
-        logger.debug(f"Split {len(text)} chars into {len(chunks)} chunks "
-                     f"(size={self._chunk_size}, overlap={self._chunk_overlap})")
+        logger.debug(f"[TextSplitter] 将 {len(text)} 字符分割为 {len(chunks)} 个 chunk "
+                     f"(大小={self._chunk_size}, 重叠={self._chunk_overlap})")
         return chunks
 
 

@@ -59,7 +59,7 @@ class QueryRewriter:
                 logger.debug(f"[QueryRewrite] '{query}' → '{rewritten}'")
                 return rewritten
         except Exception as e:
-            logger.warning(f"[QueryRewrite] LLM rewrite failed: {e}")
+            logger.warning(f"[QueryRewrite] LLM 重写失败: {e}")
 
         return query
 

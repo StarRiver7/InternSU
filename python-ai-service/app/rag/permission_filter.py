@@ -41,7 +41,7 @@ class PermissionFilter:
         """
         if allowed_space_ids is None:
             # 无权限上下文（未传入），返回全部（兼容模式）
-            logger.warning("No permission context provided, returning all chunks")
+            logger.warning("[PermissionFilter] 未提供权限上下文，返回全部 chunk")
             return chunks
 
         filtered = []
@@ -65,8 +65,8 @@ class PermissionFilter:
 
         if len(filtered) < len(chunks):
             logger.debug(
-                f"Permission filter: {len(chunks)} -> {len(filtered)} "
-                f"(removed {len(chunks) - len(filtered)} unauthorized chunks)"
+                f"[PermissionFilter] 过滤: {len(chunks)} -> {len(filtered)} "
+                f"(移除 {len(chunks) - len(filtered)} 条未授权 chunk)"
             )
 
         return filtered

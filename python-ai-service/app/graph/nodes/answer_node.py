@@ -99,7 +99,7 @@ async def answer_node(state: InternState) -> InternState:
         )
 
     except Exception as e:
-        logger.error(f"Answer generation failed: {e}")
+        logger.error(f"回答生成失败: {e}")
         # 【容错机制】异常时返回友好提示，不暴露内部实现细节
         final_response = "收到老师～我刚刚处理任务时遇到一点问题，请稍后再试～"
         state["error"] = str(e)

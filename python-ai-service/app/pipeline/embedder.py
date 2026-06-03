@@ -39,14 +39,14 @@ def _detect_device() -> str:
     try:
         import torch
         if torch.cuda.is_available():
-            logger.info("Device detection: CUDA GPU found → using 'cuda'")
+            logger.info("设备检测: 发现 CUDA GPU → 使用 'cuda'")
             return "cuda"
         if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-            logger.info("Device detection: Apple MPS found → using 'mps'")
+            logger.info("设备检测: 发现 Apple MPS → 使用 'mps'")
             return "mps"
     except ImportError:
         pass
-    logger.info("Device detection: no GPU → using 'cpu'")
+    logger.info("设备检测: 无 GPU → 使用 'cpu'")
     return "cpu"
 
 
@@ -78,7 +78,7 @@ class EmbeddingEngine:
             return self._model
 
         logger.info(
-            "Loading BGE-M3 model: %s on %s (fp16=%s)...",
+            "正在加载 BGE-M3 模型: %s，设备: %s（fp16=%s）...",
             _MODEL_NAME, self._device, self._use_fp16,
         )
         start = time.time()
@@ -100,7 +100,7 @@ class EmbeddingEngine:
             # GPU 加载失败 → 降级到 CPU 重试
             if self._device != "cpu":
                 logger.warning(
-                    "BGE-M3 failed on %s: %s. Fallback to CPU.", self._device, e
+                    "BGE-M3 在 %s 上加载失败: %s。回退到 CPU。", self._device, e
                 )
                 self._device = "cpu"
                 self._use_fp16 = False
@@ -113,7 +113,7 @@ class EmbeddingEngine:
                 raise
 
         elapsed = time.time() - start
-        logger.info("BGE-M3 loaded in %.1fs on %s", elapsed, self._device)
+        logger.info("BGE-M3 已加载，耗时 %.1fs，设备: %s", elapsed, self._device)
 
         # ── 启动时维度自校验 ──
         test_output = self._model.encode(
@@ -129,14 +129,14 @@ class EmbeddingEngine:
 
         if actual_dim != _REQUIRED_DIM:
             raise ValueError(
-                f"FATAL: BGE-M3 dimension mismatch. "
-                f"Expected {_REQUIRED_DIM}, got {actual_dim}. "
-                f"Model: {_MODEL_NAME}, device: {self._device}. "
-                f"Milvus collection requires exactly {_REQUIRED_DIM}-dim vectors. "
-                f"Check your FlagEmbedding installation or model cache."
+                f"严重错误: BGE-M3 维度不匹配。"
+                f"预期 {_REQUIRED_DIM}，实际 {actual_dim}。"
+                f"模型: {_MODEL_NAME}，设备: {self._device}。"
+                f"Milvus collection 要求 {_REQUIRED_DIM} 维向量。"
+                f"请检查 FlagEmbedding 安装或模型缓存。"
             )
 
-        logger.info("BGE-M3 dimension verified: %d ✓", actual_dim)
+        logger.info("BGE-M3 维度已验证: %d ✓", actual_dim)
         return self._model
 
     # ═══════════════════════════════════════════════════════════
@@ -205,7 +205,7 @@ class EmbeddingEngine:
 
         elapsed = (time.time() - start) * 1000
         logger.debug(
-            "Embedded %d texts in %.0fms (%.1fms/text), dim=%d ✓",
+            "已嵌入 %d 个文本，耗时 %.0fms（%.1fms/文本），维度=%d ✓",
             len(texts), elapsed,
             elapsed / len(texts) if texts else 0,
             _REQUIRED_DIM,

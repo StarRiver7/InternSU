@@ -235,7 +235,7 @@ async def _sse_generator(req: ChatRequest):
             # 客户端断开 → 正常取消，不记录错误
             pass
         except Exception as exc:
-            logger.error("Graph background task error: %s", exc, exc_info=True)
+            logger.error("Graph 后台任务错误: %s", exc, exc_info=True)
             try:
                 await token_queue.put({
                     "type": "error",
@@ -265,7 +265,7 @@ async def _sse_generator(req: ChatRequest):
                 )
             except asyncio.TimeoutError:
                 logger.warning(
-                    "SSE timeout: user=%s conv=%s trace_id=%s",
+                    "SSE 超时: 用户=%s 会话=%s 跟踪ID=%s",
                     req.user_id, req.conversation_id, trace_id,
                 )
                 yield await sender.error(

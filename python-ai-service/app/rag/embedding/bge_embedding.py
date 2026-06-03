@@ -47,7 +47,7 @@ class BgeEmbedding:
     async def ensure_ready(self):
         """预热模型 — 在首次使用前调用。"""
         await self._engine._ensure_model()
-        logger.info(f"[BgeEmbedding] Model ready: {self.model_name} dim={self.dim}")
+        logger.info(f"[BgeEmbedding] 模型已就绪: {self.model_name} 维度={self.dim}")
 
 
 bge_embedding = BgeEmbedding()

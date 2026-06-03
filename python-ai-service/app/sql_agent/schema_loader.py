@@ -67,12 +67,12 @@ class SchemaLoader:
                         info = await self._load_table(conn, table_name)
                         if info:
                             tables[table_name] = info
-                logger.info(f"Schema loaded from MySQL: {len(tables)} tables")
+                logger.info(f"已从 MySQL 加载 Schema: {len(tables)} 个表")
             finally:
                 await engine.dispose()
             return tables
         except Exception as e:
-            logger.warning(f"MySQL schema load failed: {e}")
+            logger.warning(f"MySQL Schema 加载失败: {e}")
             return {}
 
     async def _load_table(self, conn, table_name: str):
@@ -175,7 +175,7 @@ class SchemaLoader:
             ColumnInfo("version", "int", False, "", "版本号", 5),
             ColumnInfo("status", "varchar", False, "", "draft/active/archived", 6),
         ])
-        logger.info(f"Static schema fallback: {len(tables)} tables")
+        logger.info(f"静态 Schema 回退: {len(tables)} 个表")
         return tables
 
     def build_context(self, tables: dict | None = None, target_tables: list | None = None) -> str:

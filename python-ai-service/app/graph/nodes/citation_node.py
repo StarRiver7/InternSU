@@ -118,7 +118,7 @@ async def citation_node(state: InternState) -> InternState:
         )
 
     except Exception as e:
-        logger.warning(f"Citation build failed: {e}")
+        logger.warning(f"[CitationNode] 引用构建失败: {e}")
         # 降级处理：即使构建失败也要保证流程能继续
         state["citations"] = []
         state["citation_count"] = 0

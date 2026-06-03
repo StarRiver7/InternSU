@@ -63,7 +63,7 @@ class EmbeddingBatchProcessor:
 
         if not missing_indices:
             elapsed = int((time.time() - start_time) * 1000)
-            logger.debug(f"[EmbedBatch] All {total} texts from cache in {elapsed}ms")
+            logger.debug(f"[EmbedBatch] {total} 条文本全部命中缓存，耗时 {elapsed}ms")
             return [r for r in results if r is not None]  # type narrowing
 
         # Phase 2: Compute missing embeddings in sub-batches
@@ -108,7 +108,7 @@ class EmbeddingBatchProcessor:
                 last_error = e
                 if attempt < MAX_RETRIES - 1:
                     wait = 2 ** attempt
-                    logger.warning(f"[EmbedBatch] Retry {attempt+1}/{MAX_RETRIES} in {wait}s: {e}")
+                    logger.warning(f"[EmbedBatch] 第 {attempt+1}/{MAX_RETRIES} 次重试，等待 {wait}s: {e}")
                     await asyncio.sleep(wait)
         raise RuntimeError(f"Embedding failed after {MAX_RETRIES} retries: {last_error}")
 

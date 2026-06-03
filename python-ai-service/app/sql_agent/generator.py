@@ -54,10 +54,10 @@ class SQLGenerator:
         try:
             resp = await llm_gateway.chat(messages, temperature=0.0, max_tokens=1024)
             sql = self._extract_sql(resp.content)
-            logger.debug(f"Generated SQL: {sql[:200]}...")
+            logger.debug(f"已生成 SQL: {sql[:200]}...")
             return sql
         except Exception as e:
-            logger.error(f"SQL generation error: {e}")
+            logger.error(f"SQL 生成错误: {e}")
             raise ValueError(f"SQL生成失败: {e}") from e
 
     @staticmethod

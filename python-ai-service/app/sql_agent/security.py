@@ -69,7 +69,7 @@ class SQLSecurity:
         result["checks_performed"].append("dangerous_keyword_check")
         if danger_found:
             result["reason"] = f"检测到危险操作: {danger_found}"
-            logger.warning(f"SQL blocked: {danger_found} | SQL: {sql[:100]}")
+            logger.warning(f"SQL 被拦截: {danger_found} | SQL: {sql[:100]}")
             return result
 
         # 防线3: 必须是 SELECT（以 SELECT 或 WITH 开头）
@@ -95,10 +95,10 @@ class SQLSecurity:
             return any(p.tokens for p in parsed)
         except ImportError:
             # sqlparse 未安装时跳过语法校验
-            logger.debug("sqlparse not installed, skipping syntax check")
+            logger.debug("sqlparse 未安装，跳过语法检查")
             return True
         except Exception as e:
-            logger.warning(f"SQL syntax check error (allowing): {e}")
+            logger.warning(f"SQL 语法检查错误（允许通过）: {e}")
             return True
 
     def _check_dangerous_keywords(self, sql: str) -> str | None:

@@ -47,7 +47,7 @@ class MilvusClient:
         db_dir = Path(self._db_path).parent
         db_dir.mkdir(parents=True, exist_ok=True)
 
-        logger.info(f"[Milvus] Connecting to: {self._db_path}")
+        logger.info(f"[Milvus] 正在连接: {self._db_path}")
         self._client = PyMilvusClient(self._db_path)
         self._ensure_collection()
         return self._client
@@ -55,10 +55,10 @@ class MilvusClient:
     def _ensure_collection(self):
         if self._client.has_collection(COLLECTION_NAME):
             self._client.load_collection(COLLECTION_NAME)
-            logger.info(f"[Milvus] Collection '{COLLECTION_NAME}' loaded")
+            logger.info(f"[Milvus] 集合已加载: '{COLLECTION_NAME}'")
             return
 
-        logger.info(f"[Milvus] Creating collection: {COLLECTION_NAME}")
+        logger.info(f"[Milvus] 正在创建集合: {COLLECTION_NAME}")
         # Create with schema
         self._client.create_collection(
             collection_name=COLLECTION_NAME,
@@ -77,14 +77,14 @@ class MilvusClient:
             )
         except Exception as e:
             if 'already exists' in str(e).lower():
-                logger.info(f'[Milvus] Index already exists, skipping creation')
+                logger.info(f'[Milvus] 索引已存在，跳过创建')
             else:
                 raise
 
         self._client.load_collection(COLLECTION_NAME)
         logger.info(
-            f"[Milvus] Collection created: {COLLECTION_NAME} "
-            f"dim={VECTOR_DIM} index={self._index_config.index_type}"
+            f"[Milvus] 集合已创建: {COLLECTION_NAME} "
+            f"维度={VECTOR_DIM} 索引={self._index_config.index_type}"
         )
 
     # ---- Insert ----
@@ -137,8 +137,8 @@ class MilvusClient:
 
         ids = result.get("ids", [])
         logger.info(
-            f"[Milvus] Inserted {len(ids)} vectors for doc_id={document_id} "
-            f"in {elapsed}ms"
+            f"[Milvus] 已插入 {len(ids)} 个向量，文档ID={document_id}，"
+            f"耗时 {elapsed}ms"
         )
         return ids
 
@@ -203,8 +203,8 @@ class MilvusClient:
             })
 
         logger.debug(
-            f"[Milvus] Search: {len(chunks)}/{len(hits)} results "
-            f"above threshold {score_threshold} in {elapsed}ms"
+            f"[Milvus] 搜索: {len(chunks)}/{len(hits)} 个结果 "
+            f"超过阈值 {score_threshold}，耗时 {elapsed}ms"
         )
         return chunks
 
@@ -218,7 +218,7 @@ class MilvusClient:
             filter=f"document_id == {document_id}",
         )
         count = result.get("delete_count", 0) if isinstance(result, dict) else 0
-        logger.info(f"[Milvus] Deleted {count} vectors for doc_id={document_id}")
+        logger.info(f"[Milvus] 已删除 {count} 个向量，文档ID={document_id}")
         return count
 
     def delete_by_space(self, space_id: int) -> int:
@@ -229,7 +229,7 @@ class MilvusClient:
             filter=f"space_id == {space_id}",
         )
         count = result.get("delete_count", 0) if isinstance(result, dict) else 0
-        logger.info(f"[Milvus] Deleted {count} vectors for space_id={space_id}")
+        logger.info(f"[Milvus] 已删除 {count} 个向量，空间ID={space_id}")
         return count
 
     def count(self) -> int:

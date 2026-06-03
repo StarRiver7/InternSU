@@ -106,7 +106,7 @@ class SQLExecutor:
             return self._engine
 
         async_url = _build_async_url(self._readonly_url)
-        logger.info("Initializing SQL readonly engine: %s", _mask_password(async_url))
+        logger.info("正在初始化 SQL 只读引擎: %s", _mask_password(async_url))
 
         self._engine = create_async_engine(
             async_url,
@@ -125,7 +125,7 @@ class SQLExecutor:
             class_=AsyncSession,
             expire_on_commit=False,
         )
-        logger.info("SQL readonly engine ready: pool_size=%d", _POOL_SIZE)
+        logger.info("SQL 只读引擎就绪: 连接池大小=%d", _POOL_SIZE)
         return self._engine
 
     # ═══════════════════════════════════════════════════════════
@@ -169,13 +169,13 @@ class SQLExecutor:
             # 行数硬截断
             if len(rows) > _MAX_ROWS_HARD_LIMIT:
                 logger.warning(
-                    "SQL result truncated: %d → %d rows",
+                    "SQL 结果被截断: %d → %d 行",
                     len(rows), _MAX_ROWS_HARD_LIMIT,
                 )
                 rows = rows[:_MAX_ROWS_HARD_LIMIT]
 
             logger.info(
-                "SQL executed: %d rows, sql=%.100s", len(rows), sql
+                "SQL 已执行: %d 行, sql=%.100s", len(rows), sql
             )
 
             return {
@@ -250,7 +250,7 @@ class SQLExecutor:
             raise  # 透传
 
         except Exception as e:
-            logger.error("Unhandled SQL execution error: %s", e, exc_info=True)
+            logger.error("未处理的 SQL 执行错误: %s", e, exc_info=True)
             raise SQLQueryException(
                 message=f"SQL 查询时发生未知错误，请稍后重试",
                 code=500,
@@ -315,7 +315,7 @@ class SQLExecutor:
             await self._engine.dispose()
             self._engine = None
             self._sessionmaker = None
-            logger.info("SQL readonly engine disposed")
+            logger.info("SQL 只读引擎已释放")
 
 
 # ═══════════════════════════════════════════════════════════════

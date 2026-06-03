@@ -71,7 +71,7 @@ class SlotManager:
                 extracted = json.loads(m.group())
                 return {k: v for k, v in extracted.items() if k in slot_names and v is not None}
         except Exception as e:
-            logger.warning(f"Slot extract fail: {e}")
+            logger.warning(f"[SlotManager] 槽位提取失败: {e}")
         return {}
 
 slot_manager = SlotManager()
