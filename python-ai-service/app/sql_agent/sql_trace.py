@@ -1,4 +1,4 @@
-"""SQL Trace - Structured trace steps for SSE work process display."""
+"""SQL 跟踪 - SSE 工作过程显示的结构化跟踪步骤。"""
 import time
 from datetime import datetime, timezone
 

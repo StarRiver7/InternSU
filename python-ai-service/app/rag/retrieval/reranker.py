@@ -1,13 +1,13 @@
-"""Reranker — semantic re-ranking of retrieval results.
+"""重排序器 — 检索结果的语义重排序。
 
-Architecture:
-  - CrossEncoder scoring (query, chunk) pairs
-  - BGE-Reranker interface (future: FlagEmbedding reranker)
-  - Duplicate suppression
-  - Score normalization
+架构:
+  - CrossEncoder 评分 (query, chunk) 对
+  - BGE-Reranker 接口 (未来: FlagEmbedding 重排序器)
+  - 重复抑制
+  - 分数归一化
 
-Current: enhanced score-based rerank.
-Future: plug in BGE-Reranker-v2-m3 for semantic re-ranking.
+当前: 增强的基于分数的重排序。
+未来: 接入 BGE-Reranker-v2-m3 进行语义重排序。
 """
 
 import time
@@ -18,12 +18,12 @@ logger = get_logger(__name__)
 
 
 class Reranker:
-    """Semantic re-ranker for retrieval results.
+    """检索结果的语义重排序器。
 
-    CrossEncoder architecture:
-      score = f(query, chunk_content)  → semantic relevance
+    CrossEncoder 架构:
+      score = f(query, chunk_content)  → 语义相关性
 
-    Placeholder for BGE-Reranker integration.
+    BGE-Reranker 集成的占位符。
     """
 
     def __init__(self):
@@ -37,16 +37,16 @@ class Reranker:
         top_n: Optional[int] = None,
         score_threshold: float = 0.3,
     ) -> list[dict]:
-        """Re-rank retrieval results.
+        """重排序检索结果。
 
-        Steps:
-          1. Deduplicate by content
-          2. Semantic re-score (CrossEncoder, or score-based fallback)
-          3. Filter by threshold
-          4. Sort and limit
+        步骤:
+          1. 按内容去重
+          2. 语义重新评分 (CrossEncoder 或基于分数的回退)
+          3. 按阈值过滤
+          4. 排序和限制
 
-        Returns:
-            Re-ranked list with updated scores.
+        返回:
+            更新分数后的重排序列表。
         """
         if not chunks:
             return []

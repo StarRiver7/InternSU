@@ -1,14 +1,13 @@
-"""Citation Builder — construct structured citations from retrieval results.
+"""引用构建器 — 从检索结果构建结构化引用。
 
-Transforms raw retrieval + rerank results into Citation objects
-with full traceability metadata.
+将原始检索 + 重排序结果转换为带有完整可追溯元数据的 Citation 对象。
 
-Key features:
-  - Auto-numbering (citation_id)
-  - Quote extraction (relevant text snippet)
-  - Source trust classification
-  - Multi-source aggregation
-  - Trust level assessment
+主要特性:
+  - 自动编号（citation_id）
+  - 引用提取（相关文本片段）
+  - 来源信任分类
+  - 多来源聚合
+  - 信任级别评估
 """
 
 from typing import Optional
@@ -21,9 +20,9 @@ logger = get_logger(__name__)
 
 
 class CitationBuilder:
-    """Build structured citations from re-ranked retrieval results.
+    """从重排序检索结果构建结构化引用。
 
-    Usage:
+    使用示例:
         builder = CitationBuilder()
         citation_set = builder.build(
             query="请假制度",
@@ -37,7 +36,7 @@ class CitationBuilder:
         self._kb_name_map: dict[int, str] = {}
 
     def set_kb_names(self, kb_map: dict[int, str]):
-        """Pre-load KB name mappings."""
+        """预加载知识库名称映射。"""
         self._kb_name_map.update(kb_map)
 
     def build(
@@ -48,16 +47,16 @@ class CitationBuilder:
         document_name_map: Optional[dict[int, str]] = None,
         source_type_map: Optional[dict[int, str]] = None,
     ) -> CitationSet:
-        """Build a CitationSet from re-ranked retrieval results.
+        """从重排序检索结果构建 CitationSet。
 
-        Args:
-            query: original user query
-            chunks: re-ranked and merged chunks
+        参数:
+            query: 原始用户查询
+            chunks: 重排序和合并后的块
             document_name_map: {document_id: file_name}
             source_type_map: {document_id: "official"|"department"|"user_upload"}
 
-        Returns:
-            CitationSet with ordered citations and trust assessment.
+        返回:
+            带有有序引用和信任评估的 CitationSet。
         """
         citations = []
 
@@ -135,7 +134,7 @@ class CitationBuilder:
         self,
         chunks: list[dict],
     ) -> list[dict]:
-        """Build lightweight citation dicts (for API response without full model)."""
+        """构建轻量级引用字典（用于不带完整模型的 API 响应）。"""
         result = []
         for i, chunk in enumerate(chunks):
             content = chunk.get("content", "")
@@ -152,7 +151,7 @@ class CitationBuilder:
 
     @staticmethod
     def _extract_quote(content: str, query: str, max_len: int = 150) -> str:
-        """Extract the most relevant quote from content."""
+        """从内容中提取最相关的引用。"""
         if not content:
             return ""
 
@@ -184,7 +183,7 @@ class CitationBuilder:
 
     @staticmethod
     def _assess_trust(citations: list[Citation]) -> str:
-        """Assess overall trust level using rerank_score (semantic relevance)."""
+        """使用重排序分数（语义相关性）评估整体信任级别。"""
         if not citations:
             return "unreliable"
 

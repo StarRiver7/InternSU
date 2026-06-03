@@ -1,4 +1,4 @@
-"""Schema Loader - Auto-read MySQL table structure and build Schema Context for LLM."""
+"""模式加载器 - 自动读取 MySQL 表结构并为 LLM 构建模式上下文。"""
 from dataclasses import dataclass, field
 from app.core.config import settings
 from app.sql_agent.schema_cache import schema_cache

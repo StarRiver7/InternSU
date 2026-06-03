@@ -1,12 +1,12 @@
-"""RAG Router — dynamic routing decisions for the RAG sub-graph.
+"""RAG 路由器 — RAG 子图的动态路由决策。
 
-Controls the flow:
+控制流程:
   intent=rag → retrieval → rerank → citation → answer → memory → END
 
-Also handles:
-  - Clarify routing (vague RAG queries trigger clarify)
-  - Agentic fallback (retry retrieval with rewritten query)
-  - Empty result routing (skip rerank/citation if nothing found)
+还处理:
+  - 澄清路由 (模糊的 RAG 查询触发澄清)
+  - 智能回退 (使用重写的查询重试检索)
+  - 空结果路由 (如果没有找到则跳过重排序/引用)
 """
 
 from typing import Literal
@@ -19,9 +19,9 @@ logger = get_logger(__name__)
 def route_after_rag_retrieval(
     state: InternState,
 ) -> Literal["rag_rerank_node", "rag_answer_node", "rag_retrieval_node", "clarify_node"]:
-    """After retrieval: rerank if results exist, skip to answer if none.
+    """检索后: 如果结果存在则重排序，如果没有则跳转到回答。
 
-    If retrieval completely failed → try clarify (maybe query was too vague).
+    如果检索完全失败 → 尝试澄清 (可能查询太模糊)。
     """
     results = state.get("retrieval_results", [])
     retrieval_failed = state.get("retrieval_failed", False)
@@ -47,7 +47,7 @@ def route_after_rag_retrieval(
 def route_after_rerank(
     state: InternState,
 ) -> Literal["citation_node", "rag_answer_node"]:
-    """After rerank: build citations if results exist."""
+    """重排序后: 如果结果存在则构建引用。"""
     results = state.get("rerank_results", [])
     if not results:
         logger.info("[RAGRouter] No rerank results → answer_node")
@@ -59,7 +59,7 @@ def route_after_rerank(
 def route_after_citation(
     state: InternState,
 ) -> Literal["rag_answer_node", "clarify_node"]:
-    """After citation: always answer if we have citations, regardless of trust."""
+    """引用后: 如果我们有引用则总是回答，无论信任度如何。"""
     citations = state.get("citation_count", 0)
     trust = state.get("trust_level", "medium")
     if citations > 0:
@@ -70,9 +70,9 @@ def route_after_citation(
 
 
 def should_clarify_rag(state: InternState) -> bool:
-    """Check if a RAG query needs clarification.
+    """检查 RAG 查询是否需要澄清。
 
-    Returns True if the query is too vague for meaningful retrieval.
+    如果查询太模糊而无法进行有意义的检索，则返回 True。
     """
     message = state.get("user_message", "")
     intent = state.get("intent", "")

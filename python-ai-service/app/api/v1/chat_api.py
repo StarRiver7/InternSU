@@ -54,7 +54,7 @@ async def chat(req: ChatRequest, request: Request):
       - SSE 响应: _sse_generator 内部读取并注入到 meta / done / error 事件
       - 响应头: RequestTracingMiddleware 自动设置 X-Trace-Id
     """
-    # Auto-generate conversation_id if not provided (ad-hoc chat)
+    # 如果没有提供 conversation_id，自动生成一个
     if not req.conversation_id:
         req.conversation_id = memory_manager.generate_conversation_id()
         logger.info("Auto-generated conversation_id: %s", req.conversation_id)
@@ -78,7 +78,7 @@ async def chat(req: ChatRequest, request: Request):
     await memory_manager.save_graph_state(req.user_id, req.conversation_id, result)
     final_text = result.get("final_answer", "")
     if not final_text:
-        final_text = "收到老师～小SU遇到了问题，请查看服务器日志排查LLM连接"
+        final_text = "SORRY~ 老师～小SU遇到了问题，请查看服务器日志排查LLM连接"
     await memory_manager.record_turn(
         user_id=req.user_id, conv_id=req.conversation_id,
         user_msg=req.message, assistant_msg=final_text,

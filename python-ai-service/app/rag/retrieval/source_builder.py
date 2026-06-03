@@ -1,6 +1,6 @@
-"""Source Builder — build structured source citations from search results.
+"""来源构建器 — 从搜索结果构建结构化来源引用。
 
-Transforms raw Milvus search hits into user-facing source references:
+将原始 Milvus 搜索命中转换为面向用户的来源参考：
   {
     "document_name": "员工手册.pdf",
     "page": 5,
@@ -19,19 +19,19 @@ logger = get_logger(__name__)
 
 
 class SourceBuilder:
-    """Build structured source citations from retrieval results."""
+    """从检索结果构建结构化来源引用。"""
 
     # In-memory cache for KB name lookups (populated externally)
     _kb_name_cache: dict[int, str] = {}
 
     @classmethod
     def set_kb_name_cache(cls, cache: dict[int, str]) -> None:
-        """Pre-load knowledge base name mappings for faster lookups."""
+        """预加载知识库名称映射以加快查找速度。"""
         cls._kb_name_cache.update(cache)
 
     @classmethod
     def get_kb_name(cls, space_id: int) -> str:
-        """Get knowledge base name from cache or return default."""
+        """从缓存获取知识库名称或返回默认值。"""
         return cls._kb_name_cache.get(space_id, f"知识库#{space_id}")
 
     @staticmethod
@@ -40,17 +40,17 @@ class SourceBuilder:
         document_name_map: Optional[dict[int, str]] = None,
         kb_name_map: Optional[dict[int, str]] = None,
     ) -> dict:
-        """Build a single source citation from a search hit.
+        """从搜索命中构建单个来源引用。
 
-        Args:
-            chunk: Milvus search result dict with keys:
+        参数:
+            chunk: Milvus 搜索结果字典，包含以下键:
                 document_id, page_number, chunk_index, score,
                 content, title_path, space_id, department_id
-            document_name_map: optional {document_id: file_name} mapping
-            kb_name_map: optional {space_id: kb_name} mapping
+            document_name_map: 可选的 {document_id: file_name} 映射
+            kb_name_map: 可选的 {space_id: kb_name} 映射
 
-        Returns:
-            Structured source citation dict
+        返回:
+            结构化来源引用字典
         """
         doc_id = chunk.get("document_id")
         space_id = chunk.get("space_id") or chunk.get("knowledge_base_id")
@@ -125,7 +125,7 @@ class SourceBuilder:
         document_name_map: Optional[dict[int, str]] = None,
         kb_name_map: Optional[dict[int, str]] = None,
     ) -> list[dict]:
-        """Build source citations for a batch of search hits."""
+        """为一批搜索命中构建来源引用。"""
         return [
             SourceBuilder.build(c, document_name_map, kb_name_map)
             for c in chunks
@@ -133,7 +133,7 @@ class SourceBuilder:
 
     @staticmethod
     def deduplicate_sources(sources: list[dict]) -> list[dict]:
-        """Remove duplicate sources by document_id + chunk_index."""
+        """按 document_id + chunk_index 移除重复来源。"""
         seen = set()
         unique = []
         for s in sources:
@@ -145,7 +145,7 @@ class SourceBuilder:
 
     @staticmethod
     def format_for_display(sources: list[dict]) -> list[str]:
-        """Format sources as user-facing display strings."""
+        """将来源格式化为面向用户的显示字符串。"""
         formatted = []
         for i, src in enumerate(sources):
             parts = [f"[{i + 1}] {src['document_name']}"]

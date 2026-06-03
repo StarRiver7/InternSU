@@ -1,11 +1,10 @@
-"""Source Formatter — unified display formatting for citations.
+"""来源格式化器 — 统一的引用显示格式。
 
-Produces consistent, frontend-ready citation displays
-in multiple formats:
+生成一致的、前端就绪的引用显示，支持多种格式：
   - inline: "[1] 《员工手册》第5页"
-  - list: numbered reference list
-  - compact: minimal for tight UIs
-  - markdown: for LLM context injection
+  - list: 编号参考列表
+  - compact: 紧凑格式（用于紧凑 UI）
+  - markdown: 用于 LLM 上下文注入
 """
 
 from typing import Optional
@@ -16,20 +15,20 @@ logger = get_logger(__name__)
 
 
 class SourceFormatter:
-    """Format citations for various display contexts.
+    """为各种显示上下文格式化引用。
 
-    Usage:
+    使用示例:
         fmt = SourceFormatter()
         inline = fmt.format_inline(citations)       # → "[1][2][3]"
         ref_list = fmt.format_reference_list(citations)  # → "参考来源:\n[1] ..."
-        md = fmt.format_markdown(citations, query)  # → LLM context
+        md = fmt.format_markdown(citations, query)  # → LLM 上下文
     """
 
     # Configuration
     citation_style: str = "bracket"  # bracket | superscript | parenthetical
 
     def format_inline(self, citations: list[Citation]) -> str:
-        """Inline citation markers like [1][2][3]."""
+        """内联引用标记，如 [1][2][3]。"""
         if not citations:
             return ""
         markers = [c.inline_marker() for c in citations]
@@ -42,9 +41,9 @@ class SourceFormatter:
         include_score: bool = False,
         include_kb: bool = True,
     ) -> str:
-        """Numbered reference list for end-of-answer display.
+        """用于答案末尾显示的编号参考列表。
 
-        Example:
+        示例:
             参考来源:
             [1] 《员工手册》第5页 - HR知识库
             [2] 《考勤规范.pdf》第3页 - 行政部
@@ -68,9 +67,9 @@ class SourceFormatter:
         citations: list[Citation],
         query: str = "",
     ) -> str:
-        """Markdown-formatted context for LLM prompt injection.
+        """用于 LLM 提示注入的 Markdown 格式上下文。
 
-        Example:
+        示例:
             ## 参考来源
             - **[1]** 《员工手册》第5页 | HR知识库 | 相关度: 94%
               > 年假需提前3天向直属领导申请...
@@ -97,7 +96,7 @@ class SourceFormatter:
         self,
         citations: list[Citation],
     ) -> str:
-        """Compact format for tight UI spaces (e.g., sidebar, tooltip)."""
+        """紧凑格式（用于紧凑 UI 空间，如侧边栏、工具提示）。"""
         if not citations:
             return ""
         parts = []
@@ -111,10 +110,9 @@ class SourceFormatter:
         *,
         max_sources: int = 5,
     ) -> str:
-        """Build a citation-aware context block for LLM system prompt.
+        """为 LLM 系统提示构建引用感知的上下文块。
 
-        Includes both content and inline citation markers so the LLM
-        can reference sources naturally in its answer.
+        包含内容和内联引用标记，以便 LLM 可以在回答中自然引用来源。
         """
         if not citations:
             return ""
@@ -139,9 +137,9 @@ class SourceFormatter:
         answer: str,
         citation_set: CitationSet,
     ) -> dict:
-        """Build complete frontend-ready response with citations.
+        """构建带引用的完整前端就绪响应。
 
-        Returns a dict suitable for API response:
+        返回适合 API 响应的字典：
         {
             "answer": "...",
             "citations": [...],

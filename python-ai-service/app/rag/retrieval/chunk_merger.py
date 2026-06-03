@@ -1,13 +1,13 @@
-"""Chunk Merger — merge adjacent retrieval chunks to avoid context fragmentation.
+"""块合并器 — 合并相邻检索块以避免上下文碎片化。
 
-When retrieval returns chunks 12 and 13 from the same document,
-they get merged into one coherent context block.
+当检索返回同一文档的块 12 和 13 时，
+它们会被合并成一个连贯的上下文块。
 
-Features:
-  - Adjacent chunk detection (same document_id, consecutive chunk_index)
-  - Content merging with separator
-  - Combined metadata (page range, scores)
-  - Configurable merge window
+特性:
+  - 相邻块检测（相同 document_id，连续 chunk_index）
+  - 带分隔符的内容合并
+  - 合并元数据（页码范围、分数）
+  - 可配置的合并窗口
 """
 
 import re
@@ -21,10 +21,10 @@ DEFAULT_MERGE_SEPARATOR = "\n...\n"
 
 
 class ChunkMerger:
-    """Merge adjacent chunks from the same document into coherent blocks.
+    """将同一文档的相邻块合并成连贯的块。
 
-    Why: Adjacent chunks often split a paragraph mid-sentence.
-    Merging them gives the LLM complete context rather than fragments.
+    原因：相邻块通常会在句子中间分割段落。
+    合并它们可以为 LLM 提供完整的上下文而不是片段。
     """
 
     def __init__(self, merge_separator: str = DEFAULT_MERGE_SEPARATOR):
@@ -37,19 +37,19 @@ class ChunkMerger:
         max_merge_distance: int = 1,
         sort_first: bool = True,
     ) -> list[dict]:
-        """Merge adjacent chunks with the same document_id.
+        """合并具有相同 document_id 的相邻块。
 
-        Two chunks are "adjacent" when:
-          - They share the same document_id
-          - Their chunk_index values differ by exactly max_merge_distance
+        两个块是"相邻"的条件：
+          - 它们共享相同的 document_id
+          - 它们的 chunk_index 值相差不超过 max_merge_distance
 
-        Args:
-            chunks: ranked retrieval results (must have document_id, chunk_index, content)
-            max_merge_distance: max index gap to merge (1 = only consecutive)
-            sort_first: sort by (document_id, chunk_index) before merging
+        参数:
+            chunks: 排序后的检索结果（必须包含 document_id, chunk_index, content）
+            max_merge_distance: 合并的最大索引差距（1 = 仅连续）
+            sort_first: 合并前按（document_id, chunk_index）排序
 
-        Returns:
-            List of merged chunks. Unmerged chunks pass through as-is.
+        返回:
+            合并后的块列表。未合并的块按原样通过。
         """
         if not chunks:
             return chunks
@@ -135,7 +135,7 @@ class ChunkMerger:
         return merged
 
     def _finalize_merged(self, merged_chunk: dict) -> dict:
-        """Clean up internal fields and add merge metadata."""
+        """清理内部字段并添加合并元数据。"""
         sources = merged_chunk.pop("_merged_from", [])
         merged_chunk.pop("_last_chunk_idx", None)
         merged_chunk["merge_count"] = len(sources)
@@ -167,10 +167,10 @@ class ChunkMerger:
         *,
         window_size: int = 3,
     ) -> list[dict]:
-        """Merge chunks within a sliding window (for broader context).
+        """在滑动窗口内合并块（用于更广泛的上下文）。
 
-        Args:
-            window_size: merge up to N adjacent chunks together
+        参数:
+            window_size: 最多合并 N 个相邻块
         """
         return self.merge(chunks, max_merge_distance=window_size - 1)
 

@@ -1,11 +1,11 @@
-"""Source Highlighter — highlight cited text in AI answers.
+"""来源高亮器 — 在 AI 答案中高亮引用文本。
 
-When the LLM generates an answer that references sources,
-this module maps citations back to the specific text spans
-that support each claim. Enables frontend features like:
-  - Clickable citation markers
-  - Hover preview of source text
-  - Highlight-to-source mapping
+当 LLM 生成引用来源的答案时，
+此模块将引用映射回支持每个声明的特定文本跨度。
+支持前端功能如：
+  - 可点击的引用标记
+  - 悬停预览来源文本
+  - 高亮到来源的映射
 """
 
 import re
@@ -17,9 +17,9 @@ logger = get_logger(__name__)
 
 
 class SourceHighlighter:
-    """Map citations to text spans for frontend highlighting.
+    """将引用映射到文本跨度以供前端高亮显示。
 
-    Usage:
+    使用示例:
         sh = SourceHighlighter()
         spans = sh.find_citation_spans(answer, citations)
         # → [{"citation_id": 1, "start": 45, "end": 72, "text": "..."}, ...]
@@ -33,10 +33,10 @@ class SourceHighlighter:
         answer: str,
         citations: list[Citation],
     ) -> list[dict]:
-        """Find text spans in the answer that match citation quotes.
+        """查找答案中与引用引号匹配的文本跨度。
 
-        Returns list of {citation_id, start, end, matched_text, confidence}
-        ordered by position in answer.
+        返回 {citation_id, start, end, matched_text, confidence} 列表，
+        按答案中的位置排序。
         """
         if not answer or not citations:
             return []
@@ -87,9 +87,9 @@ class SourceHighlighter:
         answer: str,
         citations: list[Citation],
     ) -> list[dict]:
-        """Find explicit citation markers like [1], [来源1] in the answer.
+        """查找答案中的显式引用标记，如 [1]、[来源1]。
 
-        Returns their positions and which citation they reference.
+        返回它们的位置以及它们引用的引用。
         """
         if not answer:
             return []
@@ -121,12 +121,12 @@ class SourceHighlighter:
         answer: str,
         citations: list[Citation],
     ) -> dict:
-        """Build a complete highlight map for frontend rendering.
+        """为前端渲染构建完整的高亮映射。
 
-        Returns:
+        返回:
         {
-            "spans": [citation-linked text spans],
-            "markers": [explicit citation markers],
+            "spans": [引用链接的文本跨度],
+            "markers": [显式引用标记],
             "has_highlights": bool,
         }
         """
@@ -143,7 +143,7 @@ class SourceHighlighter:
         self,
         citation: Citation,
     ) -> str:
-        """Build a tooltip string for hover preview."""
+        """为悬停预览构建工具提示字符串。"""
         parts = [f"来源: {citation.display_ref()}"]
         if citation.knowledge_base:
             parts.append(f"知识库: {citation.knowledge_base}")
@@ -156,7 +156,7 @@ class SourceHighlighter:
 
     @staticmethod
     def _find_exact_matches(text: str, pattern: str) -> list[tuple[int, int]]:
-        """Find all exact substring matches."""
+        """查找所有精确子串匹配。"""
         matches = []
         start = 0
         while True:
@@ -172,9 +172,9 @@ class SourceHighlighter:
         text: str,
         pattern: str,
     ) -> Optional[dict]:
-        """Find the longest common substring between text and pattern.
+        """查找文本和模式之间的最长公共子串。
 
-        Returns {start, end, length} or None.
+        返回 {start, end, length} 或 None。
         """
         if not text or not pattern:
             return None
@@ -202,7 +202,7 @@ class SourceHighlighter:
 
 
 def _num_to_cn(n: int) -> str:
-    """Convert number to Chinese numeral (1-10 only)."""
+    """将数字转换为中文数字（仅 1-10）。"""
     cn = ["", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十"]
     return cn[n] if 0 < n <= 10 else str(n)
 

@@ -1,12 +1,12 @@
-"""RAG Retrieval Node — focused retrieval with query rewrite + agentic fallback.
+"""RAG 检索节点 — 带查询重写和智能回退的聚焦检索。
 
-Flow:
-  1. Query Rewrite (LLM expansion)
-  2. Hybrid Retrieval (dense + sparse + fuse)
-  3. Metadata Filter (permission isolation)
-  4. Agentic Fallback (retry with expanded query if no results)
+流程：
+  1. 查询重写（LLM 扩展）
+  2. 混合检索（向量 + 关键词 + 融合）
+  3. 元数据过滤（权限隔离）
+  4. 智能回退（无结果时使用扩展查询重试）
 
-Writes: retrieval_results, retrieval_count, query_rewritten, retrieval_elapsed_ms
+写入状态：retrieval_results, retrieval_count, query_rewritten, retrieval_elapsed_ms
 """
 
 import time

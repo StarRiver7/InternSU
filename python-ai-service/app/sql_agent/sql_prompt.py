@@ -1,4 +1,4 @@
-"""SQL Agent Prompt Templates - InternSU personality for SQL generation and summarization."""
+"""SQL 智能体提示模板 - InternSU 人格化的 SQL 生成和总结。"""
 
 SQL_GENERATE_SYSTEM = """你是小SU，公司新来的AI实习生，正在帮老师查询数据库。
 

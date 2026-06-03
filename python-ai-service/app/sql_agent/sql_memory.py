@@ -1,4 +1,4 @@
-"""SQL Memory - Context reuse for SQL queries via Redis Memory."""
+"""SQL 记忆 - 通过 Redis 内存实现 SQL 查询的上下文复用。"""
 from app.core.logger import get_logger
 logger = get_logger(__name__)
 

@@ -1,13 +1,13 @@
 # ============================================================
-# retrieval/base.py — Retrieval Layer Abstract
+# retrieval/base.py — 检索层抽象
 # ============================================================
-"""Retrieval Layer — defines the contract for search across vector stores.
+"""检索层 — 定义跨向量存储搜索的契约。
 
-Provides:
-    - SearchResult: unified search hit
-    - SearchQuery: parameterized search request
-    - BaseRetriever: abstract interface for any search backend
-    - BaseVectorStore: abstract interface for vector storage
+提供:
+    - SearchResult: 统一搜索命中
+    - SearchQuery: 参数化搜索请求
+    - BaseRetriever: 任何搜索后端的抽象接口
+    - BaseVectorStore: 向量存储后端的抽象接口
 """
 
 from abc import ABC, abstractmethod
@@ -17,7 +17,7 @@ from typing import Optional, Any
 
 @dataclass
 class SearchResult:
-    """Unified search result from any retrieval backend."""
+    """来自任何检索后端的统一搜索结果。"""
     id: str
     doc_id: str
     content: str
@@ -28,7 +28,7 @@ class SearchResult:
 
 @dataclass
 class SearchQuery:
-    """Parameterized search query."""
+    """参数化搜索查询。"""
     query: str
     top_k: int = 5
     score_threshold: float = 0.5
@@ -38,17 +38,17 @@ class SearchQuery:
 
 
 class BaseRetriever(ABC):
-    """Abstract contract for search/retrieval backends.
+    """搜索/检索后端的抽象契约。
 
-    Implementations:
+    实现:
         - VectorRetriever (Milvus, Pinecone, Weaviate)
         - KeywordRetriever (Elasticsearch, BM25)
-        - HybridRetriever (combined vector + keyword)
+        - HybridRetriever (组合向量 + 关键词)
     """
 
     @abstractmethod
     async def search(self, query: SearchQuery) -> list[SearchResult]:
-        """Execute a search and return ranked results."""
+        """执行搜索并返回排序结果。"""
         ...
 
     @abstractmethod
@@ -56,12 +56,12 @@ class BaseRetriever(ABC):
         self,
         queries: list[SearchQuery],
     ) -> list[list[SearchResult]]:
-        """Execute multiple searches in parallel."""
+        """并行执行多个搜索。"""
         ...
 
 
 class BaseVectorStore(ABC):
-    """Abstract contract for vector storage backends."""
+    """向量存储后端的抽象契约。"""
 
     @abstractmethod
     async def insert(
@@ -72,7 +72,7 @@ class BaseVectorStore(ABC):
         *,
         space_id: str = "default",
     ) -> list[str]:
-        """Insert vectors with documents and metadata. Returns IDs."""
+        """插入向量及其文档和元数据。返回 ID。"""
         ...
 
     @abstractmethod

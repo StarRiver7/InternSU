@@ -11,7 +11,7 @@ _OPENAI_AUTH_ERROR_MSG = (
 
 class OpenAIProvider(BaseLLMProvider):
     _default_embedding_model: str = "text-embedding-3-small"
-    """OpenAI Provider - GPT-4o, GPT-4o-mini, text-embedding-3-small"""
+    """OpenAI 提供者 - GPT-4o, GPT-4o-mini, text-embedding-3-small"""
 
     def __init__(self):
         self._client = AsyncOpenAI(

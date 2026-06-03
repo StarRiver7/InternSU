@@ -1,10 +1,10 @@
-"""Sparse Retriever — BM25 keyword search with Chinese tokenization.
+"""稀疏检索器 — BM25 关键词搜索，支持中文分词。
 
-Features:
-  - BM25 Okapi scoring
-  - Jieba Chinese word segmentation
-  - Title/heading boost
-  - Score normalization to [0, 1]
+特性:
+  - BM25 Okapi 评分
+  - Jieba 中文分词
+  - 标题/标题增强
+  - 分数归一化到 [0, 1]
 """
 
 import time
@@ -25,13 +25,13 @@ except ImportError:
 
 
 class SparseRetriever:
-    """BM25 keyword retriever with Chinese tokenization support."""
+    """支持中文分词的 BM25 关键词检索器。"""
 
     def __init__(self):
         self._corpus_cache: dict[int, tuple[list[str], BM25Okapi]] = {}
 
     def tokenize(self, text: str) -> list[str]:
-        """Tokenize text for BM25 indexing."""
+        """为 BM25 索引分词文本。"""
         if _HAS_JIEBA:
             tokens = list(jieba.cut(text.lower()))
             return [t.strip() for t in tokens if len(t.strip()) >= 1]
@@ -39,7 +39,7 @@ class SparseRetriever:
             return re.findall(r"[\u4e00-\u9fff]+|\w+", text.lower())
 
     def build_index(self, candidates: list[dict]) -> tuple[list[str], BM25Okapi]:
-        """Build BM25 index from candidate documents."""
+        """从候选文档构建 BM25 索引。"""
         if not candidates:
             return [], None
 
@@ -64,11 +64,11 @@ class SparseRetriever:
         top_k: int = 20,
         title_boost: float = 2.0,
     ) -> list[dict]:
-        """BM25 keyword search over candidates.
+        """在候选文档上执行 BM25 关键词搜索。
 
-        Returns all candidates with normalized BM25 scores in [0, 1].
-        Negative BM25 scores (common with small corpora) are kept —
-        the score_fusion stage will handle final relevance weighting.
+        返回所有带归一化 BM25 分数（[0, 1]）的候选文档。
+        保留负 BM25 分数（在小语料库中常见）——
+        分数融合阶段会处理最终的相关性加权。
         """
         if not candidates:
             return []

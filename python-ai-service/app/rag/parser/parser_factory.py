@@ -1,14 +1,14 @@
-"""Document Parser — base classes and factory for multi-format support.
+"""文档解析器 — 多格式支持的基类和工厂。
 
-Architecture:
-    ParserFactory  ──dispatches──▶  BaseParser (ABC)
+架构:
+    ParserFactory  ──分发──▶  BaseParser (ABC)
         │                               ├── PdfParser
         │                               ├── DocxParser
         │                               ├── MdParser
         │                               └── TxtParser
         │
         ▼
-    ParsedDocument  (unified output with pages, paragraphs, headings)
+    ParsedDocument  (统一输出，包含页面、段落、标题)
 """
 
 from abc import ABC, abstractmethod

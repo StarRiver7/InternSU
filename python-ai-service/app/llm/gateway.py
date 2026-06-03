@@ -1,4 +1,4 @@
-"""InternSU LLM Gateway —— 多 Provider 管理、占位符检测、启动探活、故障转移。
+"""InternSU LLM 网关 —— 多 Provider 管理、占位符检测、启动探活、故障转移。
 
 架构职责:
   1. 静态校验 —— 启动时检测 API Key 是否为占位符（sk-your-key-here 等）
@@ -69,7 +69,7 @@ def _is_placeholder_key(key: str) -> bool:
 def _validate_key_format(key: str, provider_name: str) -> tuple[bool, str]:
     """静态校验 Key 格式。
 
-    Returns:
+    返回:
         (is_valid, reason) —— is_valid=False 时 reason 为人类可读的失败原因。
     """
     stripped = key.strip() if key else ""

@@ -1,10 +1,10 @@
-"""Rerank Score — composite scoring for re-ranked results.
+"""重排序分数 — 重排序结果的复合评分。
 
-Combines multiple signals into a final relevance score:
+将多个信号组合成最终的相关性分数：
 
   final_score = α · retrieval_score + β · rerank_score + γ · metadata_bonus
 
-Weights are dynamically adjustable per query type.
+权重可根据查询类型动态调整。
 """
 
 from typing import Optional
@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 
 @dataclass
 class ScoreConfig:
-    """Configuration for composite score weights."""
+    """复合分数权重配置。"""
     retrieval_weight: float = 0.40   # Original hybrid retrieval score
     rerank_weight: float = 0.50      # CrossEncoder semantic score
     metadata_weight: float = 0.10    # Metadata bonuses (title, dept, etc.)
@@ -33,13 +33,13 @@ class ScoreConfig:
 
 
 class RerankScorer:
-    """Composite score calculator for re-ranked results.
+    """重排序结果的复合分数计算器。
 
-    Combines:
-      - original retrieval score (from hybrid search)
-      - cross-encoder relevance score
-      - metadata bonuses
-    into a single calibrated relevance score [0, 1].
+    组合：
+      - 原始检索分数（来自混合搜索）
+      - 交叉编码器相关性分数
+      - 元数据奖励
+    成单个校准的相关性分数 [0, 1]。
     """
 
     def __init__(self, config: Optional[ScoreConfig] = None):
@@ -51,15 +51,15 @@ class RerankScorer:
         rerank_score: float,
         metadata_boost: float = 0.0,
     ) -> float:
-        """Compute composite final score.
+        """计算复合最终分数。
 
-        Args:
-            retrieval_score: original hybrid retrieval score [0, 1]
-            rerank_score: cross-encoder relevance score [0, 1]
-            metadata_boost: additional metadata bonus [0, 0.15]
+        参数:
+            retrieval_score: 原始混合检索分数 [0, 1]
+            rerank_score: 交叉编码器相关性分数 [0, 1]
+            metadata_boost: 额外的元数据奖励 [0, 0.15]
 
-        Returns:
-            Final calibrated score [0, 1]
+        返回:
+            最终校准分数 [0, 1]
         """
         final = (
             self._config.retrieval_weight * retrieval_score +
@@ -76,9 +76,9 @@ class RerankScorer:
         retrieval_key: str = "score",
         metadata_key: str = "metadata_boost",
     ) -> list[dict]:
-        """Compute composite scores for a batch of chunks.
+        """为一批块计算复合分数。
 
-        Adds/updates 'composite_score' and 'score' on each chunk.
+        在每个块上添加/更新 'composite_score' 和 'score'。
         """
         for c in chunks:
             retrieval = c.get(retrieval_key, 0)
@@ -100,7 +100,7 @@ class RerankScorer:
         rerank_scores: list[float],
         metadata_boosts: Optional[list[float]] = None,
     ) -> list[float]:
-        """Compute composite scores from parallel arrays."""
+        """从并行数组计算复合分数。"""
         if metadata_boosts is None:
             metadata_boosts = [0.0] * len(retrieval_scores)
 
@@ -119,7 +119,7 @@ class RerankScorer:
         rerank: Optional[float] = None,
         metadata: Optional[float] = None,
     ):
-        """Dynamically adjust score weights."""
+        """动态调整分数权重。"""
         if retrieval is not None:
             self._config.retrieval_weight = retrieval
         if rerank is not None:

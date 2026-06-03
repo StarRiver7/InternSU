@@ -1,11 +1,11 @@
-"""Source Manager — aggregate, sort, deduplicate, and fuse citation sources.
+"""来源管理器 — 聚合、排序、去重和融合引用来源。
 
-Handles the lifecycle of source citations:
-  1. Aggregate sources from multiple retrievals
-  2. Remove duplicates across citation sets
-  3. Sort by relevance + trust
-  4. Select top-N for final display
-  5. Fuse related sources (same document, adjacent pages)
+处理来源引用的生命周期：
+  1. 聚合多个检索的来源
+  2. 跨引用集移除重复
+  3. 按相关性 + 信任度排序
+  4. 选择前 N 个用于最终显示
+  5. 融合相关来源（同一文档，相邻页面）
 """
 
 from typing import Optional
@@ -16,9 +16,9 @@ logger = get_logger(__name__)
 
 
 class SourceManager:
-    """Manage citation sources across retrieval rounds.
+    """跨检索轮次管理引用来源。
 
-    Usage:
+    使用示例:
         mgr = SourceManager()
         mgr.add_citations(citation_set)
         top_sources = mgr.get_top_sources(n=5)
@@ -29,9 +29,9 @@ class SourceManager:
         self._seen_ids: set[str] = set()
 
     def add_citations(self, citation_set: CitationSet) -> int:
-        """Add citations from a CitationSet, deduplicating by chunk_id.
+        """从 CitationSet 添加引用，按 chunk_id 去重。
 
-        Returns number of new citations added.
+        返回新添加的引用数量。
         """
         added = 0
         for c in citation_set.citations:
@@ -43,9 +43,9 @@ class SourceManager:
         return added
 
     def add_sources(self, sources: list[dict]) -> int:
-        """Add raw source dicts (from source_builder output).
+        """添加原始来源字典（来自 source_builder 输出）。
 
-        Returns number of new sources added.
+        返回新添加的来源数量。
         """
         added = 0
         for s in sources:
@@ -79,15 +79,15 @@ class SourceManager:
         min_score: float = 0.3,
         sort_by: str = "composite",  # composite | relevance | trust
     ) -> list[Citation]:
-        """Get top-N sources sorted by relevance.
+        """获取按相关性排序的前 N 个来源。
 
-        Args:
-            n: max number of sources
-            min_score: minimum relevance score
-            sort_by: "composite" (composite_score), "relevance" (relevance_score), "trust"
+        参数:
+            n: 最大来源数量
+            min_score: 最低相关性分数
+            sort_by: "composite" (复合分数), "relevance" (相关性分数), "trust"
 
-        Returns:
-            Ordered list of top citations.
+        返回:
+            排序后的前 N 个引用列表。
         """
         # Filter
         filtered = [c for c in self._sources if c.relevance_score >= min_score]
@@ -112,14 +112,14 @@ class SourceManager:
         return result
 
     def get_sources_by_document(self) -> dict[int, list[Citation]]:
-        """Group sources by document_id."""
+        """按 document_id 分组来源。"""
         grouped: dict[int, list[Citation]] = {}
         for c in self._sources:
             grouped.setdefault(c.document_id, []).append(c)
         return grouped
 
     def get_unique_documents(self) -> list[dict]:
-        """Get unique document summaries (one entry per document)."""
+        """获取唯一文档摘要（每个文档一个条目）。"""
         docs: dict[int, dict] = {}
         for c in self._sources:
             if c.document_id not in docs:
@@ -151,11 +151,11 @@ class SourceManager:
         citations: list[Citation],
         max_gap: int = 1,
     ) -> list[Citation]:
-        """Fuse citations from the same document with adjacent pages.
+        """融合同一文档中相邻页面的引用。
 
-        Two citations are "adjacent" if:
-          - Same document_id
-          - Page numbers differ by ≤ max_gap
+        两个引用是"相邻"的条件：
+          - 相同的 document_id
+          - 页码相差 ≤ max_gap
         """
         if not citations:
             return []
@@ -187,7 +187,7 @@ class SourceManager:
 
     @staticmethod
     def _fuse_group(group: list[Citation]) -> Citation:
-        """Merge a group of adjacent citations."""
+        """合并一组相邻引用。"""
         if len(group) == 1:
             return group[0]
 
@@ -219,7 +219,7 @@ class SourceManager:
         return len(self._sources)
 
     def clear(self):
-        """Reset all sources."""
+        """重置所有来源。"""
         self._sources.clear()
         self._seen_ids.clear()
 

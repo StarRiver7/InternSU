@@ -1,7 +1,7 @@
-"""Retrieval Ranker — Rerank interface placeholder.
+"""检索排序器 — 重排序接口占位符。
 
-Current: score-based ranking only.
-Future: BGE-Reranker integration for re-ranking top results.
+当前: 仅基于分数的排序。
+未来: 集成 BGE-Reranker 对顶部结果进行重排序。
 """
 
 from typing import Optional
@@ -11,10 +11,10 @@ logger = get_logger(__name__)
 
 
 class RetrievalRanker:
-    """Post-retrieval ranker.
+    """检索后排序器。
 
-    Current implementation: score-based sorting + dedup.
-    Placeholder for future BGE-Reranker integration.
+    当前实现: 基于分数的排序 + 去重。
+    未来 BGE-Reranker 集成的占位符。
     """
 
     def __init__(self):
@@ -28,16 +28,16 @@ class RetrievalRanker:
         top_n: Optional[int] = None,
         score_threshold: float = 0.3,
     ) -> list[dict]:
-        """Rank and filter retrieval results.
+        """排序和过滤检索结果。
 
-        Args:
-            query: original search query
-            chunks: raw retrieval results with scores
-            top_n: max results to return
-            score_threshold: minimum score to keep
+        参数:
+            query: 原始搜索查询
+            chunks: 带分数的原始检索结果
+            top_n: 返回的最大结果数
+            score_threshold: 保留结果的最低分数
 
-        Returns:
-            Ranked and filtered results
+        返回:
+            排序和过滤后的结果
         """
         # Deduplicate by content hash
         seen = set()

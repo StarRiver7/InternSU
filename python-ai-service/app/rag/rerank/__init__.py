@@ -1,13 +1,13 @@
-"""Rerank module — semantic re-ranking for enterprise RAG.
+"""重排序模块 — 企业级 RAG 的语义重排序。
 
-Pipeline:
+流水线:
   TopK → CrossEncoder → CompositeScore → DuplicateFilter → TopN
 
-Key components:
-  - CrossEncoder: pairwise (query, chunk) relevance scoring
-  - RerankPipeline: full orchestration
-  - RerankScorer: composite score calculation
-  - DuplicateFilter: near-duplicate removal
+关键组件:
+  - CrossEncoder: 成对 (query, chunk) 相关性评分
+  - RerankPipeline: 完整编排
+  - RerankScorer: 复合分数计算
+  - DuplicateFilter: 近似重复项移除
 """
 
 from app.rag.rerank.reranker import reranker, Reranker

@@ -1,15 +1,15 @@
-"""Hybrid Search — dense vector + BM25 keyword fusion retrieval.
+"""混合搜索 — 稠密向量 + BM25 关键词融合检索。
 
-Combines:
-  1. Dense retrieval (Milvus vector search with BGE-M3)
-  2. BM25 keyword search (lexical matching with jieba)
-  3. Weighted fusion (configurable vector/keyword weights)
-  4. Metadata filtering (department, space, visibility)
+组合方式:
+  1. 稠密检索（使用 BGE-M3 的 Milvus 向量搜索）
+  2. BM25 关键词搜索（使用 jieba 的词法匹配）
+  3. 加权融合（可配置的向量/关键词权重）
+  4. 元数据过滤（部门、空间、可见性）
 
-Now delegates to DenseRetriever + SparseRetriever + ScoreFusion
-for cleaner separation of concerns.
+现在委托给 DenseRetriever + SparseRetriever + ScoreFusion，
+实现更清晰的关注点分离。
 
-Default weights: 70% vector, 30% keyword.
+默认权重: 70% 向量, 30% 关键词。
 """
 
 import time
@@ -25,14 +25,14 @@ logger = get_logger(__name__)
 
 
 class HybridSearch:
-    """InternSU hybrid search: vector + BM25 with metadata filtering.
+    """InternSU 混合搜索：向量 + BM25 带元数据过滤。
 
-    Delegates to:
-      - DenseRetriever for vector search
-      - SparseRetriever for BM25 keyword search
-      - ScoreFusion for weighted result merging
+    委托给:
+      - DenseRetriever 用于向量搜索
+      - SparseRetriever 用于 BM25 关键词搜索
+      - ScoreFusion 用于加权结果合并
 
-    Usage:
+    使用示例:
         hs = HybridSearch()
         results = await hs.search(
             query="考勤制度",
@@ -70,16 +70,16 @@ class HybridSearch:
         space_ids: Optional[list[int]] = None,
         document_ids: Optional[list[int]] = None,
     ) -> list[dict]:
-        """Execute hybrid search with full metadata filtering.
+        """执行混合搜索，包含完整的元数据过滤。
 
-        Pipeline:
-          1. Dense vector retrieval (BGE-M3 + Milvus)
-          2. Sparse BM25 keyword search
-          3. Weighted fusion
-          4. Deduplicate + threshold filter
+        流程:
+          1. 稠密向量检索（BGE-M3 + Milvus）
+          2. 稀疏 BM25 关键词搜索
+          3. 加权融合
+          4. 去重 + 阈值过滤
 
-        Returns:
-            Ranked list of search hits with scores and metadata.
+        返回:
+            带分数和元数据的排序搜索结果列表。
         """
         start = time.time()
 

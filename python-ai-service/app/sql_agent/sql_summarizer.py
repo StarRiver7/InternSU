@@ -1,4 +1,4 @@
-"""SQL Summarizer - LLM summarizes SQL query results in natural language."""
+"""SQL 总结器 - LLM 用自然语言总结 SQL 查询结果。"""
 import json
 from app.llm.gateway import llm_gateway
 from app.sql_agent.sql_prompt import SQL_SUMMARIZE_SYSTEM, SQL_SUMMARIZE_USER

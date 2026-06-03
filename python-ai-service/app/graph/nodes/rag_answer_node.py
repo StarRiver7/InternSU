@@ -1,17 +1,17 @@
-"""RAG Answer Node — generate citation-aware answer from RAG context.
+"""RAG 回答节点 — 从 RAG 上下文生成带引用的回答。
 
-Reads: rag_context, citations, trust_level, user_message
-Writes: rag_answer, final_answer, answer_sources, tokens_used
+读取: rag_context, citations, trust_level, user_message
+写入: rag_answer, final_answer, answer_sources, tokens_used
 
-Trust gating:
-  - trust_level = "unreliable" → refuse to fabricate
-  - trust_level = "low" → answer with caveat
-  - trust_level = "medium"/"high" → normal answer
+可信度控制:
+  - trust_level = "unreliable" → 拒绝编造答案
+  - trust_level = "low" → 带提示回答
+  - trust_level = "medium"/"high" → 正常回答
 
-Citation-aware prompt enforces:
-  ○ Only answer from provided context
-  ○ Every claim must cite [来源N]
-  ○ If context lacks info, say so honestly
+引用感知提示强制规则:
+  ○ 仅基于提供的上下文回答
+  ○ 每个声明必须标注 [来源N]
+  ○ 如果上下文缺少信息，诚实告知
 """
 
 import time

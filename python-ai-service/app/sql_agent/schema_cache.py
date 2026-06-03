@@ -1,4 +1,4 @@
-"""Schema Cache - TTL-based schema cache to avoid repeated MySQL queries."""
+"""模式缓存 - 基于 TTL 的模式缓存，避免重复的 MySQL 查询。"""
 import time
 from app.core.logger import get_logger
 logger = get_logger(__name__)

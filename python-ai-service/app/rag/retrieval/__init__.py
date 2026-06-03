@@ -1,6 +1,6 @@
-"""RAG Retrieval module — enterprise-grade hybrid retrieval engine.
+"""RAG 检索模块 — 企业级混合检索引擎。
 
-Pipeline:
+流水线:
   query → rewrite → dense(BGE-M3) → sparse(BM25) → fuse → boost → rerank → merge → context
 """
 

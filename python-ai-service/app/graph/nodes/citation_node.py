@@ -1,8 +1,8 @@
-"""Citation Node — build structured citations from reranked results.
+"""引用构建节点 — 从重排序结果构建结构化引用。
 
-Takes rerank_results → CitationBuilder → CitationSet + Trust Assessment.
+处理流程：rerank_results → CitationBuilder → CitationSet + 可信度评估
 
-Writes: citations, citation_set, citation_count, trust_level, rag_context
+写入状态：citations, citation_set, citation_count, trust_level, rag_context
 """
 
 import time

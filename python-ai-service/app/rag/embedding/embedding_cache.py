@@ -1,10 +1,10 @@
-"""Embedding Cache — hash-based cache to avoid redundant embeddings.
+"""嵌入缓存 — 基于哈希的缓存，避免重复嵌入。
 
-Caches embeddings by content SHA-256 hash.
-Useful for:
-  - Repeated queries
-  - Overlapping chunks (same text in multiple documents)
-  - Testing/development cycles
+通过内容的 SHA-256 哈希缓存嵌入。
+适用场景:
+  - 重复查询
+  - 重叠块（多个文档中的相同文本）
+  - 测试/开发周期
 """
 
 import hashlib
@@ -17,9 +17,9 @@ logger = get_logger(__name__)
 
 
 class EmbeddingCache:
-    """In-memory LRU cache for embeddings.
+    """嵌入的内存 LRU 缓存。
 
-    Caches by SHA-256 hash of content text.
+    通过内容文本的 SHA-256 哈希进行缓存。
     """
 
     def __init__(self, max_size: int = 10000):
@@ -56,11 +56,11 @@ class EmbeddingCache:
             self.put(text, vec)
 
     def get_batch(self, texts: list[str]) -> tuple[list[Optional[list[float]]], list[int]]:
-        """Check cache for a batch of texts.
+        """检查一批文本的缓存。
 
-        Returns:
+        返回:
             (cached_vectors, missing_indices)
-            cached_vectors[i] is None if not in cache.
+            cached_vectors[i] 如果不在缓存中则为 None。
         """
         cached = []
         missing = []

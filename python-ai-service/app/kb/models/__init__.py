@@ -1,4 +1,4 @@
-"""Knowledge Base ORM entity models — t_knowledge_space + t_document."""
+"""知识库 ORM 实体模型 — t_knowledge_space + t_document。"""
 from datetime import datetime
 from sqlalchemy import Column, Integer, BigInteger, String, Text, DateTime, JSON, Index, Float
 from app.core.database import Base

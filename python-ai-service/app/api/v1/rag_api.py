@@ -1,4 +1,4 @@
-"""RAG API — knowledge base search and document indexing."""
+"""RAG API — 知识库搜索和文档索引。"""
 from fastapi import APIRouter
 from app.models.dto.rag import RagSearchRequest, RagSearchResponse, RagIndexRequest
 from app.pipeline.rag_pipeline import rag_pipeline

@@ -10,7 +10,7 @@ _DEEPSEEK_AUTH_ERROR_MSG = (
 
 
 class DeepSeekProvider(BaseLLMProvider):
-    """DeepSeek Provider - deepseek-chat (V3), deepseek-reasoner (R1)"""
+    """DeepSeek 提供者 - deepseek-chat (V3), deepseek-reasoner (R1)"""
 
     def __init__(self):
         self._client = AsyncOpenAI(

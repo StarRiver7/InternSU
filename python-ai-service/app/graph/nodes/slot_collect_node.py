@@ -1,3 +1,12 @@
+"""槽位收集节点 —— 从用户回答中提取槽位信息。
+
+职责:
+  1. 解析用户对澄清问题的回答
+  2. 提取对应的槽位值
+  3. 更新已收集的槽位集合
+  4. 检查是否还有缺失的槽位
+"""
+
 import time
 from app.graph.state import InternState
 from app.graph.clarify.slot_manager import slot_manager
@@ -11,7 +20,7 @@ async def slot_collect_node(state: InternState) -> InternState:
     slots = state.get("clarify_slots", [])
     prev_q = state.get("clarify_question", "")
     collected = state.get("collected_slots", {})
-    state["trace_steps"] = state.get("trace_steps", []) + [{"node": "slot_collect_node", "message": "collecting teacher response info...", "status": "running", "timestamp": _now()}]
+    state["trace_steps"] = state.get("trace_steps", []) + [{"node": "slot_collect_node", "message": "正在收集老师的回答信息...", "status": "running", "timestamp": _now()}]
     extracted = await slot_manager.extract_slots_from_response(msg, slots, prev_q)
     collected.update(extracted)
     state["collected_slots"] = collected
@@ -24,7 +33,7 @@ async def slot_collect_node(state: InternState) -> InternState:
     else:
         state["clarify_required"] = True
     dur = int((time.time() - t0) * 1000)
-    state["trace_steps"][-1] = {"node": "slot_collect_node", "message": f"collected {len(extracted)} slots, {len(missing)} remaining", "status": "completed", "detail": {"extracted": extracted, "remaining_missing": missing}, "duration_ms": dur, "timestamp": _now()}
+    state["trace_steps"][-1] = {"node": "slot_collect_node", "message": f"已收集 {len(extracted)} 个槽位，还剩 {len(missing)} 个待确认", "status": "completed", "detail": {"extracted": extracted, "remaining_missing": missing}, "duration_ms": dur, "timestamp": _now()}
     logger.info(f"SlotCollect: extracted={list(extracted.keys())}, still missing={missing}")
     return state
 

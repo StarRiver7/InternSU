@@ -1,11 +1,11 @@
-"""Milvus Client — InternSU Milvus Lite client with schema-aware operations.
+"""Milvus 客户端 — InternSU Milvus Lite 客户端，支持基于模式的操作。
 
-Features:
-  - Schema-based collection management
-  - HNSW index with configurable params
-  - Metadata-rich insert with full traceability
-  - Permission-aware search with metadata filters
-  - Connection lifecycle management
+特性:
+  - 基于模式的集合管理
+  - 可配置参数的 HNSW 索引
+  - 带有完整可追溯性的富元数据插入
+  - 支持元数据过滤器的权限感知搜索
+  - 连接生命周期管理
 """
 
 import time
@@ -27,7 +27,7 @@ logger = get_logger(__name__)
 
 
 class MilvusClient:
-    """InternSU Milvus Lite client."""
+    """InternSU Milvus Lite 客户端。"""
 
     def __init__(
         self,
@@ -105,9 +105,9 @@ class MilvusClient:
         source_paths: list[str],
         chunk_indices: list[int],
     ) -> list[int]:
-        """Insert vectors with full metadata into Milvus.
+        """将带完整元数据的向量插入 Milvus。
 
-        Returns list of assigned primary keys.
+        返回分配的主键列表。
         """
         client = self._ensure_client()
         start = time.time()
@@ -152,10 +152,10 @@ class MilvusClient:
         score_threshold: float = 0.3,
         filter_expr: Optional[str] = None,
     ) -> list[dict]:
-        """Vector similarity search with metadata filter.
+        """带元数据过滤器的向量相似度搜索。
 
-        Returns list of {pk, chunk_id, document_id, space_id, content,
-                         score, metadata: {...}}.
+        返回列表 {pk, chunk_id, document_id, space_id, content,
+                         score, metadata: {...}}。
         """
         client = self._ensure_client()
         start = time.time()
@@ -211,7 +211,7 @@ class MilvusClient:
     # ---- Management ----
 
     def delete_by_document(self, document_id: int) -> int:
-        """Delete all vectors for a document."""
+        """删除文档的所有向量。"""
         client = self._ensure_client()
         result = client.delete(
             collection_name=COLLECTION_NAME,
@@ -222,7 +222,7 @@ class MilvusClient:
         return count
 
     def delete_by_space(self, space_id: int) -> int:
-        """Delete all vectors for a knowledge space."""
+        """删除知识库空间的所有向量。"""
         client = self._ensure_client()
         result = client.delete(
             collection_name=COLLECTION_NAME,

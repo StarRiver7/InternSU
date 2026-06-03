@@ -1,6 +1,6 @@
-"""Embedding Service — InternSU embedding pipeline orchestrator.
+"""嵌入服务 — InternSU 嵌入管道编排器。
 
-Orchestrates: chunk loading → cache check → batch embedding → result aggregation.
+编排流程: 块加载 → 缓存检查 → 批量嵌入 → 结果聚合。
 """
 
 import time
@@ -18,9 +18,9 @@ logger = get_logger(__name__)
 
 
 class EmbeddingService:
-    """Embedding pipeline service.
+    """嵌入管道服务。
 
-    Usage:
+    使用示例:
         service = EmbeddingService()
         result = await service.embed_document(db, document_id)
     """
@@ -37,14 +37,14 @@ class EmbeddingService:
         *,
         on_progress: Optional[callable] = None,
     ) -> dict:
-        """Embed all chunks for a document.
+        """嵌入文档的所有块。
 
-        Steps:
-          1. Load chunks from t_document_chunk
-          2. Cache check → compute missing
-          3. Return vectors with chunk metadata
+        步骤:
+          1. 从 t_document_chunk 加载块
+          2. 缓存检查 → 计算缺失的嵌入
+          3. 返回带块元数据的向量
 
-        Returns:
+        返回:
             {
                 "document_id": int,
                 "chunk_count": int,
@@ -94,7 +94,7 @@ class EmbeddingService:
         return result
 
     async def embed_query(self, query: str) -> list[float]:
-        """Embed a search query."""
+        """嵌入搜索查询。"""
         return await self._bge.embed_query(query)
 
     @property

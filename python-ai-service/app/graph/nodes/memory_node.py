@@ -1,13 +1,13 @@
-"""Memory Node — persist conversation state to Redis after each turn.
+"""记忆节点 — 每轮对话后持久化会话状态到 Redis。
 
-Writes:
-  - User/Assistant messages to conversation history
-  - Graph state (clarify state, slots, etc.)
-  - RAG-specific metadata (sources used, citations)
+写入内容:
+  - 用户/助手消息到会话历史
+  - 图状态（澄清状态、槽位等）
+  - RAG 特定元数据（使用的来源、引用）
 
-Supports multi-turn RAG:
-  - User asks "年假呢？" → Memory provides "请假制度" context
-  - Previous citations inform subsequent searches
+支持多轮 RAG:
+  - 用户问"年假呢？" → 记忆提供"请假制度"上下文
+  - 先前的引用信息影响后续搜索
 """
 
 import time
@@ -22,12 +22,12 @@ logger = get_logger(__name__)
 
 
 async def memory_node(state: InternState) -> InternState:
-    """Persist conversation turn to Redis memory.
+    """持久化对话轮到 Redis 记忆。
 
-    Records:
-      1. User message + Assistant answer → conversation history
-      2. Graph state snapshot (clarify, slots, intent) → state memory
-      3. RAG metadata (sources, citations) → for multi-turn context
+    记录内容:
+      1. 用户消息 + 助手回答 → 会话历史
+      2. 图状态快照（澄清、槽位、意图）→ 状态记忆
+      3. RAG 元数据（来源、引用）→ 用于多轮上下文
     """
     t0 = time.time()
     state["current_node"] = "memory_node"

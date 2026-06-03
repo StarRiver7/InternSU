@@ -1,20 +1,19 @@
-"""Rerank Pipeline — full re-ranking orchestration.
+"""重排序管道 — 完整的重排序编排。
 
-Flow:
-    TopK Retrieval Results
+流程:
+    TopK 检索结果
     ↓
-    CrossEncoder Scoring (pairwise relevance)
+    CrossEncoder 评分（成对相关性）
     ↓
-    Duplicate Filter (remove near-duplicates)
+    重复过滤（移除近似重复）
     ↓
-    Composite Score Calculation
+    综合分数计算
     ↓
-    Sort + TopN
+    排序 + TopN
     ↓
-    Reranked Results
+    重排序结果
 
-Produces calibrated, deduplicated results where the most
-semantically relevant chunks rank highest.
+生成经过校准、去重的结果，其中语义相关性最高的块排在最前面。
 """
 
 import time
@@ -29,13 +28,12 @@ logger = get_logger(__name__)
 
 
 class RerankPipeline:
-    """Full re-ranking pipeline.
+    """完整的重排序管道。
 
-    Takes top-K retrieval results and produces a calibrated,
-    deduplicated top-N list where the most semantically relevant
-    chunks appear first.
+    接收 Top-K 检索结果，生成经过校准、去重的 Top-N 列表，
+    其中语义相关性最高的块排在最前面。
 
-    Usage:
+    使用示例:
         pipeline = RerankPipeline()
         reranked = await pipeline.rerank(
             query="请假制度",
@@ -64,18 +62,18 @@ class RerankPipeline:
         dedup_strategy: str = "all",
         content_key: str = "content",
     ) -> list[dict]:
-        """Execute full re-ranking pipeline.
+        """执行完整的重排序管道。
 
-        Args:
-            query: original user query
-            chunks: top-K retrieval results
-            top_n: final result count (defaults to settings.rag_final_k)
-            score_threshold: minimum composite score to keep
+        参数:
+            query: 原始用户查询
+            chunks: top-K 检索结果
+            top_n: 最终结果数量（默认为 settings.rag_final_k）
+            score_threshold: 保留结果的最低综合分数
             dedup_strategy: "exact" | "prefix" | "jaccard" | "all"
-            content_key: dict key for content text
+            content_key: 内容文本的字典键
 
-        Returns:
-            Re-ranked, deduplicated, score-calibrated results.
+        返回:
+            重排序、去重、分数校准后的结果。
         """
         if not chunks:
             return []
@@ -122,7 +120,7 @@ class RerankPipeline:
         chunks: list[dict],
         **kwargs,
     ) -> list[dict]:
-        """Synchronous wrapper (for non-async contexts)."""
+        """同步包装器（用于非异步上下文）。"""
         import asyncio
         try:
             loop = asyncio.get_running_loop()

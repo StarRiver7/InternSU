@@ -1,9 +1,9 @@
-"""Query Rewrite — LLM-powered query optimization for better retrieval.
+"""查询重写 — 基于 LLM 的查询优化以提升检索效果。
 
-Transforms vague user queries into search-optimized forms.
-Uses DeepSeek LLM via the existing LLM gateway.
+将模糊的用户查询转换为搜索优化形式。
+通过现有的 LLM 网关使用 DeepSeek LLM。
 
-Examples:
+示例:
   "请假制度" → "公司员工请假制度 年假 调休 病假 规则"
   "报销" → "费用报销流程 差旅报销 审批规则 发票要求"
 """
@@ -29,15 +29,15 @@ Rewritten query:"""
 
 
 class QueryRewriter:
-    """LLM-based query rewriter for better retrieval recall."""
+    """基于 LLM 的查询重写器，用于提升检索召回率。"""
 
     def __init__(self, model: str = "deepseek-chat"):
         self._model = model
 
     async def rewrite(self, query: str) -> str:
-        """Rewrite a user query for optimal retrieval.
+        """重写用户查询以优化检索。
 
-        Returns the original query if LLM fails or if query is already specific.
+        如果 LLM 失败或查询已经具体，则返回原始查询。
         """
         if not query or len(query.strip()) < 3:
             return query
@@ -64,9 +64,9 @@ class QueryRewriter:
         return query
 
     async def rewrite_with_keywords(self, query: str) -> dict:
-        """Rewrite query and extract standalone keywords.
+        """重写查询并提取独立关键词。
 
-        Returns {"rewritten": str, "keywords": [str]}
+        返回 {"rewritten": str, "keywords": [str]}
         """
         rewritten = await self.rewrite(query)
 

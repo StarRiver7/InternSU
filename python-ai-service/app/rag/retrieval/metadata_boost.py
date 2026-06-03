@@ -1,12 +1,12 @@
-"""Metadata Boost — boost retrieval scores based on metadata signals.
+"""元数据增强 — 基于元数据信号提升检索分数。
 
-Boost factors:
-  1. Title/heading chunks (+0.05 per heading level match)
-  2. Recent documents (+0.03 for docs < 30 days old)
-  3. Department match (+0.05 for same department)
-  4. Higher chunk count docs (more comprehensive, +0.02)
+增强因子:
+  1. 标题/章节块 (+0.05 每级标题匹配)
+  2. 最近文档 (+0.03 对于 < 30 天的文档)
+  3. 部门匹配 (+0.05 相同部门)
+  4. 高块数文档 (更全面, +0.02)
 
-All boosts are additive and capped at 1.0.
+所有增强是累加的，上限为 1.0。
 """
 
 import time
@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 
 
 class MetadataBoost:
-    """Apply score boosts based on chunk metadata."""
+    """基于块元数据应用分数增强。"""
 
     def __init__(self):
         self._boost_config = {
@@ -37,16 +37,16 @@ class MetadataBoost:
         department_id: Optional[int] = None,
         recent_days: int = 30,
     ) -> list[dict]:
-        """Apply metadata boosts to retrieval results.
+        """对检索结果应用元数据增强。
 
-        Args:
-            chunks: retrieval results with scores
-            query: original query (for title matching)
-            department_id: user's department for department boost
-            recent_days: number of days considered "recent"
+        参数:
+            chunks: 带分数的检索结果
+            query: 原始查询（用于标题匹配）
+            department_id: 用户部门用于部门增强
+            recent_days: 被视为"最近"的天数
 
-        Returns:
-            Chunks with boosted scores (original score preserved as raw_score).
+        返回:
+            分数增强后的块（原始分数保留为 raw_score）。
         """
         now_ms = int(time.time() * 1000)
         recent_cutoff = now_ms - (recent_days * 86400 * 1000)

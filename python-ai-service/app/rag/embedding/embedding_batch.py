@@ -1,10 +1,10 @@
-"""Embedding Batch Processor — optimized batch embedding with cache.
+"""嵌入批处理器 — 带缓存的优化批量嵌入。
 
-Features:
-  - Cache-first: check cache before computing
-  - Batch sizing: auto-split large batches
-  - Progress tracking: yield progress for each batch
-  - Retry: exponential backoff on failure
+特性:
+  - 缓存优先：计算前检查缓存
+  - 批量大小：自动分割大批次
+  - 进度跟踪：为每个批次生成进度
+  - 重试：失败时指数退避
 """
 
 import time
@@ -21,7 +21,7 @@ MAX_RETRIES = 3
 
 
 class EmbeddingBatchProcessor:
-    """Batch embedding processor with caching and retry."""
+    """带缓存和重试的批量嵌入处理器。"""
 
     def __init__(self, batch_size: int = DEFAULT_BATCH_SIZE):
         self._batch_size = batch_size
@@ -35,15 +35,15 @@ class EmbeddingBatchProcessor:
         use_cache: bool = True,
         on_progress: Optional[callable] = None,
     ) -> list[list[float]]:
-        """Embed a batch of texts with cache + retry.
+        """用缓存 + 重试嵌入一批文本。
 
-        Args:
-            texts: list of text strings to embed
-            use_cache: whether to check cache first
-            on_progress: optional callback(batch_num, total_batches) for progress
+        参数:
+            texts: 要嵌入的文本字符串列表
+            use_cache: 是否先检查缓存
+            on_progress: 可选的进度回调函数(batch_num, total_batches)
 
-        Returns:
-            list of embedding vectors in same order as texts
+        返回:
+            嵌入向量列表，顺序与 texts 相同
         """
         if not texts:
             return []
@@ -99,7 +99,7 @@ class EmbeddingBatchProcessor:
         return [r for r in results if r is not None]
 
     async def _embed_with_retry(self, texts: list[str]) -> list[list[float]]:
-        """Embed with exponential backoff retry."""
+        """带指数退避重试的嵌入。"""
         last_error = None
         for attempt in range(MAX_RETRIES):
             try:

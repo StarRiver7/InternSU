@@ -41,19 +41,19 @@ def route_after_router(
 def route_after_rag_retrieval(
     state: InternState,
 ) -> Literal["rag_rerank_node", "rag_answer_node", "rag_retrieval_node", "clarify_node"]:
-    """After RAG retrieval: rerank, skip to answer, or clarify (agentic retry)."""
+    """RAG 检索后路由：重排序、直接回答或澄清（智能重试）。"""
     return _route_rag_retrieval(state)
 
 
 def route_after_rag_rerank(
     state: InternState,
 ) -> Literal["citation_node", "rag_answer_node"]:
-    """After RAG rerank: build citations or skip to answer."""
+    """RAG 重排序后路由：构建引用或直接回答。"""
     return _route_rag_rerank(state)
 
 
 def route_after_rag_citation(
     state: InternState,
 ) -> Literal["rag_answer_node", "clarify_node"]:
-    """After citation build: answer or clarify if trust too low."""
+    """引用构建后路由：回答或可信度太低时澄清。"""
     return _route_rag_citation(state)

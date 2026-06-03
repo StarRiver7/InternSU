@@ -1,13 +1,13 @@
-"""Advanced Duplicate Filter — semantic + structural deduplication.
+"""高级去重过滤器 — 语义 + 结构去重。
 
-Filters retrieval results to remove near-duplicate chunks
-that would pollute the LLM context with redundant information.
+过滤检索结果以移除近重复块，
+避免用冗余信息污染 LLM 上下文。
 
-Strategies:
-  1. Exact content hash (fast)
-  2. Prefix overlap (catches truncated duplicates)
-  3. Semantic similarity (future: embedding cosine)
-  4. Jaccard token similarity
+策略:
+  1. 精确内容哈希（快速）
+  2. 前缀重叠（捕获截断重复）
+  3. 语义相似度（未来：嵌入余弦相似度）
+  4. Jaccard 词元相似度
 """
 
 import time
@@ -19,10 +19,9 @@ logger = get_logger(__name__)
 
 
 class DuplicateFilter:
-    """Multi-strategy duplicate chunk filter.
+    """多策略重复块过滤器。
 
-    Removes chunks that are substantially identical to others
-    while keeping the highest-scoring version.
+    移除与其他块基本相同的块，同时保留分数最高的版本。
     """
 
     def __init__(
@@ -39,14 +38,14 @@ class DuplicateFilter:
         *,
         strategy: str = "all",
     ) -> list[dict]:
-        """Filter duplicate chunks.
+        """过滤重复块。
 
-        Args:
-            chunks: retrieval results sorted by score (descending)
+        参数:
+            chunks: 按分数降序排序的检索结果
             strategy: "exact" | "prefix" | "jaccard" | "all"
 
-        Returns:
-            Deduplicated chunks preserving highest scores.
+        返回:
+            去重后的块，保留最高分。
         """
         if not chunks or len(chunks) <= 1:
             return chunks
@@ -76,7 +75,7 @@ class DuplicateFilter:
         return result
 
     def _filter_exact(self, chunks: list[dict]) -> list[dict]:
-        """Remove exact content duplicates (by MD5 hash of FULL content)."""
+        """移除精确内容重复（通过完整内容的 MD5 哈希）。"""
         import hashlib
         seen = set()
         unique = []
@@ -89,7 +88,7 @@ class DuplicateFilter:
         return unique
 
     def _filter_prefix_overlap(self, chunks: list[dict]) -> list[dict]:
-        """Remove chunks that share a long prefix with a higher-scored chunk."""
+        """移除与高分块共享长前缀的块。"""
         if len(chunks) <= 1:
             return chunks
 
@@ -112,7 +111,7 @@ class DuplicateFilter:
         return unique
 
     def _filter_jaccard(self, chunks: list[dict]) -> list[dict]:
-        """Remove chunks with high Jaccard token similarity."""
+        """移除高 Jaccard 词元相似度的块。"""
         if len(chunks) <= 1:
             return chunks
 
@@ -137,9 +136,9 @@ class DuplicateFilter:
         self,
         chunks: list[dict],
     ) -> list[list[dict]]:
-        """Group duplicates together for inspection/debugging.
+        """将重复项分组用于检查/调试。
 
-        Returns list of groups, each group contains near-duplicate chunks.
+        返回分组列表，每个组包含近重复块。
         """
         if not chunks:
             return []

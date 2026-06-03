@@ -1,8 +1,7 @@
 """
-Hybrid Retriever — vector similarity + BM25 keyword search.
+混合检索器 — 向量相似度 + BM25 关键词搜索。
 
-Combines dense (BGE-M3) and sparse (BM25) retrieval with
-configurable weighting for optimal recall.
+结合稠密检索（BGE-M3）和稀疏检索（BM25），通过可配置的权重实现最佳召回率。
 """
 import time
 from typing import Optional

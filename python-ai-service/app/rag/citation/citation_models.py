@@ -1,13 +1,12 @@
-"""Citation Models — data structures for source citations.
+"""引用模型 — 来源引用的数据结构。
 
-Defines the canonical citation format used throughout the system.
-Every AI answer that references knowledge base content must include
-citations conforming to this schema.
+定义系统中使用的标准引用格式。
+每个引用知识库内容的 AI 回答必须包含符合此模式的引用。
 
-Key principle: traceability.
-  - Every claim can be traced back to a specific document, page, and chunk
-  - Citations carry trust metadata (score, document type, recency)
-  - Multiple citations per answer are ordered by relevance
+核心原则：可追溯性。
+  - 每个声明都可以追溯到特定文档、页面和块
+  - 引用携带信任元数据（分数、文档类型、时效性）
+  - 每个回答的多个引用按相关性排序
 """
 
 from dataclasses import dataclass, field
@@ -17,9 +16,9 @@ from datetime import datetime
 
 @dataclass
 class Citation:
-    """A single source citation with full traceability metadata.
+    """单个来源引用，包含完整的可追溯元数据。
 
-    Example:
+    示例:
         Citation(
             citation_id=1,
             document_id=42,
@@ -57,17 +56,17 @@ class Citation:
     created_time: Optional[datetime] = None
 
     def display_ref(self) -> str:
-        """Human-readable citation reference marker."""
+        """人类可读的引用参考标记。"""
         if self.page_number > 0:
             return f"《{self.document_name}》第{self.page_number}页"
         return f"《{self.document_name}》"
 
     def inline_marker(self) -> str:
-        """Inline citation marker like [1]"""
+        """内联引用标记，如 [1]"""
         return f"[{self.citation_id}]"
 
     def to_dict(self) -> dict:
-        """Serialize to dict for API responses."""
+        """序列化为字典，用于 API 响应。"""
         return {
             "citation_id": self.citation_id,
             "document_id": self.document_id,
@@ -93,9 +92,9 @@ class Citation:
 
 @dataclass
 class CitationSet:
-    """A collection of citations for one AI answer.
+    """一个 AI 回答的引用集合。
 
-    Ordered by relevance. Supports deduplication and trust scoring.
+    按相关性排序。支持去重和信任评分。
     """
 
     citations: list[Citation] = field(default_factory=list)
@@ -109,12 +108,12 @@ class CitationSet:
 
     @property
     def primary_source(self) -> Optional[Citation]:
-        """The most relevant citation."""
+        """最相关的引用。"""
         return self.citations[0] if self.citations else None
 
     @property
     def has_high_trust(self) -> bool:
-        """Whether any citation has high relevance."""
+        """是否有任何引用具有高相关性。"""
         return any(c.relevance_score >= 0.7 for c in self.citations)
 
     def to_dict(self) -> dict:
@@ -128,7 +127,7 @@ class CitationSet:
 
 @dataclass
 class SourceTrust:
-    """Trust classification for document sources."""
+    """文档来源的信任分类。"""
 
     source_type: str  # official | department | user_upload
     trust_multiplier: float = 1.0

@@ -1,10 +1,10 @@
-"""Milvus Index — vector index management.
+"""Milvus 索引 — 向量索引管理。
 
-Supported index types:
-  - HNSW (default): fast search, more memory
-  - IVF_FLAT: balanced, less memory
+支持的索引类型:
+  - HNSW（默认）: 快速搜索，占用更多内存
+  - IVF_FLAT: 平衡性能，占用较少内存
 
-Configuration:
+配置:
   HNSW: M=16, efConstruction=200, ef=64
   IVF_FLAT: nlist=128, nprobe=16
 """
@@ -36,11 +36,11 @@ class IndexConfig:
 
 
 def build_index_params(config: IndexConfig, client=None):
-    """Build pymilvus index parameters from config.
+    """从配置构建 pymilvus 索引参数。
     
-    Args:
-        config: Index configuration
-        client: Optional existing MilvusClient to use prepare_index_params()
+    参数:
+        config: 索引配置
+        client: 可选的现有 MilvusClient，用于调用 prepare_index_params()
     """
     if client:
         params = client.prepare_index_params()
@@ -82,7 +82,7 @@ def build_index_params(config: IndexConfig, client=None):
 
 
 def build_search_params(config: IndexConfig) -> dict:
-    """Build search parameters from config."""
+    """从配置构建搜索参数。"""
     if config.index_type == IndexType.HNSW:
         return {"ef": config.hnsw_ef}
     elif config.index_type == IndexType.IVF_FLAT:

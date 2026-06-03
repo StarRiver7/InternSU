@@ -1,19 +1,19 @@
-"""Retrieval Pipeline — full orchestrated retrieval engine with citation support.
+"""检索管道 — 完整的编排式检索引擎，支持引用。
 
-Complete pipeline:
-    User Query
-    ↓ Query Rewrite (LLM expansion)
-    ↓ Dense Retrieval (BGE-M3 vector search)
-    ↓ Sparse Retrieval (BM25 keyword search)
-    ↓ Score Fusion (weighted hybrid merge)
-    ↓ Metadata Boost (title/recent/department)
-    ↓ Rerank (CrossEncoder semantic reorder + dedup)
-    ↓ Chunk Merge (adjacent context joining)
-    ↓ Citation Build (structured source citations)
-    ↓ Source Builder (citation formatting)
-    ↓ Retrieval Context (LLM-ready text with citation markers)
+完整流程:
+    用户查询
+    ↓ 查询重写（LLM 扩展）
+    ↓ 稠密检索（BGE-M3 向量搜索）
+    ↓ 稀疏检索（BM25 关键词搜索）
+    ↓ 分数融合（加权混合合并）
+    ↓ 元数据增强（标题/时间/部门）
+    ↓ 重排序（CrossEncoder 语义重排 + 去重）
+    ↓ 块合并（相邻上下文连接）
+    ↓ 引用构建（结构化来源引用）
+    ↓ 来源构建（引用格式化）
+    ↓ 检索上下文（带引用标记的 LLM 就绪文本）
 
-Every step produces a trace event for SSE streaming.
+每一步都会产生跟踪事件用于 SSE 流式传输。
 """
 
 import time
@@ -40,7 +40,7 @@ logger = get_logger(__name__)
 
 @dataclass
 class RetrievalResult:
-    """Complete retrieval result with citations."""
+    """完整的检索结果，包含引用。"""
     query: str
     rewritten_query: str = ""
     chunks: list[dict] = field(default_factory=list)
@@ -60,9 +60,9 @@ class RetrievalResult:
 
 
 class RetrievalPipeline:
-    """Orchestrated retrieval pipeline with citation-aware output.
+    """编排式检索管道，支持引用感知输出。
 
-    Usage:
+    使用示例:
         pipeline = RetrievalPipeline()
         result = await pipeline.retrieve(
             query="请假制度",
@@ -70,11 +70,11 @@ class RetrievalPipeline:
             department_id=10,
             space_ids=[1, 2],
         )
-        # result.context_text → citation-aware context for LLM
-        # result.citation_set → structured citations
-        # result.sources → formatted source references
+        # result.context_text → 用于 LLM 的引用感知上下文
+        # result.citation_set → 结构化引用
+        # result.sources → 格式化的来源引用
         # result.trust_level → "high" | "medium" | "low"
-        # result.traces → step-by-step events for SSE
+        # result.traces → 用于 SSE 的逐步事件
     """
 
     def __init__(self):
@@ -106,10 +106,9 @@ class RetrievalPipeline:
         max_context_tokens: int = 3000,
         stream_traces: Optional[list[dict]] = None,
     ) -> RetrievalResult:
-        """Execute the complete retrieval pipeline with citations.
+        """执行完整的检索管道，包含引用。
 
-        If stream_traces is provided, trace events are appended
-        in real-time for SSE streaming.
+        如果提供了 stream_traces，跟踪事件会实时追加用于 SSE 流式传输。
         """
         start = time.time()
         traces: list[dict] = []
@@ -258,7 +257,7 @@ class RetrievalPipeline:
         query: str = "",
         max_tokens: int = 3000,
     ) -> dict:
-        """Build citation-aware context using SourceFormatter."""
+        """使用 SourceFormatter 构建引用感知上下文。"""
         context_text = source_formatter.format_llm_context_block(
             citation_set.citations,
             max_sources=5,

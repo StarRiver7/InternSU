@@ -1,10 +1,10 @@
-"""Dense Retriever — BGE-M3 vector similarity search via Milvus.
+"""稠密检索器 — 通过 Milvus 进行 BGE-M3 向量相似度搜索。
 
-Standalone dense retriever with:
-  - COSINE similarity search
-  - Configurable top_k and score_threshold
-  - Metadata filter integration
-  - Score normalization
+独立的稠密检索器，包含:
+  - COSINE 相似度搜索
+  - 可配置的 top_k 和 score_threshold
+  - 元数据过滤器集成
+  - 分数归一化
 """
 
 import time
@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 
 
 class DenseRetriever:
-    """Vector similarity retriever using BGE-M3 + Milvus."""
+    """使用 BGE-M3 + Milvus 的向量相似度检索器。"""
 
     def __init__(self):
         self._milvus = milvus_client
@@ -35,10 +35,10 @@ class DenseRetriever:
         space_ids: Optional[list[int]] = None,
         document_ids: Optional[list[int]] = None,
     ) -> list[dict]:
-        """Execute dense vector retrieval.
+        """执行稠密向量检索。
 
-        Returns:
-            List of search hits with scores, content, and metadata.
+        返回:
+            带分数、内容和元数据的搜索结果列表。
         """
         start = time.time()
 
@@ -83,7 +83,7 @@ class DenseRetriever:
         score_threshold: float = 0.3,
         filter_expr: Optional[str] = None,
     ) -> list[dict]:
-        """Synchronous retrieval with pre-computed query vector."""
+        """使用预计算查询向量的同步检索。"""
         results = self._milvus.search(
             query_vector=query_vector,
             top_k=top_k,

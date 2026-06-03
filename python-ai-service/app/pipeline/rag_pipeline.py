@@ -1,9 +1,9 @@
 """
-RAG Pipeline Orchestrator — end-to-end ingestion and retrieval.
+RAG 管道编排器 — 端到端的文档摄入和检索。
 
-Flow:
-    Ingest:  Load → Split → Embed → Store
-    Search:  Embed Query → Hybrid Retrieve → Rerank → Format Sources
+流程：
+    摄入: 加载 → 切分 → 嵌入 → 存储
+    搜索: 嵌入查询 → 混合检索 → 重排序 → 格式化来源
 """
 import time
 from typing import Optional

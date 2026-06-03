@@ -1,8 +1,8 @@
-"""Retrieval Context — build LLM-ready context from retrieval results.
+"""检索上下文 — 从检索结果构建 LLM 就绪的上下文。
 
-Transforms ranked search hits into formatted context strings
-with source citations, token budget control, chunk merge awareness,
-and compact mode for short-form answers.
+将排序后的搜索命中转换为格式化的上下文字符串，
+包含来源引用、token 预算控制、块合并感知，
+以及用于简短回答的紧凑模式。
 """
 
 from typing import Optional
@@ -18,12 +18,12 @@ CHARS_PER_TOKEN = 2.0
 
 
 class RetrievalContext:
-    """Build formatted context from search results for LLM consumption.
+    """从搜索结果构建格式化上下文供 LLM 使用。
 
-    Supports:
-      - Standard context: full [Source N] blocks with scores
-      - Compact mode: minimal formatting for short answers
-      - Merge-aware: respects merge_count for source labeling
+    支持:
+      - 标准上下文: 带分数的完整 [Source N] 块
+      - 紧凑模式: 简短回答的最小格式化
+      - 合并感知: 尊重 merge_count 用于来源标签
     """
 
     def __init__(self, max_tokens: int = DEFAULT_MAX_TOKENS):
@@ -38,23 +38,23 @@ class RetrievalContext:
         include_scores: bool = True,
         include_metadata: bool = True,
     ) -> dict:
-        """Build formatted RAG context from search results.
+        """从搜索结果构建格式化的 RAG 上下文。
 
-        Args:
-            chunks: ranked search results (may contain merged chunks)
-            query: original user query (for logging)
-            max_tokens: override default token budget
-            include_scores: include relevance scores in output
-            include_metadata: include document/page info in headers
+        参数:
+            chunks: 排序后的搜索结果（可能包含合并块）
+            query: 原始用户查询（用于日志）
+            max_tokens: 覆盖默认的 token 预算
+            include_scores: 在输出中包含相关性分数
+            include_metadata: 在标题中包含文档/页码信息
 
-        Returns:
+        返回:
             {
-                "context_text": str,       # formatted context for LLM
-                "sources": [dict],         # structured source citations
-                "total_chunks": int,       # total chunks considered
-                "included_chunks": int,    # chunks actually included
-                "total_chars": int,        # total chars in context
-                "truncated": bool,         # whether context was truncated
+                "context_text": str,       # 格式化的 LLM 上下文
+                "sources": [dict],         # 结构化的来源引用
+                "total_chunks": int,       # 考虑的总块数
+                "included_chunks": int,    # 实际包含的块数
+                "total_chars": int,        # 上下文中的总字符数
+                "truncated": bool,         # 上下文是否被截断
             }
         """
         max_tokens = max_tokens or self._max_tokens
@@ -137,9 +137,9 @@ class RetrievalContext:
         chunks: list[dict],
         max_chunks: int = 5,
     ) -> str:
-        """Build a compact context with only the top-N sources (no scores).
+        """构建紧凑上下文，仅包含前 N 个来源（无分数）。
 
-        Useful for short-form answers where token budget is tight.
+        适用于 token 预算紧张的简短回答。
         """
         sources = source_builder.build_batch(chunks[:max_chunks])
         parts = []
@@ -156,7 +156,7 @@ class RetrievalContext:
         self,
         chunks: list[dict],
     ) -> list[str]:
-        """Build citation references only (no content), for inline source attribution."""
+        """仅构建引用参考（无内容），用于内联来源归因。"""
         sources = source_builder.build_batch(chunks)
         return [
             f"{s['document_name']} 第{s['page_number']}页"

@@ -1,16 +1,16 @@
-"""InternSU SQL Agent - Natural language to SQL.
+"""InternSU SQL 智能体 - 自然语言转 SQL。
 
-Modules:
-  generator:    NL2SQL generation
-  security:     SQL 3-line defense security check
-  sql_guard:    Alias for security module
-  executor:     SQL read-only execution
-  schema_loader: Auto-read MySQL schema, build Schema Context
-  schema_cache:  TTL-based schema cache
-  sql_prompt:    InternSU personality prompt templates for SQL
-  sql_summarizer: LLM summarizes query results in natural language
-  sql_trace:     Structured trace steps for SSE
-  sql_memory:    SQL context reuse via Redis
+模块:
+  generator:    NL2SQL 生成
+  security:     SQL 三道防线安全检查
+  sql_guard:    security 模块的别名
+  executor:     SQL 只读执行
+  schema_loader: 自动读取 MySQL 模式，构建模式上下文
+  schema_cache:  基于 TTL 的模式缓存
+  sql_prompt:    InternSU 人格化的 SQL 提示模板
+  sql_summarizer: LLM 用自然语言总结查询结果
+  sql_trace:     SSE 的结构化跟踪步骤
+  sql_memory:    通过 Redis 实现 SQL 上下文复用
 """
 
 from app.sql_agent.generator import sql_generator, SQLGenerator

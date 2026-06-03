@@ -1,4 +1,4 @@
-"""SQL Agent Node - NL2SQL generation, security check, execution, summarization."""
+"""SQL 代理节点 —— 自然语言转 SQL、安全检查、执行、结果汇总。"""
 
 import time, json
 from app.graph.state import InternState
@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 
 
 async def sql_node(state: InternState) -> InternState:
-    # SQL Agent: schema -> generation -> security -> execution -> summarization
+    # SQL 代理流程: schema分析 -> SQL生成 -> 安全检查 -> 执行 -> 结果汇总
     t_start = time.time()
     state["current_node"] = "sql_node"
 
@@ -144,7 +144,7 @@ async def sql_node(state: InternState) -> InternState:
 
 
 async def _generate_sql(user_message, schema_context, context_hint, collected_slots):
-    # Generate SQL using DeepSeek with schema context
+    # 使用 DeepSeek 根据 schema 上下文生成 SQL
     from app.sql_agent.sql_prompt import SQL_GENERATE_SYSTEM, SQL_GENERATE_USER
     slots_str = json.dumps(collected_slots, ensure_ascii=False) if collected_slots else '（无已确认参数）'
     user_prompt = SQL_GENERATE_USER.replace('{{ schema }}', schema_context)
@@ -169,7 +169,7 @@ async def _generate_sql(user_message, schema_context, context_hint, collected_sl
 
 
 def _extract_sql(text):
-    # Extract pure SQL from LLM response
+    # 从 LLM 响应中提取纯 SQL
     text = text.strip()
     if text.startswith("```"):
         lines_list = text.split("\n")

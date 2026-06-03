@@ -1,15 +1,15 @@
 # ============================================================
-# rerank/base.py — Rerank Layer Abstract
+# rerank/base.py — 重排序层抽象
 # ============================================================
-"""Rerank Layer — post-retrieval relevance scoring.
+"""重排序层 — 检索后的相关性评分。
 
-After initial retrieval, the Rerank layer re-scores results
-using a more accurate (but more expensive) model.
+初始检索后，重排序层使用更准确（但更昂贵）的模型
+重新评分结果。
 
-Provides:
-    - RerankRequest: input for reranking
-    - RerankResult: reranked output
-    - BaseReranker: abstract interface for any reranking model
+提供:
+    - RerankRequest: 重排序输入
+    - RerankResult: 重排序输出
+    - BaseReranker: 任何重排序模型的抽象接口
 """
 
 from abc import ABC, abstractmethod
@@ -19,7 +19,7 @@ from typing import Optional
 
 @dataclass
 class RerankRequest:
-    """Input for a reranking operation."""
+    """重排序操作的输入。"""
     query: str
     documents: list[str]
     top_n: int = 5
@@ -28,26 +28,26 @@ class RerankRequest:
 
 @dataclass
 class RerankResult:
-    """Single reranked document with score."""
+    """带分数的单个重排序文档。"""
     index: int
     score: float
     document: Optional[str] = None
 
 
 class BaseReranker(ABC):
-    """Abstract contract for relevance reranking models.
+    """相关性重排序模型的抽象契约。
 
-    Implementations:
+    实现:
         - CrossEncoderReranker (BGE-Reranker-v2-m3)
-        - LLMReranker (GPT-4 based relevance scoring)
+        - LLMReranker (基于 GPT-4 的相关性评分)
         - CohereReranker (Cohere API)
     """
 
     @abstractmethod
     async def rerank(self, request: RerankRequest) -> list[RerankResult]:
-        """Rerank documents by relevance to query.
+        """按与查询的相关性重排序文档。
 
-        Returns results sorted by descending score.
+        返回按分数降序排序的结果。
         """
         ...
 
@@ -56,5 +56,5 @@ class BaseReranker(ABC):
         self,
         requests: list[RerankRequest],
     ) -> list[list[RerankResult]]:
-        """Rerank multiple query-document sets in parallel."""
+        """并行重排序多个查询-文档集。"""
         ...

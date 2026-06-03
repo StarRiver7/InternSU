@@ -1,8 +1,8 @@
 """
-Milvus Lite Vector Store — in-process vector database.
+Milvus Lite 向量存储 — 进程内向量数据库。
 
-Uses milvus-lite for zero-dependency embedded deployment.
-Stores: id, doc_id, content, embedding, metadata, space_id.
+使用 milvus-lite 实现零依赖的嵌入式部署。
+存储字段：id, doc_id, content, embedding, metadata, space_id。
 """
 import time
 from typing import Optional

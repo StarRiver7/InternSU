@@ -1,12 +1,11 @@
-"""Reranker — unified semantic re-ranking facade.
+"""重排序器 — 统一的语义重排序外观。
 
-Delegates to the RerankPipeline (cross_encoder + scorer + dup_filter)
-for enterprise-grade re-ranking.
+委托给 RerankPipeline（cross_encoder + scorer + dup_filter）
+进行企业级重排序。
 
-This module replaces the basic score-based reranker in retrieval/reranker.py
-with a full semantic re-ranking pipeline.
+此模块用完整的语义重排序管道替换 retrieval/reranker.py 中的基本基于分数的重排序器。
 
-Architecture:
+架构:
   CrossEncoder(query, chunk) → relevance_score
   RerankScorer → composite = α·retrieval + β·rerank + γ·metadata
   DuplicateFilter → remove near-duplicates
@@ -25,16 +24,15 @@ logger = get_logger(__name__)
 
 
 class Reranker:
-    """Enterprise semantic re-ranker.
+    """企业级语义重排序器。
 
-    Produces calibrated relevance scores where the most
-    semantically relevant chunks rank highest.
+    生成校准的相关性分数，其中语义相关性最高的块排名最高。
 
-    Usage:
+    使用示例:
         reranker = Reranker()
         reranked = await reranker.rerank(query, chunks, top_n=5)
 
-        # Load BGE-Reranker for true semantic scoring:
+        # 加载 BGE-Reranker 进行真正的语义评分:
         reranker.load_semantic_model()
     """
 
@@ -53,23 +51,23 @@ class Reranker:
         score_threshold: float = 0.3,
         dedup_strategy: str = "all",
     ) -> list[dict]:
-        """Re-rank retrieval results.
+        """重排序检索结果。
 
-        Pipeline:
-          1. CrossEncoder: compute pairwise (query, chunk) relevance
-          2. Composite Score: merge retrieval + rerank + metadata
-          3. Duplicate Filter: remove near-duplicates
-          4. Threshold + TopN
+        管道:
+          1. CrossEncoder: 计算成对（查询，块）相关性
+          2. 复合分数: 合并检索 + 重排序 + 元数据
+          3. 去重过滤器: 移除近重复
+          4. 阈值 + TopN
 
-        Args:
-            query: original search query
-            chunks: top-K retrieval results
-            top_n: final result count
-            score_threshold: minimum score to keep
+        参数:
+            query: 原始搜索查询
+            chunks: top-K 检索结果
+            top_n: 最终结果数量
+            score_threshold: 保留结果的最低分数
             dedup_strategy: "exact" | "prefix" | "jaccard" | "all"
 
-        Returns:
-            Calibrated, deduplicated, sorted results.
+        返回:
+            校准、去重、排序后的结果。
         """
         return await self._pipeline.rerank(
             query=query,
@@ -80,10 +78,10 @@ class Reranker:
         )
 
     def load_semantic_model(self, model_name: Optional[str] = None) -> bool:
-        """Load BGE-Reranker for true CrossEncoder semantic scoring.
+        """加载 BGE-Reranker 进行真正的 CrossEncoder 语义评分。
 
-        Without this, the system uses a heuristic fallback.
-        With BGE-Reranker loaded, scores reflect true semantic relevance.
+        如果不加载，系统使用启发式回退。
+        加载 BGE-Reranker 后，分数反映真正的语义相关性。
         """
         if model_name:
             self._cross_encoder._model_name = model_name
@@ -91,7 +89,7 @@ class Reranker:
 
     @property
     def is_semantic(self) -> bool:
-        """Whether true semantic (transformer) reranking is active."""
+        """是否启用真正的语义（transformer）重排序。"""
         return self._cross_encoder.is_loaded
 
     def analyze_rerank(
@@ -99,9 +97,9 @@ class Reranker:
         query: str,
         chunks: list[dict],
     ) -> list[dict]:
-        """Analyze rerank behavior: show how scores changed.
+        """分析重排序行为：显示分数如何变化。
 
-        Returns comparison: retrieval_score → rerank_score → composite → delta
+        返回比较：retrieval_score → rerank_score → composite → delta
         """
         contents = [c.get("content", "") for c in chunks]
         rerank_scores = self._cross_encoder.compute_scores(query, contents)

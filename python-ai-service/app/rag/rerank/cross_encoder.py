@@ -1,14 +1,14 @@
-"""Cross Encoder — pairwise semantic relevance scoring.
+"""交叉编码器 — 成对语义相关性评分。
 
-Architecture:
+架构:
   CrossEncoder(query, chunk_content) → relevance_score ∈ [0, 1]
 
-Unlike bi-encoders (BGE-M3) that encode query and document separately,
-CrossEncoder processes (query, document) as a joint input — giving
-much more accurate relevance judgments at the cost of speed.
+与分别编码查询和文档的双编码器（BGE-M3）不同，
+CrossEncoder 将（查询，文档）作为联合输入处理——
+以牺牲速度为代价获得更准确的相关性判断。
 
-Current: heuristic-based fallback (lexical + structural signals).
-Future: BGE-Reranker-v2-m3 via FlagEmbedding.
+当前：基于启发式的回退（词汇 + 结构信号）。
+未来：通过 FlagEmbedding 使用 BGE-Reranker-v2-m3。
 """
 
 import re
@@ -21,13 +21,13 @@ logger = get_logger(__name__)
 
 
 class CrossEncoder:
-    """Pairwise relevance scorer for re-ranking.
+    """用于重排序的成对相关性评分器。
 
-    Processes (query, document) pairs to produce calibrated
-    relevance scores that consider:
-      - Exact term overlap (tf-like)
-      - Positional proximity
-      - Semantic signals (future: transformer-based)
+    处理（查询，文档）对以生成经过校准的
+    相关性分数，考虑：
+      - 精确词项重叠（类似 TF）
+      - 位置邻近性
+      - 语义信号（未来：基于 transformer）
     """
 
     def __init__(self, model_name: Optional[str] = None):
@@ -40,9 +40,9 @@ class CrossEncoder:
         return self._model is not None
 
     def load(self) -> bool:
-        """Load the BGE-Reranker model.
+        """加载 BGE-Reranker 模型。
 
-        Returns True if successfully loaded, False otherwise.
+        成功加载返回 True，否则返回 False。
         """
         try:
             from FlagEmbedding import FlagReranker
@@ -68,14 +68,14 @@ class CrossEncoder:
         query: str,
         documents: list[str],
     ) -> list[float]:
-        """Compute relevance scores for (query, doc) pairs.
+        """计算（查询，文档）对的相关性分数。
 
-        Args:
-            query: the search query
-            documents: list of document texts to score
+        参数:
+            query: 搜索查询
+            documents: 要评分的文档文本列表
 
-        Returns:
-            List of relevance scores in [0, 1], one per document.
+        返回:
+            [0, 1] 范围内的相关性分数列表，每个文档一个分数。
         """
         if not documents:
             return []
@@ -95,7 +95,7 @@ class CrossEncoder:
         return scores
 
     def compute_score(self, query: str, document: str) -> float:
-        """Compute relevance score for a single pair."""
+        """计算单个（查询，文档）对的相关性分数。"""
         return self.compute_scores(query, [document])[0]
 
     def _compute_transformer(
@@ -103,7 +103,7 @@ class CrossEncoder:
         query: str,
         documents: list[str],
     ) -> list[float]:
-        """BGE-Reranker transformer-based scoring."""
+        """基于 BGE-Reranker transformer 的评分。"""
         pairs = [(query, doc) for doc in documents]
         raw_scores = self._model.compute_score(pairs)
 
@@ -123,12 +123,12 @@ class CrossEncoder:
         query: str,
         documents: list[str],
     ) -> list[float]:
-        """Heuristic relevance scoring (lexical + structural).
+        """启发式相关性评分（词汇 + 结构）。
 
-        Combines:
-          - TF-like term overlap (0.5 weight)
-          - Term proximity / ordering (0.2 weight)
-          - Content quality signals (0.3 weight)
+        组合：
+          - TF 类词项重叠（权重 0.5）
+          - 词项邻近性/顺序（权重 0.2）
+          - 内容质量信号（权重 0.3）
         """
         query_lower = query.lower()
         query_terms = self._tokenize(query_lower)
@@ -164,10 +164,10 @@ class CrossEncoder:
 
     @staticmethod
     def _tokenize(text: str) -> list[str]:
-        """Extract meaningful tokens from text.
+        """从文本中提取有意义的词元。
         
-        For Chinese: character bigrams for better recall (single chars are too granular).
-        For English: word-level tokens.
+        中文：字符双字组（bigram）以提高召回率（单字符太细粒度）。
+        英文：词级词元。
         """
         text_lower = text.lower()
         # Split into Chinese and non-Chinese segments
@@ -189,7 +189,7 @@ class CrossEncoder:
 
     @staticmethod
     def _proximity_score(query_terms: list[str], doc: str) -> float:
-        """How well do query terms appear in order and proximity?"""
+        """查询词项在文档中按顺序和邻近性出现的程度如何？"""
         if not query_terms:
             return 0.0
 
@@ -215,7 +215,7 @@ class CrossEncoder:
 
     @staticmethod
     def _quality_score(doc: str) -> float:
-        """Content quality heuristics."""
+        """内容质量启发式评分。"""
         score = 0.5  # Baseline
 
         # Penalize very short docs

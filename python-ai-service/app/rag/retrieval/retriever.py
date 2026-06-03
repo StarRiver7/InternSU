@@ -1,9 +1,9 @@
-"""Retriever — unified retrieval entry point.
+"""检索器 — 统一的检索入口点。
 
-Wires the full RetrievalPipeline into a single-call interface.
-Delegates to retrieval_pipeline for orchestration.
+将完整的 RetrievalPipeline 接入单调用接口。
+委托给 retrieval_pipeline 进行编排。
 
-Usage:
+使用示例:
     retriever = Retriever()
     result = await retriever.retrieve(
         query="员工考勤制度",
@@ -11,9 +11,9 @@ Usage:
         department_id=10,
         space_ids=[1, 2],
     )
-    # result.context_text → formatted context for LLM
-    # result.sources → structured citations
-    # result.traces → step-by-step trace for SSE
+    # result.context_text → 格式化的 LLM 上下文
+    # result.sources → 结构化引用
+    # result.traces → SSE 的逐步跟踪
 """
 
 import time
@@ -32,12 +32,12 @@ logger = get_logger(__name__)
 
 
 class Retriever:
-    """InternSU RAG retrieval engine.
+    """InternSU RAG 检索引擎。
 
-    Now powered by the full RetrievalPipeline:
+    由完整的 RetrievalPipeline 驱动：
       query → rewrite → dense → sparse → fuse → boost → rerank → merge → context
 
-    Usage:
+    使用示例:
         retriever = Retriever()
         result = await retriever.retrieve(
             query="员工考勤制度",
@@ -69,15 +69,15 @@ class Retriever:
         max_context_tokens: int = 3000,
         stream_traces: Optional[list[dict]] = None,
     ) -> RetrievalResult:
-        """Execute complete retrieval pipeline.
+        """执行完整的检索管道。
 
-        Steps:
-          1. Query Rewrite (LLM expansion)
-          2. Dense Retrieval (BGE-M3 vector)
-          3. Sparse Retrieval (BM25 keyword)
-          4. Score Fusion (weighted hybrid)
-          5. Metadata Boost (title/recent/dept)
-          6. Rerank (CrossEncoder)
+        步骤:
+          1. 查询重写 (LLM 扩展)
+          2. 稠密检索 (BGE-M3 向量)
+          3. 稀疏检索 (BM25 关键词)
+          4. 分数融合 (加权混合)
+          5. 元数据增强 (标题/最近/部门)
+          6. 重排序 (CrossEncoder)
           7. Chunk Merge (adjacent joining)
           8. Source Builder (citations)
           9. Retrieval Context (LLM-ready text)

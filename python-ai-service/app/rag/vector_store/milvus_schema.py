@@ -1,19 +1,19 @@
-"""Milvus Schema — InternSU collection schema definition.
+"""Milvus 模式 — InternSU 集合模式定义。
 
-Field design for RAG retrieval with full metadata traceability:
+用于 RAG 检索的字段设计，支持完整元数据可追溯性:
 
-  pk (INT64, auto)   — primary key
-  chunk_id (INT64)    — FK to t_document_chunk.id
-  document_id (INT64)  — FK to t_document.id
-  space_id (INT64)    — FK to t_knowledge_space.id
-  department_id (INT64)— department isolation
-  content (VARCHAR)   — chunk text content
-  embedding (FLOAT_VECTOR, 1024) — BGE-M3 dense vector
-  token_count (INT64) — token count
-  page_number (INT64) — source page
-  title_path (VARCHAR)— heading path
-  source_path (VARCHAR)— file path
-  created_time (INT64) — epoch milliseconds
+  pk (INT64, auto)   — 主键
+  chunk_id (INT64)    — 外键关联 t_document_chunk.id
+  document_id (INT64)  — 外键关联 t_document.id
+  space_id (INT64)    — 外键关联 t_knowledge_space.id
+  department_id (INT64)— 部门隔离
+  content (VARCHAR)   — 块文本内容
+  embedding (FLOAT_VECTOR, 1024) — BGE-M3 稠密向量
+  token_count (INT64) — token 数量
+  page_number (INT64) — 来源页码
+  title_path (VARCHAR)— 标题路径
+  source_path (VARCHAR)— 文件路径
+  created_time (INT64) — 纪元毫秒数
 """
 
 from pymilvus import DataType
@@ -57,7 +57,7 @@ OUTPUT_FIELDS = [
 
 
 def get_schema_definition() -> dict:
-    """Return the schema as a pymilvus-compatible definition."""
+    """返回 pymilvus 兼容的模式定义。"""
     return {
         "fields": SCHEMA_FIELDS,
         "enable_dynamic_field": True,

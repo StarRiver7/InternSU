@@ -1,10 +1,10 @@
-"""Metadata Filter — knowledge base permission filter for Milvus queries.
+"""元数据过滤器 — Milvus 查询的知识库权限过滤器。
 
-Builds Milvus filter expressions for:
-  - Space ID filtering (specific knowledge bases)
-  - Department isolation (department-scoped visibility)
-  - Visibility filtering (private / department / public)
-  - Creator filtering (private docs only visible to owner)
+构建 Milvus 过滤器表达式，用于：
+  - 空间 ID 过滤（特定知识库）
+  - 部门隔离（部门级可见性）
+  - 可见性过滤（私有 / 部门 / 公开）
+  - 创建者过滤（私有文档仅对所有者可见）
 """
 
 from typing import Optional
@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 
 
 class MetadataFilter:
-    """Build Milvus scalar filter expressions for permission-aware retrieval."""
+    """为权限感知检索构建 Milvus 标量过滤器表达式。"""
 
     @staticmethod
     def build_access_filter(
@@ -22,16 +22,16 @@ class MetadataFilter:
         department_id: Optional[int] = None,
         allowed_space_ids: Optional[list[int]] = None,
     ) -> Optional[str]:
-        """Build a Milvus filter expression that enforces access control.
+        """构建强制执行访问控制的 Milvus 过滤器表达式。
 
-        Rules:
-          - visibility == 'public' → always visible
-          - visibility == 'department' AND department_id match → visible
-          - creator_id == user_id → visible (owner of private docs)
-          - space_id in allowed_space_ids → visible (Java pre-computed)
+        规则:
+          - visibility == 'public' → 始终可见
+          - visibility == 'department' AND department_id 匹配 → 可见
+          - creator_id == user_id → 可见（私有文档的所有者）
+          - space_id in allowed_space_ids → 可见（Java 预计算）
 
-        Returns:
-            Milvus filter expression string, or None if no filter needed.
+        返回:
+            Milvus 过滤器表达式字符串，如果不需要过滤器则返回 None。
         """
         conditions = []
 
@@ -56,14 +56,14 @@ class MetadataFilter:
 
     @staticmethod
     def build_space_filter(space_ids: list[int]) -> str:
-        """Filter to specific knowledge spaces."""
+        """过滤到特定的知识库空间。"""
         ids_str = ", ".join(str(sid) for sid in space_ids)
         return f"space_id in [{ids_str}]"
 
     @staticmethod
     def build_document_filter(document_ids: list[int]) -> str:
-        """Filter to specific documents.
-        Uses doc_id (string) to match Path A ingestion schema.
+        """过滤到特定文档。
+        使用 doc_id（字符串）匹配 Path A 摄入模式。
         """
         ids_str = ", ".join(f'"{did}"' for did in document_ids)
         return f"doc_id in [{ids_str}]"
@@ -75,10 +75,10 @@ class MetadataFilter:
         space_ids: Optional[list[int]] = None,
         document_ids: Optional[list[int]] = None,
     ) -> Optional[str]:
-        """Build a combined metadata filter.
+        """构建组合元数据过滤器。
 
-        Combines access control + space/doc filters.
-        When document_ids is specified, skip access control (doc-level filtering suffices).
+        组合访问控制 + 空间/文档过滤器。
+        当指定 document_ids 时，跳过访问控制（文档级过滤已足够）。
         """
         parts = []
 

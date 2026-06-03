@@ -1,4 +1,4 @@
-"""PDF Parser - dual backend: PyMuPDF (fitz) primary, pypdf fallback."""
+"""PDF 解析器 - 双后端: PyMuPDF (fitz) 主用, pypdf 回退。"""
 
 try:
     import fitz

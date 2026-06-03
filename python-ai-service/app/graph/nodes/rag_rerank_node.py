@@ -1,8 +1,8 @@
-"""RAG Rerank Node — semantic re-ranking of retrieval results.
+"""RAG 重排序节点 — 对检索结果进行语义重排序。
 
-Takes retrieval_results → CrossEncoder scoring → dedup → TopN.
+处理流程：retrieval_results → CrossEncoder 评分 → 去重 → TopN 筛选
 
-Writes: rerank_results, rerank_count, rerank_strategy, rerank_elapsed_ms
+写入状态：rerank_results, rerank_count, rerank_strategy, rerank_elapsed_ms
 """
 
 import time

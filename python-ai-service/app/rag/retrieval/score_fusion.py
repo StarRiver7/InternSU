@@ -1,8 +1,8 @@
-"""Score Fusion — weighted fusion of dense and sparse retrieval scores.
+"""分数融合 — 稠密和稀疏检索分数的加权融合。
 
-Configurable weights with score normalization and deduplication.
+可配置权重，支持分数归一化和去重。
 
-Default: final = 0.7 * dense_score + 0.3 * sparse_score
+默认: final = 0.7 * dense_score + 0.3 * sparse_score
 """
 
 from typing import Optional
@@ -12,13 +12,13 @@ logger = get_logger(__name__)
 
 
 class ScoreFusion:
-    """Hybrid score fusion engine.
+    """混合分数融合引擎。
 
-    Supports:
-      - Weighted linear fusion
-      - Reciprocal rank fusion (RRF)
-      - Score normalization
-      - Deduplication by content hash
+    支持:
+      - 加权线性融合
+      - 倒数排名融合 (RRF)
+      - 分数归一化
+      - 按内容哈希去重
     """
 
     def __init__(
@@ -34,9 +34,9 @@ class ScoreFusion:
         dense_results: list[dict],
         sparse_results: list[dict],
     ) -> list[dict]:
-        """Weighted linear fusion of dense and sparse results.
+        """稠密和稀疏结果的加权线性融合。
 
-        Indexes by milvus_pk for merging.
+        按 milvus_pk 索引进行合并。
         """
         if not dense_results and not sparse_results:
             return []
@@ -78,7 +78,7 @@ class ScoreFusion:
         sparse_results: list[dict],
         k: int = 60,
     ) -> list[dict]:
-        """Reciprocal Rank Fusion (RRF).
+        """倒数排名融合 (RRF)。
 
         RRF_score = 1/(k + rank_dense) + 1/(k + rank_sparse)
         """
@@ -108,7 +108,7 @@ class ScoreFusion:
         return fused
 
     def deduplicate(self, results: list[dict]) -> list[dict]:
-        """Remove duplicate results by content hash."""
+        """按内容哈希移除重复结果。"""
         seen = set()
         unique = []
         for r in results:
