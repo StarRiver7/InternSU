@@ -25,13 +25,13 @@
         LEFT JOIN t_knowledge_space ks ON d.space_id = ks.id AND ks.is_deleted = 0
         LEFT JOIN t_document_permission dp
             ON d.id = dp.document_id
-            AND dp.principal_type = ''user''
+            AND dp.principal_type = 'user'
             AND dp.principal_id = CAST(#{userId} AS CHAR)
         WHERE d.is_deleted = 0
         AND (
             d.creator_id = #{userId}
-            OR ks.visibility = ''public''
-            OR (ks.visibility = ''department''
+            OR ks.visibility = 'public'
+            OR (ks.visibility = 'department'
                 AND ks.department_id = #{deptId}
                 AND #{deptId} IS NOT NULL)
             OR ks.creator_id = #{userId}

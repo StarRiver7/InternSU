@@ -164,27 +164,54 @@ class CrossEncoder:
 
     @staticmethod
     def _tokenize(text: str) -> list[str]:
-        """Extract meaningful tokens from text."""
-        return re.findall(r"[\u4e00-\u9fff]+|\w+", text.lower())
+        """Extract meaningful tokens from text.
+        
+        For Chinese: character bigrams for better recall (single chars are too granular).
+        For English: word-level tokens.
+        """
+        text_lower = text.lower()
+        # Split into Chinese and non-Chinese segments
+        segments = re.split(r'([\u4e00-\u9fff]+)', text_lower)
+        tokens = []
+        for seg in segments:
+            if not seg:
+                continue
+            if re.match(r'[\u4e00-\u9fff]', seg):
+                # Chinese: character bigrams + single chars for short queries
+                if len(seg) <= 3:
+                    tokens.extend(list(seg))  # Single chars for short queries
+                else:
+                    tokens.extend(list(seg))  # Single chars
+                    tokens.extend(seg[i:i+2] for i in range(len(seg)-1))  # Bigrams
+            else:
+                tokens.extend(re.findall(r'\w+', seg))
+        return tokens
 
     @staticmethod
     def _proximity_score(query_terms: list[str], doc: str) -> float:
         """How well do query terms appear in order and proximity?"""
-        if len(query_terms) < 2:
-            return 1.0 if (query_terms and query_terms[0] in doc) else 0.0
+        if not query_terms:
+            return 0.0
 
+        doc_lower = doc.lower()
         positions = []
         for term in query_terms:
-            pos = doc.find(term)
+            pos = doc_lower.find(term)
             positions.append(pos if pos >= 0 else -1)
 
-        # Count consecutive matches
+        if len(positions) <= 1:
+            # Single term: check presence with positional bonus
+            return 0.5 if (positions and positions[0] >= 0) else 0.0
+
+        # Count consecutive increasing matches
         consecutive = 0
-        for i in range(len(positions) - 1):
-            if positions[i] >= 0 and positions[i + 1] > positions[i]:
+        valid_positions = [p for p in positions if p >= 0]
+        for i in range(len(valid_positions) - 1):
+            if valid_positions[i + 1] > valid_positions[i]:
                 consecutive += 1
 
-        return consecutive / (len(positions) - 1) if len(positions) > 1 else 0.0
+        total_pairs = len(positions) - 1
+        return consecutive / total_pairs if total_pairs > 0 else 0.0
 
     @staticmethod
     def _quality_score(doc: str) -> float:

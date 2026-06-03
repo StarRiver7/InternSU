@@ -38,4 +38,7 @@ public class AIChatRequest {
 
     @JsonProperty("doc_ids")
     private List<Long> docIds;
+
+    @JsonProperty("space_ids")
+    private List<Long> spaceIds;
 }

@@ -69,7 +69,7 @@ class MilvusClient:
         )
 
         # Create index
-        index_params = build_index_params(self._index_config)
+        index_params = build_index_params(self._index_config, self._client)
         try:
             self._client.create_index(
                 collection_name=COLLECTION_NAME,

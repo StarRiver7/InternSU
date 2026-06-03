@@ -9,10 +9,6 @@ import time
 from datetime import datetime, timezone
 
 from app.graph.state import InternState
-from app.rag.citation.citation_builder import citation_builder
-from app.rag.citation.source_formatter import source_formatter
-from app.rag.retrieval.source_builder import source_builder
-from app.rag.retrieval.retrieval_context import retrieval_context as rc_builder
 from app.core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -44,48 +40,45 @@ async def citation_node(state: InternState) -> InternState:
         return state
 
     try:
-        # Build citations
-        citation_set = citation_builder.build(query=query, chunks=chunks)
-
-        state["citations"] = [c.to_dict() for c in citation_set.citations]
-        state["citation_set"] = citation_set.to_dict()
-        state["citation_count"] = citation_set.count
-        state["trust_level"] = citation_set.trust_level
+        # Build citations (simplified for new implementation
+        citations = []
+        for i, chunk in enumerate(chunks):
+            metadata = chunk.get("metadata", {})
+            citations.append({
+                "citation_id": i + 1,
+                "document_name": metadata.get("file_name", "unknown"),
+                "page_number": 0,
+                "knowledge_base": "",
+                "relevance_score": chunk.get("rerank_score", chunk.get("score", 0)),
+                "full_content": chunk.get("content", ""),
+            })
+        
+        state["citations"] = citations
+        state["citation_set"] = None  # Simplified
+        state["citation_count"] = len(citations)
+        state["trust_level"] = "medium"
 
         # Build source documents summary
-        state["source_documents"] = [
-            {
-                "document_name": c.document_name,
-                "page_number": c.page_number,
-                "knowledge_base": c.knowledge_base,
-                "relevance_score": c.relevance_score,
-                "citation_id": c.citation_id,
-            }
-            for c in citation_set.citations
-        ]
+        state["source_documents"] = citations
 
-        # Build RAG context (citation-aware)
-        rag_context = source_formatter.format_llm_context_block(
-            citation_set.citations,
-            max_sources=5,
-        )
+        # Build RAG context (simple format)
+        rag_context = _build_context(chunks)
         state["rag_context"] = rag_context
         state["rag_context_tokens"] = len(rag_context) // 2  # Rough estimate
         state["rag_context_truncated"] = len(rag_context) > 6000
 
         _add_trace(
             state,
-            f"已构建 {citation_set.count} 条引用，可信度: {citation_set.trust_level}"
+            f"已构建 {len(citations)} 条引用，可信度: {state['trust_level']}"
         )
 
     except Exception as e:
         logger.warning(f"Citation build failed: {e}")
-        # Fallback: simple source builder
-        sources = source_builder.build_batch(chunks)
-        state["citations"] = sources
-        state["citation_count"] = len(sources)
-        state["trust_level"] = "medium"
-        state["rag_context"] = _build_fallback_context(chunks)
+        # Fallback
+        state["citations"] = []
+        state["citation_count"] = 0
+        state["trust_level"] = "unreliable"
+        state["rag_context"] = _build_context(chunks)
         state["rag_context_tokens"] = 0
         _add_trace(state, "引用构建降级，使用简化格式")
 
@@ -98,14 +91,15 @@ async def citation_node(state: InternState) -> InternState:
     return state
 
 
-def _build_fallback_context(chunks: list[dict]) -> str:
+def _build_context(chunks: list[dict]) -> str:
     parts = ["## 知识库检索结果"]
     for i, c in enumerate(chunks):
-        name = c.get("document_name", "unknown")
-        page = c.get("page_number", 0)
+        metadata = c.get("metadata", {})
+        name = metadata.get("file_name", "unknown")
         content = c.get("content", "")
-        parts.append(f"\n---\n[来源{i+1}] {name}" + (f" 第{page}页" if page else ""))
-        parts.append(content[:800])
+        score = c.get("rerank_score", c.get("score", 0))
+        parts.append(f"\n---\n[来源{i+1}] {name} (相关度: {score:.2f})")
+        parts.append(content)  # 不限制长度，完整内容都加入
     return "\n".join(parts)
 
 

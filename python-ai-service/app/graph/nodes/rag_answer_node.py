@@ -19,29 +19,22 @@ from datetime import datetime, timezone
 
 from app.graph.state import InternState
 from app.llm.gateway import llm_gateway
-from app.prompts.internsu_prompts import SYSTEM_PROMPT
 from app.core.logger import get_logger
 
 logger = get_logger(__name__)
 
 # ── Citation-Aware RAG Answer Prompt ──
-RAG_ANSWER_PROMPT = """你是小SU，一个刚入职的AI实习生。老师问了一个问题，请根据下面的公司资料回答。
+RAG_ANSWER_PROMPT = """你是小SU-v3。请仔细阅读以下公司资料，找到老师问题的答案并直接回答。
 
-## 公司资料（含引用来源）
+## 公司资料
 {rag_context}
 
-## 回答规则（必须严格遵守）
-1. **只根据资料回答**：不要使用你自己的知识
-2. **必须标注来源**：使用 [来源N] 格式标注
-3. **诚实原则**：
-   - 资料没有 → "老师，我在公司资料里没有找到相关信息～"
-   - 资料不全 → "老师，根据现有资料，我只能确认..."
-4. **引用示例**：
-   - 根据《员工手册》，年假需提前3天申请[来源1]
-5. **回答结构**：
-   - 以"收到老师～"开头
-   - 简洁回答
-   - 末尾列出: 参考来源: [1]《员工手册》第5页
+## 重要规则
+1. 资料中**一定包含**与问题相关的信息，请仔细查找
+2. 找到相关信息后直接引用，用 [来源N] 标注
+3. 以"收到老师～"开头
+4. 如果确实找不到（确认每一段资料都读过了），才能说"未找到"
+5. 必须使用中文
 
 ## 老师的问题
 {user_message}
@@ -75,91 +68,93 @@ LOW_TRUST_PROMPT = """你是小SU。老师问：{user_message}
 
 
 async def rag_answer_node(state: InternState) -> InternState:
-    """Generate RAG answer with trust gating.
-
-    Reads: rag_context, citations, trust_level, user_message
-    Writes: rag_answer, final_answer, answer_sources, tokens_used
-    """
+    """Generate RAG answer."""
     t0 = time.time()
     state["current_node"] = "rag_answer_node"
-
-    _add_trace(state, "正在整理回答...")
 
     query = state["user_message"]
     model = state.get("model_name", "deepseek-chat")
     trust_level = state.get("trust_level", "medium")
     rag_context = state.get("rag_context", "")
 
+    # Dump context to file for debugging
     try:
-        # ── Trust Gate ──
-        if trust_level == "unreliable" or not rag_context:
-            answer = await _generate_no_results(query, model)
-            state["rag_answer"] = answer
-            state["final_answer"] = answer
-            state["answer_sources"] = []
-            _finish_trace(state, "知识库未找到可靠信息，已诚实告知", t0)
-            logger.info(f"[RAGAnswer] No reliable results for '{query[:40]}'")
-            return state
+        import os as _os2
+        import json
+        chunks = state.get("rerank_results", [])
+        _dump = _os2.path.join(_os2.path.dirname(_os2.path.dirname(_os2.path.dirname(_os2.path.abspath(__file__)))), "ctx_dump.txt")
+        with open(_dump, "w", encoding="utf-8") as _f2:
+            _f2.write(f"LEN={len(rag_context)}\n---\n")
+            _f2.write(rag_context)
+            _f2.write("\n\n--- ALL CHUNKS ---\n")
+            _f2.write(json.dumps(chunks, ensure_ascii=False, indent=2))
+    except Exception as e:
+        pass
+    _add_trace(state, f"正在整理回答...(ctx={len(rag_context)} chars)")
 
-        # ── Select Prompt Based on Trust ──
-        if trust_level == "low":
-            prompt = LOW_TRUST_PROMPT.format(
-                rag_context=rag_context,
-                user_message=query,
-            )
-        else:
-            prompt = RAG_ANSWER_PROMPT.format(
-                rag_context=rag_context,
-                user_message=query,
-            )
+    citations = state.get("citations", [])
+    sources = []
+    for i, c in enumerate(citations):
+        source_label = f"来源{i + 1}"
+        content = c.get("full_content", "")
+        sources.append({
+            source_label: content[:200],
+            "score": round(c.get("relevance_score", 0.0), 4),
+        })
 
-        # ── Generate Answer ──
-        _add_trace(state, "正在生成可信回答...")
+    # Primary file (document name of the top result)
+    primary_file = citations[0].get("document_name", "") if citations else ""
+    state["primary_file"] = primary_file
+    
+    if not rag_context:
+        answer = await _generate_no_results(query, model)
+        state["rag_answer"] = answer
+        state["final_answer"] = answer
+        state["answer_sources"] = sources
+        state["sources"] = sources
+        _finish_trace(state, "无上下文可用", t0)
+        return state
+
+    try:
+        # Build the final answer with sources
+        prompt = f"""你是小SU。请仔细阅读以下公司资料，准确回答老师的问题。
+
+## 公司资料
+{rag_context}
+
+## 重要规则
+1. 仔细阅读资料中的所有内容，寻找与问题相关的信息
+2. 如果找到相关内容，用 [来源N] 标注对应来源号
+3. 以"收到老师～"开头
+4. 必须使用中文
+5. 不需要自行列出参考文献
+
+## 老师的问题
+{query}
+
+## 你的回答"""
 
         messages = [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": "你是小SU，严格按照用户消息中的资料内容回答问题。必须使用中文。"},
             {"role": "user", "content": prompt},
         ]
 
-        resp = await llm_gateway.chat(
-            messages, model=model, temperature=0.5, max_tokens=2048,
-        )
+        resp = await llm_gateway.chat(messages, model=model, temperature=0.1, max_tokens=2048)
         answer = resp.content.strip()
 
-        # Token accounting
-        state["tokens_used"] = state.get("tokens_used", 0) + (
-            resp.usage.get("total_tokens", 0) if resp.usage else 0
-        )
-
+        state["tokens_used"] = state.get("tokens_used", 0) + (resp.usage.get("total_tokens", 0) if resp.usage else 0)
         state["rag_answer"] = answer
         state["final_answer"] = answer
-
-        # Collect sources used in answer
-        citations = state.get("citations", [])
-        state["answer_sources"] = [
-            {
-                "citation_id": c.get("citation_id", i + 1),
-                "document_name": c.get("document_name", ""),
-                "page_number": c.get("page_number", 0),
-            }
-            for i, c in enumerate(citations)
-        ]
-        state["sources"] = state["answer_sources"]
-
-        duration_ms = int((time.time() - t0) * 1000)
-        _finish_trace(state, "已基于知识库生成回答", t0)
-
-        logger.info(
-            f"[RAGAnswer] '{query[:40]}': answer_len={len(answer)}, "
-            f"trust={trust_level}, {duration_ms}ms"
-        )
+        state["answer_sources"] = sources
+        state["sources"] = sources
+        _finish_trace(state, "LLM generated answer", t0)
 
     except Exception as e:
-        logger.error(f"RAG answer generation failed: {e}")
-        state["rag_answer"] = "收到老师～我刚刚整理回答时遇到一点问题，请稍后重试～"
+        logger.error(f"RAG answer failed: {e}")
+        state["rag_answer"] = "收到老师～小SU遇到了问题，请稍后重试～"
         state["final_answer"] = state["rag_answer"]
         state["error"] = str(e)[:200]
-        _finish_trace(state, "回答生成暂时不可用", t0)
+        _finish_trace(state, "Answer generation failed", t0)
 
     return state
 

@@ -16,6 +16,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
@@ -100,6 +101,14 @@ public class GlobalExceptionHandler {
         return Result.fail(ResultCode.NOT_FOUND);
     }
 
+    // === 异步请求超时 ===
+    @ExceptionHandler(AsyncRequestTimeoutException.class)
+    @ResponseStatus(HttpStatus.GATEWAY_TIMEOUT)
+    public Result<Void> handleAsyncTimeout(AsyncRequestTimeoutException e) {
+        log.warn("Async request timeout: {}", e.getMessage());
+        return Result.fail(ResultCode.INTERNAL_ERROR, "请求处理超时，请稍后重试");
+    }
+    
     // === 兜底：未知异常 ===
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)

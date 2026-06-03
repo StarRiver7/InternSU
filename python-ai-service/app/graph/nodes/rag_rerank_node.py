@@ -9,7 +9,7 @@ import time
 from datetime import datetime, timezone
 
 from app.graph.state import InternState
-from app.rag.rerank.reranker import reranker
+from app.rerank.bge_reranker import bge_reranker
 from app.core.config import settings
 from app.core.logger import get_logger
 
@@ -39,16 +39,15 @@ async def rag_rerank_node(state: InternState) -> InternState:
         return state
 
     try:
-        reranked = await reranker.rerank(
+        reranked = await bge_reranker.rerank(
             query=query,
             chunks=chunks,
             top_n=settings.rag_final_k,
-            score_threshold=settings.rag_score_threshold,
         )
 
         state["rerank_results"] = reranked
         state["rerank_count"] = len(reranked)
-        state["rerank_strategy"] = "semantic" if reranker.is_semantic else "heuristic"
+        state["rerank_strategy"] = "bge_reranker"
 
         _add_trace(
             state,

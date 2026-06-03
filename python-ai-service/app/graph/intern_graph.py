@@ -136,6 +136,8 @@ class InternGraph:
         model_name: str = "deepseek-chat",
         restore_state: dict = None,
         doc_ids: list[int] = None,
+        space_ids: list[int] = None,
+        permission_context: dict = None,
     ) -> dict:
         """Blocking graph execution (for non-streaming /ai/chat?stream=false)."""
         trace_id = ""
@@ -154,6 +156,8 @@ class InternGraph:
             model_name=model_name,
             restore_state=restore_state,
             doc_ids=doc_ids,
+            space_ids=space_ids,
+            permission_context=permission_context,
             trace_id=trace_id,
         )
 
@@ -187,6 +191,8 @@ class InternGraph:
         model_name: str = "deepseek-chat",
         restore_state: dict = None,
         doc_ids: list[int] = None,
+        space_ids: list[int] = None,
+        permission_context: dict = None,
         config: dict = None,
     ) -> dict:
         """Streaming graph execution (for SSE endpoint)."""
@@ -206,6 +212,8 @@ class InternGraph:
             model_name=model_name,
             restore_state=restore_state,
             doc_ids=doc_ids,
+            space_ids=space_ids,
+            permission_context=permission_context,
             trace_id=trace_id,
         )
 

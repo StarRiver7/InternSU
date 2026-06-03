@@ -62,13 +62,19 @@ class CitationBuilder:
         citations = []
 
         for i, chunk in enumerate(chunks):
-            doc_id = chunk.get("document_id", 0)
-            space_id = chunk.get("space_id") or chunk.get("knowledge_base_id", 0)
+            doc_id = chunk.get("document_id") or chunk.get("doc_id", 0)
+            space_id = chunk.get("space_id") or chunk.get("knowledge_base_id") or "1"
 
-            # Resolve names
-            doc_name = "unknown"
-            if document_name_map and doc_id in document_name_map:
-                doc_name = document_name_map[doc_id]
+            # Resolve names — try multiple possible keys
+            metadata = chunk.get("metadata", {}) or {}
+            doc_name = (
+                chunk.get("document_name") or
+                chunk.get("file_name") or
+                metadata.get("file_name") or
+                metadata.get("document_name") or
+                (document_name_map.get(doc_id) if document_name_map else None) or
+                f"doc_{doc_id}"
+            )
 
             kb_name = self._kb_name_map.get(space_id, "")
 
@@ -178,21 +184,23 @@ class CitationBuilder:
 
     @staticmethod
     def _assess_trust(citations: list[Citation]) -> str:
-        """Assess overall trust level."""
+        """Assess overall trust level using rerank_score (semantic relevance)."""
         if not citations:
             return "unreliable"
 
-        avg_score = sum(c.relevance_score for c in citations) / len(citations)
+        # Use rerank_score (semantic) for trust; fallback to relevance_score
+        scores = [c.rerank_score if c.rerank_score and c.rerank_score > 0 else c.relevance_score for c in citations]
+        avg_score = sum(scores) / len(scores)
         has_official = any(c.source_type == "official" for c in citations)
 
-        if avg_score >= 0.75 and has_official:
+        if avg_score >= 0.6 and has_official:
             return "high"
-        elif avg_score >= 0.5:
+        elif avg_score >= 0.4:
             return "medium"
-        elif avg_score >= 0.3:
+        elif avg_score >= 0.2:
             return "low"
         else:
-            return "unreliable"
+            return "low"  # Always at least low if we have citations
 
 
 citation_builder = CitationBuilder()

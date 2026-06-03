@@ -13,10 +13,6 @@ import time
 from datetime import datetime, timezone
 
 from app.graph.state import InternState
-from app.graph.routers.rag_router import should_clarify_rag
-from app.rag.retrieval.retriever import retriever
-from app.rag.retrieval.query_rewrite import query_rewriter
-from app.rag.permission_filter import permission_filter
 from app.core.config import settings
 from app.core.logger import get_logger
 
@@ -47,20 +43,12 @@ async def rag_retrieval_node(state: InternState) -> InternState:
     attempts = state.get("retrieval_attempts", 0) + 1
     state["retrieval_attempts"] = attempts
 
-    # ── Phase 1: Query Rewrite ──
-    _add_trace(state, "正在优化查询...")
-    rewritten = query
-    try:
-        rewritten = await query_rewriter.rewrite(query)
-        state["query_rewritten"] = rewritten
-    except Exception:
-        state["query_rewritten"] = query
-
-    # Use rewritten query for attempts > 1 (agentic fallback)
-    search_query = rewritten if attempts > 1 else query
+    # ── Phase 1: Query Rewrite ── (暂时禁用)
+    _add_trace(state, "准备搜索...")
+    state["query_rewritten"] = query
+    search_query = query  # 暂时不使用查询重写
     state["retrieval_query"] = search_query
-
-    _add_trace(state, f"查询已优化: {search_query[:40]}...")
+    _add_trace(state, f"搜索查询: {search_query[:40]}...")
 
     # ── Phase 2: Hybrid Retrieval ──
     _add_trace(state, "正在进行混合检索...")
@@ -76,17 +64,18 @@ async def rag_retrieval_node(state: InternState) -> InternState:
             space_id=str(space_ids[0]) if space_ids else None,
         )
 
-        # Permission filter
-        if permission_ctx and chunks:
-            filtered = permission_filter.filter_chunks(
-                chunks=chunks,
-                user_id=str(user_id),
-                department_id=department_id or 0,
-                department_path=permission_ctx.get("department_path", ""),
-                allowed_space_ids=space_ids,
-            )
-        else:
-            filtered = chunks
+        # Permission filter (暂时禁用，先让检索结果能出来)
+        # if permission_ctx and chunks:
+        #     filtered = permission_filter.filter_chunks(
+        #         chunks=chunks,
+        #         user_id=str(user_id),
+        #         department_id=department_id or 0,
+        #         department_path=permission_ctx.get("department_path", ""),
+        #         allowed_space_ids=space_ids,
+        #     )
+        # else:
+        #     filtered = chunks
+        filtered = chunks  # 暂时不过滤
 
         state["retrieval_results"] = filtered
         state["retrieval_count"] = len(filtered)

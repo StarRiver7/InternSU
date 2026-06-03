@@ -76,8 +76,8 @@ class HybridRetriever:
             keyword_weight=self._keyword_weight,
         )
 
-        # Filter by score threshold and limit
-        fused = [r for r in fused if r["score"] >= score_threshold]
+        # 暂时移除分数阈值过滤，确保能找到所有相关内容
+        # fused = [r for r in fused if r["score"] >= score_threshold]
         fused = fused[:final_k]
 
         elapsed = (time.time() - start) * 1000

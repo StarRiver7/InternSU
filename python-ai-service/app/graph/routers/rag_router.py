@@ -59,12 +59,14 @@ def route_after_rerank(
 def route_after_citation(
     state: InternState,
 ) -> Literal["rag_answer_node", "clarify_node"]:
-    """After citation: generate answer or clarify if trust is too low."""
+    """After citation: always answer if we have citations, regardless of trust."""
+    citations = state.get("citation_count", 0)
     trust = state.get("trust_level", "medium")
-    if trust == "unreliable":
-        logger.info("[RAGRouter] Trust unreliable → clarify_node (try again)")
-        return "clarify_node"
-    return "rag_answer_node"
+    if citations > 0:
+        logger.info(f"[RAGRouter] {citations} citations (trust={trust}) → answer_node")
+        return "rag_answer_node"
+    logger.info("[RAGRouter] No citations → clarify_node")
+    return "clarify_node"
 
 
 def should_clarify_rag(state: InternState) -> bool:

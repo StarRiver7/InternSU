@@ -28,7 +28,7 @@ class DuplicateFilter:
     def __init__(
         self,
         prefix_overlap_threshold: float = 0.7,
-        jaccard_threshold: float = 0.85,
+        jaccard_threshold: float = 0.95,
     ):
         self._prefix_threshold = prefix_overlap_threshold
         self._jaccard_threshold = jaccard_threshold
@@ -76,11 +76,13 @@ class DuplicateFilter:
         return result
 
     def _filter_exact(self, chunks: list[dict]) -> list[dict]:
-        """Remove exact content duplicates (by hash of first 200 chars)."""
+        """Remove exact content duplicates (by MD5 hash of FULL content)."""
+        import hashlib
         seen = set()
         unique = []
         for c in chunks:
-            key = c.get("content", "")[:200]
+            content = c.get("content", "")
+            key = hashlib.md5(content.encode("utf-8")).hexdigest() if content else ""
             if key not in seen:
                 seen.add(key)
                 unique.append(c)

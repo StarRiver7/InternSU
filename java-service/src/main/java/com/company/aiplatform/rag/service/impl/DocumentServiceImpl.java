@@ -100,7 +100,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         return this.page(page, wrapper);
     }
 
-    // ======================== 上传 ========================
+    // ======================== 上传文档 ========================
 
     @Override
     @Transactional
@@ -180,7 +180,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
                 document.getId(), spaceId, originalFilename, fileHash, file.getSize());
 
         // ── 6. 异步触发解析 Pipeline ──
-        this.processDocumentAsync(document.getId(), absolutePath, fileHash);
+        this.processDocumentAsync(document.getId(), absolutePath, fileHash, spaceId);
 
         return document;
     }
@@ -189,7 +189,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
 
     @Override
     @Async("ragTaskExecutor")
-    public void processDocumentAsync(Long documentId, String filePath, String fileHash) {
+    public void processDocumentAsync(Long documentId, String filePath, String fileHash, Long spaceId) {
         log.info("Document processing started: id={}", documentId);
 
         // ── Step 1: 同步检查文件存在（快速操作） ──
@@ -207,7 +207,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
 
         // ── Step 5: 反应式调用 Python AI 服务，不阻塞池线程 ──
         // .publishOn(Schedulers.boundedElastic()) 确保 MyBatis DB 操作在 Spring 管理的线程上执行
-        aiBackendClient.indexDocumentAsync(documentId, filePath, null, null)
+        aiBackendClient.indexDocumentAsync(documentId, filePath, null, String.valueOf(spaceId))
                 .publishOn(Schedulers.boundedElastic())
                 .subscribe(
                         result -> onIndexSuccess(documentId, result),
@@ -321,7 +321,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
 
     @Override
     public Mono<Map<String, Object>> chat(Long userId, String query, List<Long> docIds) {
-        return aiBackendClient.chat(userId, null, query, true, true, docIds)
+        return aiBackendClient.chat(userId, null, query, true, true, docIds, null)
                 .flatMap(response -> {
                     Map<String, Object> result = new HashMap<>();
                     result.put("answer", response.getContent());

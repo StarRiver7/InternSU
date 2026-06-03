@@ -90,6 +90,8 @@ def create_initial_state(
     model_name: str = "deepseek-chat",
     restore_state: dict = None,
     doc_ids: list[int] = None,
+    space_ids: list[int] = None,
+    permission_context: dict = None,
     trace_id: str = "",
 ) -> InternState:
     """Construct LangGraph initial state.
@@ -97,6 +99,8 @@ def create_initial_state(
     Args:
         trace_id: distributed trace ID, read from contextvars by caller.
         doc_ids: specific document IDs to restrict RAG retrieval scope.
+        space_ids: specific knowledge space IDs to restrict RAG scope.
+        permission_context: permission/access control context.
     """
     if model_name is None:
         model_name = "deepseek-chat"
@@ -108,6 +112,11 @@ def create_initial_state(
         from app.core.logger import get_trace_id
         trace_id = get_trace_id()
 
+    # 合并 permission_context
+    pc = rs.get("permission_context", {})
+    if permission_context:
+        pc.update(permission_context)
+
     return InternState(
         trace_id=trace_id,
 
@@ -115,9 +124,10 @@ def create_initial_state(
         user_id=user_id,
         user_message=message,
         conversation_context=history or [],
-        permission_context=rs.get("permission_context", {}),
+        permission_context=pc,
 
         doc_ids=doc_ids or rs.get("doc_ids", []),
+        space_ids=space_ids or rs.get("space_ids", []),
         intent=rs.get("intent", "chat"),
         intent_confidence=rs.get("intent_confidence", 0.0),
         intent_detail=rs.get("intent_detail", "chat"),
@@ -136,7 +146,6 @@ def create_initial_state(
         rag_triggered=False,
         query_rewritten="",
         retrieval_query="",
-        space_ids=rs.get("space_ids", []),
         retrieval_top_k=20,
         retrieval_results=[],
         retrieval_count=0,

@@ -43,7 +43,7 @@ public interface DocumentService {
     Document uploadDocument(Long userId, Long spaceId, MultipartFile file) throws IOException;
 
     /** 异步处理文档：解析 → 分块 → 向量化（由 @Async 线程池执行） */
-    void processDocumentAsync(Long documentId, String filePath, String fileHash);
+    void processDocumentAsync(Long documentId, String filePath, String fileHash, Long spaceId);
 
     /** AI 对话（基于文档上下文） */
     Mono<Map<String, Object>> chat(Long userId, String query, List<Long> docIds);

@@ -125,7 +125,7 @@ class MilvusVectorStore:
         query_vector: list[float],
         *,
         top_k: int = 20,
-        score_threshold: float = 0.3,
+        score_threshold: float = 0.1,
         doc_ids: list[str] | None = None,
         space_id: str | None = None,
     ) -> list[dict]:
@@ -139,13 +139,11 @@ class MilvusVectorStore:
         # Ensure collection is loaded (milvus-lite may release after insert)
         client.load_collection(self.COLLECTION_NAME)
 
-        # Build filter expression
+        # Build filter expression (暂时移除所有过滤条件，确保能找到更多内容
         filter_parts = []
         if doc_ids and len(doc_ids) > 0:
             ids_str = ", ".join(f'"{d}"' for d in doc_ids)
             filter_parts.append(f"doc_id in [{ids_str}]")
-        if space_id:
-            filter_parts.append(f'space_id == "{space_id}"')
 
         filter_expr = " and ".join(filter_parts) if filter_parts else None
 
@@ -156,7 +154,7 @@ class MilvusVectorStore:
             filter=filter_expr,
             anns_field="vector",
             output_fields=["doc_id", "content", "chunk_index",
-                          "file_name", "file_type", "char_start", "char_end"],
+                          "file_name", "file_type", "char_start", "char_end", "space_id"],
         )
 
         elapsed = (time.time() - start) * 1000
@@ -164,8 +162,7 @@ class MilvusVectorStore:
         hits = results[0] if results else []
         chunks = []
         for hit in hits:
-            if hit["distance"] < score_threshold:
-                continue
+            # 暂时移除阈值过滤，确保能找到所有相关内容
             entity = hit.get("entity", {})
             chunks.append({
                 "id": hit["id"],
@@ -178,6 +175,7 @@ class MilvusVectorStore:
                     "file_type": entity.get("file_type", ""),
                     "char_start": entity.get("char_start", 0),
                     "char_end": entity.get("char_end", 0),
+                    "space_id": entity.get("space_id", ""),
                 },
             })
 

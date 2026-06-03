@@ -159,6 +159,7 @@ async def _sse_generator(req: ChatRequest):
                 model_name=req.model or "deepseek-chat",
                 restore_state=restore_state,
                 doc_ids=req.doc_ids,
+                space_ids=req.space_ids,
                 config=config,
             )
 
@@ -315,6 +316,8 @@ async def _sse_generator(req: ChatRequest):
 async def _run_graph(req, history=None, restore_state=None):
     """Execute LangGraph and return full result (blocking, for non-streaming endpoint)."""
     """执行 LangGraph 并返回完整结果（阻塞式，供非流式端点使用）。"""
+    # 临时修复：如果 space_ids 为空，默认使用 [1]（因为 Milvus 里的都是 space_id=1）
+    space_ids = req.space_ids or [1]
     result = await intern_graph.run(
         user_id=req.user_id,
         conversation_id=req.conversation_id,
@@ -323,5 +326,6 @@ async def _run_graph(req, history=None, restore_state=None):
         model_name=req.model or "deepseek-chat",
         restore_state=restore_state,
         doc_ids=req.doc_ids,
+        space_ids=space_ids,
     )
     return result

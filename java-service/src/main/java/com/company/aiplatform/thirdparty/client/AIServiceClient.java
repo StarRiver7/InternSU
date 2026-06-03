@@ -35,7 +35,7 @@ public class AIServiceClient {
      * Callers should compose with {@code .map()} / {@code .flatMap()} instead of blocking.
      */
     public Mono<AIChatResponse> chat(Long userId, String conversationId, String query,
-                                      boolean useRag, boolean useTools, List<Long> docIds) {
+                                      boolean useRag, boolean useTools, List<Long> docIds, List<Long> spaceIds) {
         AIChatRequest request = AIChatRequest.builder()
                 .userId(userId != null ? userId.toString() : "anonymous")
                 .conversationId(conversationId)
@@ -44,6 +44,7 @@ public class AIServiceClient {
                 .useRag(useRag)
                 .useTools(useTools)
                 .docIds(docIds)
+                .spaceIds(spaceIds)
                 .build();
 
         return aiBackendWebClient.post()

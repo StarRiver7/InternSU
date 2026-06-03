@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
     # ---- App ----
     app_name: str = "internsu-ai-service"
@@ -47,9 +47,9 @@ class Settings(BaseSettings):
     # ---- RAG Pipeline ----
     chunk_size: int = 512
     chunk_overlap: int = 64
-    rag_top_k: int = 20
-    rag_final_k: int = 5
-    rag_score_threshold: float = 0.3
+    rag_top_k: int = 30
+    rag_final_k: int = 20
+    rag_score_threshold: float = 0.05
     hybrid_weight_vector: float = 0.7
     hybrid_weight_keyword: float = 0.3
 

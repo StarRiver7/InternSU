@@ -13,6 +13,7 @@ class ChatRequest(BaseModel):
     use_rag: bool = Field(default=True, description="Enable knowledge base search")
     use_tools: bool = Field(default=True, description="Allow tool calls")
     doc_ids: Optional[List[int]] = Field(default=None, description="Filter by document IDs")
+    space_ids: Optional[List[int]] = Field(default=None, description="Filter by knowledge space IDs")
 
 
 class ChatMessage(BaseModel):

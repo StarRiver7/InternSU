@@ -35,32 +35,50 @@ class IndexConfig:
     ivf_nprobe: int = 16
 
 
-def build_index_params(config: IndexConfig):
-    """Build pymilvus index parameters from config."""
-    from pymilvus import MilvusClient
-
-    client = MilvusClient("dummy")  # just for prepare_index_params
-    params = client.prepare_index_params()
-
-    if config.index_type == IndexType.HNSW:
-        params.add_index(
-            field_name="embedding",
-            index_type="HNSW",
-            metric_type=config.metric_type,
-            params={
+def build_index_params(config: IndexConfig, client=None):
+    """Build pymilvus index parameters from config.
+    
+    Args:
+        config: Index configuration
+        client: Optional existing MilvusClient to use prepare_index_params()
+    """
+    if client:
+        params = client.prepare_index_params()
+        if config.index_type == IndexType.HNSW:
+            params.add_index(
+                field_name="embedding",
+                index_type="HNSW",
+                metric_type=config.metric_type,
+                params={
+                    "M": config.hnsw_m,
+                    "efConstruction": config.hnsw_ef_construction,
+                },
+            )
+        elif config.index_type == IndexType.IVF_FLAT:
+            params.add_index(
+                field_name="embedding",
+                index_type="IVF_FLAT",
+                metric_type=config.metric_type,
+                params={"nlist": config.ivf_nlist},
+            )
+        return params
+    else:
+        # Fallback to dictionary format
+        index_params = {
+            "index_type": config.index_type.value,
+            "metric_type": config.metric_type,
+            "params": {}
+        }
+        if config.index_type == IndexType.HNSW:
+            index_params["params"] = {
                 "M": config.hnsw_m,
                 "efConstruction": config.hnsw_ef_construction,
-            },
-        )
-    elif config.index_type == IndexType.IVF_FLAT:
-        params.add_index(
-            field_name="embedding",
-            index_type="IVF_FLAT",
-            metric_type=config.metric_type,
-            params={"nlist": config.ivf_nlist},
-        )
-
-    return params
+            }
+        elif config.index_type == IndexType.IVF_FLAT:
+            index_params["params"] = {
+                "nlist": config.ivf_nlist,
+            }
+        return index_params
 
 
 def build_search_params(config: IndexConfig) -> dict:
