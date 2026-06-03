@@ -113,12 +113,12 @@ async def chat_node(state: InternState, config: dict = None) -> InternState:
             )
 
         logger.info(
-            "ChatNode: answer_len=%d, model=%s, streaming=%s",
+            "ChatNode: 回答长度=%d, 模型=%s, 流式=%s",
             len(answer), model, token_queue is not None,
         )
 
     except Exception as e:
-        logger.error("ChatNode LLM error: %s", e, exc_info=True)
+        logger.error("ChatNode LLM 调用错误: %s", e, exc_info=True)
         answer = "收到老师～我刚刚处理任务时遇到一点问题，请稍后再试～"
         state["final_answer"] = answer
         state["error"] = str(e)

@@ -1,6 +1,9 @@
 package com.company.aiplatform.thirdparty.client;
 
 import com.company.aiplatform.thirdparty.dto.*;
+import com.company.aiplatform.sql.dto.SqlQueryResponse;
+import com.company.aiplatform.sql.dto.SqlSchemaResponse;
+import com.company.aiplatform.sql.dto.TableInfo;
 import com.company.aiplatform.common.exception.BusinessException;
 import com.company.aiplatform.common.enums.ResultCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -145,6 +148,125 @@ public class AIServiceClient {
                 .retrieve()
                 .bodyToMono(Void.class)
                 .doOnError(e -> log.error("Document deletion failed: documentId={}", documentId, e));
+    }
+
+    // ======================== SQL Agent ========================
+
+    /**
+     * SQL 查询（非流式）。
+     *
+     * <p>将自然语言问题转换为 SQL 并执行，返回查询结果的自然语言总结。
+     */
+    public Mono<SqlQueryResponse> sqlQuery(String userId, String conversationId, String question) {
+        Map<String, Object> body = Map.of(
+                "user_id", userId != null ? userId : "anonymous",
+                "conversation_id", conversationId,
+                "question", question,
+                "stream", false
+        );
+
+        return aiBackendWebClient.post()
+                .uri("/ai/sql/query")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<AICommonResponse<SqlQueryResponse>>() {})
+                .map(this::unwrap)
+                .doOnError(WebClientResponseException.class, e ->
+                        log.error("SQL query failed: status {}, body {}",
+                                e.getStatusCode(), e.getResponseBodyAsString()))
+                .onErrorMap(e -> new BusinessException(ResultCode.AI_SERVICE_UNAVAILABLE,
+                        "SQL query failed: " + e.getMessage()));
+    }
+
+    /**
+     * SQL 查询（SSE 流式）。
+     *
+     * <p>将自然语言问题转换为 SQL 并执行，通过 SSE 流式返回执行过程和结果。
+     */
+    public SseEmitter sqlQueryStream(String userId, String conversationId, String question) {
+        final SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
+
+        Map<String, Object> body = Map.of(
+                "user_id", userId != null ? userId : "anonymous",
+                "conversation_id", conversationId,
+                "question", question,
+                "stream", true
+        );
+
+        log.debug("SQL SSE stream start: conv={}, timeout={}ms", conversationId, SSE_TIMEOUT_MS);
+
+        final Disposable subscription = aiBackendWebClient.post()
+                .uri("/ai/sql/query")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(body)
+                .accept(MediaType.TEXT_EVENT_STREAM)
+                .retrieve()
+                .bodyToFlux(String.class)
+                .doOnNext(line -> processSseLine(line, emitter, null))
+                .doOnComplete(() -> {
+                    log.debug("SQL SSE upstream completed: conv={}", conversationId);
+                    safeComplete(emitter);
+                })
+                .doOnError(ex -> {
+                    log.error("SQL SSE upstream error: conv={}, error={}", conversationId, ex.getMessage());
+                    safeCompleteWithError(emitter, ex);
+                })
+                .doOnCancel(() -> log.info(
+                        "SQL SSE upstream cancelled (client disconnected): conv={}", conversationId))
+                .subscribe();
+
+        final Runnable cancelUpstream = () -> {
+            if (subscription != null && !subscription.isDisposed()) {
+                log.info("SQL SSE disposing upstream: conv={}", conversationId);
+                subscription.dispose();
+            }
+        };
+
+        emitter.onTimeout(() -> {
+            log.warn("SQL SSE timeout ({}ms): conv={}", SSE_TIMEOUT_MS, conversationId);
+            cancelUpstream.run();
+        });
+        emitter.onError(ex -> {
+            log.error("SQL SSE emitter error: conv={}", conversationId, ex);
+            cancelUpstream.run();
+        });
+        emitter.onCompletion(() -> {
+            log.debug("SQL SSE emitter completed: conv={}", conversationId);
+            cancelUpstream.run();
+        });
+
+        return emitter;
+    }
+
+    /**
+     * 获取数据库 Schema 信息。
+     */
+    public Mono<SqlSchemaResponse> getSqlSchema() {
+        return aiBackendWebClient.get()
+                .uri("/ai/sql/schema")
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<AICommonResponse<SqlSchemaResponse>>() {})
+                .map(this::unwrap)
+                .doOnError(WebClientResponseException.class, e ->
+                        log.error("Get SQL schema failed: status {}", e.getStatusCode()))
+                .onErrorMap(e -> new BusinessException(ResultCode.AI_SERVICE_UNAVAILABLE,
+                        "Get SQL schema failed: " + e.getMessage()));
+    }
+
+    /**
+     * 获取可查询的表列表。
+     */
+    public Mono<List<TableInfo>> getSqlTables() {
+        return aiBackendWebClient.get()
+                .uri("/ai/sql/tables")
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<AICommonResponse<List<TableInfo>>>() {})
+                .map(this::unwrap)
+                .doOnError(WebClientResponseException.class, e ->
+                        log.error("Get SQL tables failed: status {}", e.getStatusCode()))
+                .onErrorMap(e -> new BusinessException(ResultCode.AI_SERVICE_UNAVAILABLE,
+                        "Get SQL tables failed: " + e.getMessage()));
     }
 
     // ======================== Internal Helpers ========================

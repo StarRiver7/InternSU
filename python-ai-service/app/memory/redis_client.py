@@ -21,9 +21,9 @@ class RedisClient:
                     socket_timeout=3,
                 )
                 await self._redis.ping()
-                logger.info("Redis connected")
+                logger.info("Redis 已连接")
             except Exception as e:
-                logger.warning(f"Redis unavailable, using fallback: {e}")
+                logger.warning(f"Redis 不可用，使用回退存储: {e}")
                 self._redis = None
         return self._redis
 

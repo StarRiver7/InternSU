@@ -7,7 +7,7 @@ logger = get_logger(__name__)
 class StateMemory:
     async def save_state(self, user_id, conv_id, graph_state):
         if graph_state is None:
-            logger.warning("save_state called with None graph_state, skipping")
+            logger.warning("save_state 被调用时传入了 None graph_state，跳过")
             return
         data = {
             "intent": graph_state.get("intent"),
@@ -24,14 +24,14 @@ class StateMemory:
         s = json.dumps(data, ensure_ascii=False, default=str)
         key = state_key(user_id, conv_id)
         await redis_client.set(key, s, TTL_STATE)
-        logger.debug(f"State saved: {user_id}/{conv_id}")
+        logger.debug(f"状态已保存: {user_id}/{conv_id}")
 
     async def load_state(self, user_id, conv_id):
         key = state_key(user_id, conv_id)
         raw = await redis_client.get(key)
         if raw:
             data = json.loads(raw)
-            logger.debug(f"State loaded: {user_id}/{conv_id}")
+            logger.debug(f"状态已加载: {user_id}/{conv_id}")
             return data
         return {}
 
@@ -57,6 +57,6 @@ class StateMemory:
 
     async def clear_all(self, user_id, conv_id):
         await redis_client.delete(state_key(user_id, conv_id), clarify_key(user_id, conv_id), slots_key(user_id, conv_id))
-        logger.debug(f"State cleared: {user_id}/{conv_id}")
+        logger.debug(f"状态已清除: {user_id}/{conv_id}")
 
 state_memory = StateMemory()

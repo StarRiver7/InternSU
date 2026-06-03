@@ -11,6 +11,7 @@ from app.middleware.exception_middleware import app_exception_handler, general_e
 from app.api.v1.chat_api import router as chat_router
 from app.api.v1.rag_api import router as rag_router
 from app.api.v1.health_api import router as health_router
+from app.api.v1.sql_api import router as sql_router
 from app.common.exceptions.exceptions import AppException, InvalidConfigException
 
 log_level = "DEBUG" if settings.debug else "INFO"
@@ -31,8 +32,8 @@ async def lifespan(app: FastAPI):
     Shutdown:
       清理资源（当前无持久连接需显式关闭）。
     """
-    logger.info("[InternSU AI] Starting in %s mode...", settings.env)
-    logger.info("  小SU 正在启动，准备帮老师们干活~")
+    logger.info("[InternSU AI] 正在启动，运行模式: %s...", settings.env)
+        logger.info(" 小SU 正在启动，准备开始帮老师们干活~ ")
 
     # ── LLM Gateway 异步探活 ──
     try:
@@ -84,6 +85,7 @@ app.add_exception_handler(Exception, general_exception_handler)
 
 app.include_router(chat_router)
 app.include_router(rag_router)
+app.include_router(sql_router)
 app.include_router(health_router)
 
 

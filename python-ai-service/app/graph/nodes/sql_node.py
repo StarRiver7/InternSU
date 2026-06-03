@@ -103,7 +103,7 @@ async def sql_node(state: InternState) -> InternState:
             duration_ms=int((time.time() - t1) * 1000),
         )
     except Exception as e:
-        logger.error(f"Schema load failed: {e}")
+        logger.error(f"Schema 加载失败: {e}")
         trace_steps[-1] = trace_step("sql_node", "数据库结构加载失败", "failed", detail={"error": str(e)})
         state["final_answer"] = "收到老师～小SU在分析数据库结构时遇到了问题，请稍后再试～"
         state["done"] = True
@@ -124,7 +124,7 @@ async def sql_node(state: InternState) -> InternState:
             duration_ms=int((time.time() - t2) * 1000),
         )
     except Exception as e:
-        logger.error(f"SQL generation failed: {e}")
+        logger.error(f"SQL 生成失败: {e}")
         trace_steps[-1] = trace_step(
             "sql_node", SQL_TRACE_MESSAGES["sql_generation_failed"], "failed",
             detail={"error": str(e)},
@@ -140,7 +140,7 @@ async def sql_node(state: InternState) -> InternState:
     security_result = sql_security.check(generated_sql)
     if not security_result["passed"]:
         # 【安全拦截】SQL 未通过安全检查
-        logger.warning(f"SQL blocked: {security_result['reason']}")
+        logger.warning(f"SQL 被拦截: {security_result['reason']}")
         trace_steps[-1] = trace_step(
             "sql_node", SQL_TRACE_MESSAGES["sql_security_blocked"], "completed",
             detail={"reason": security_result["reason"]},
@@ -173,7 +173,7 @@ async def sql_node(state: InternState) -> InternState:
             duration_ms=int((time.time() - t4) * 1000),
         )
     except Exception as e:
-        logger.error(f"SQL execution failed: {e}")
+        logger.error(f"SQL 执行失败: {e}")
         trace_steps[-1] = trace_step(
             "sql_node", SQL_TRACE_MESSAGES["sql_execution_failed"], "failed",
             detail={"error": str(e)},
@@ -198,7 +198,7 @@ async def sql_node(state: InternState) -> InternState:
         )
     except Exception as e:
         # 【降级策略】汇总失败时返回简单结果
-        logger.error(f"SQL summarization failed: {e}")
+        logger.error(f"SQL 结果汇总失败: {e}")
         row_count = exec_result.get("row_count", 0)
         summary = f"收到老师～查询完成，共查到 {row_count} 条记录。本次仅执行只读查询。"
         trace_steps[-1] = trace_step(
@@ -212,7 +212,7 @@ async def sql_node(state: InternState) -> InternState:
     state["done"] = True
     state["trace_steps"] = trace_steps
     total_ms = int((time.time() - t_start) * 1000)
-    logger.info(f"SQL Node done: rows={exec_result.get("row_count", 0)}, total_ms={total_ms}")
+    logger.info(f"SQL Node 完成: 行数={exec_result.get("row_count", 0)}, 总耗时={total_ms}ms")
     return state
 
 
@@ -279,7 +279,7 @@ async def _generate_sql(user_message, schema_context, context_hint, collected_sl
     if "LIMIT" not in sql_upper and not sql_upper.endswith(";"):
         sql = sql.rstrip(";").strip() + " LIMIT 100"
 
-    logger.debug(f"Generated SQL: {sql[:200]}")
+    logger.debug(f"已生成 SQL: {sql[:200]}")
     return sql
 
 

@@ -94,7 +94,7 @@ async def intent_node(state: InternState) -> InternState:
         state["intent_confidence"] = 0.9
         logger.info(f"IntentNode: '{message[:40]}...' → {intent}")
     except Exception as e:
-        logger.warning(f"Intent classification fallback: {e}")
+        logger.warning(f"意图分类降级处理: {e}")
         state["intent"] = "chat"
         state["intent_confidence"] = 0.3
 

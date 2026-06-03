@@ -97,7 +97,7 @@ async def chat(req: ChatRequest, request: Request):
     # 如果没有提供 conversation_id，自动生成一个
     if not req.conversation_id:
         req.conversation_id = memory_manager.generate_conversation_id()
-        logger.info("Auto-generated conversation_id: %s", req.conversation_id)
+        logger.info("自动生成会话 ID: %s", req.conversation_id)
 
     if req.stream:
         return StreamingResponse(

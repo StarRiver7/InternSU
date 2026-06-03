@@ -16,7 +16,7 @@ class MemoryManager:
             raw = await redis_client.get(session_key(user_id, conv_id))
             return json.loads(raw) if raw else []
         except Exception as e:
-            logger.warning(f"Get history failed: {e}")
+            logger.warning(f"获取历史记录失败: {e}")
             return []
 
     async def add_message(self, user_id, conv_id, role, content):
@@ -30,7 +30,7 @@ class MemoryManager:
             await redis_client.set(key, json.dumps(history, ensure_ascii=False), TTL_SESSION)
             await self._update_conv_list(user_id, conv_id)
         except Exception as e:
-            logger.warning(f"Add message failed: {e}")
+            logger.warning(f"添加消息失败: {e}")
 
     async def _update_conv_list(self, user_id, conv_id, title=""):
         try:
@@ -46,7 +46,7 @@ class MemoryManager:
             await redis_client.hset(conv_list_key(), user_id, json.dumps(convs[:50], ensure_ascii=False))
             await redis_client.expire(conv_list_key(), TTL_CONV_LIST)
         except Exception as e:
-            logger.warning(f"Conv list failed: {e}")
+            logger.warning(f"更新会话列表失败: {e}")
 
     async def clear(self, user_id, conv_id):
         await redis_client.delete(session_key(user_id, conv_id))

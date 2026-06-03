@@ -103,13 +103,13 @@ async def memory_node(state: InternState) -> InternState:
         _finish_trace(state, "记忆已更新", t0)
 
         logger.debug(
-            f"[MemoryNode] Saved turn: intent={intent}, "
-            f"sources={len(sources)}, {duration_ms}ms"
+            f"[MemoryNode] 已保存对话: 意图={intent}, "
+            f"来源数={len(sources)}, 耗时={duration_ms}ms"
         )
 
     except Exception as e:
         # 【容错设计】持久化失败不影响主流程
-        logger.warning(f"Memory save failed (non-blocking): {e}")
+        logger.warning(f"记忆保存失败（非阻塞）: {e}")
         _add_trace(state, "记忆更新暂时不可用，继续处理")
 
     return state
