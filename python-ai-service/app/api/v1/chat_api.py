@@ -1,25 +1,52 @@
 """InternSU Chat API - SSE 流式聊天 + 工作过程推送。
 
-POST /ai/chat       - 统一聊天接口 (stream=true 时 SSE)
-GET  /ai/chat/stream - 流式聊天 (SSE)
+【API 端点】
+  POST /ai/chat         - 统一聊天接口（stream=true 时返回 SSE 流）
+  POST /ai/chat/stream  - 专用流式聊天端点（等价于 /ai/chat?stream=true）
 
-SSE 事件类型:
-  trace:  工作过程步骤 (右侧面板)
-  token:  逐字输出 (消息气泡)  ← 真流式：LLM 每吐一个 token 立即推送给前端
-  meta:   元数据 (sources, tokens, trace_id)
-  done:   完成 (含 trace_id)
-  error:  错误 (含 trace_id)
+【SSE 事件类型】
+  trace:  工作过程步骤（右侧面板展示执行进度）
+  token:  逐字输出（消息气泡，真流式：LLM 每吐一个 token 立即推送）
+  meta:   元数据（sources, tokens_used, model_name, trace_id）
+  done:   完成标记（含 trace_id，供前端确认会话结束）
+  error:  错误信息（含 trace_id，便于问题排查）
 
-架构变更 (v2 - 真流式):
-  旧架构: _sse_generator → await _run_graph (阻塞 10-60s) → for char in final_text (伪流式)
-  新架构: _sse_generator → asyncio.Queue → 背景 Task 运行 Graph
-          → chat_node 通过 token_queue 实时推送 token → SSE yield
+【架构设计 (v2 - 真流式)】
+  ┌─────────────────────────────────────────────────────────────────┐
+  │                     _sse_generator 主协程                      │
+  │  ┌─────────────┐    ┌─────────────────────────────────────┐   │
+  │  │ 发送初始trace│───→│         主循环：读取 Queue         │───→│ SSE yield
+  │  └─────────────┘    │  token/trace/result/error 事件     │   │
+  │                     └───────────────┬───────────────────┘   │
+  └─────────────────────────────────────│───────────────────────┘
+                                        │
+                                        ▼
+                    ┌─────────────────────────────────────┐
+                    │    背景 Task: intern_graph.run_stream │
+                    │  ┌─────────────────────────────┐    │
+                    │  │   chat_node 调用 LLM        │    │
+                    │  │   llm_gateway.chat_stream() │    │
+                    │  │   每收到 token 推入 Queue   │    │
+                    │  └─────────────────────────────┘    │
+                    └─────────────────────────────────────┘
 
-trace_id 传递 (v2.1):
-  - JSON 路径: ApiResponse.trace_id 自动从 contextvars 读取（default_factory）
-  - SSE 路径: _sse_generator 从 contextvars 读取 trace_id，注入 meta / done / error 事件
+  【为什么用这种架构？】
+  - 旧架构: 等待 Graph 完全执行完（10-60s）→ 再逐字发送（伪流式）
+  - 新架构: Graph 在后台执行，token 实时入队，前端立即收到
+
+【trace_id 传递机制】
+  - JSON 响应: ApiResponse.trace_id 通过 default_factory 从 contextvars 自动读取
+  - SSE 响应: _sse_generator 从 contextvars 读取，注入 meta/done/error 事件
   - 响应头: RequestTracingMiddleware 自动设置 X-Trace-Id
   - 日志: logger Filter 自动从 contextvars 注入 traceId
+
+【取消传播链】
+  客户端断开 → asyncio.CancelledError → bg_task.cancel() 
+    → chat_stream 迭代中断 → HTTP 连接关闭 → Java WebClient 取消订阅
+
+【安全注意】
+  - user_id 来自请求参数，需确保前端正确传递已认证的用户 ID
+  - conversation_id 用于会话记忆，不存在时自动生成
 """
 
 import asyncio
@@ -46,13 +73,26 @@ router = APIRouter(prefix="/ai", tags=["AI Chat - 小SU"])
 async def chat(req: ChatRequest, request: Request):
     """统一聊天接口。
 
-    stream=true: 返回 SSE 流 (trace + token + meta + done 事件)
-    stream=false: 返回完整 JSON 响应
+    【两种模式】
+      stream=true: 返回 SSE 流（trace + token + meta + done 事件）
+      stream=false: 返回完整 JSON 响应
 
-    trace_id 自动注入:
+    【trace_id 传递】
       - JSON 响应: ApiResponse.trace_id 通过 default_factory 从 contextvars 自动读取
-      - SSE 响应: _sse_generator 内部读取并注入到 meta / done / error 事件
+      - SSE 响应: _sse_generator 内部读取并注入到 meta/done/error 事件
       - 响应头: RequestTracingMiddleware 自动设置 X-Trace-Id
+
+    【会话管理】
+      - 如果未提供 conversation_id，自动生成 UUID
+      - 从 Redis 读取对话历史和图状态
+      - 执行完成后持久化会话状态
+
+    Args:
+        req: ChatRequest 请求对象
+        request: FastAPI Request 对象
+
+    Returns:
+        StreamingResponse (stream=true) 或 JSON 响应 (stream=false)
     """
     # 如果没有提供 conversation_id，自动生成一个
     if not req.conversation_id:
@@ -66,24 +106,28 @@ async def chat(req: ChatRequest, request: Request):
             headers={
                 "Cache-Control": "no-cache, no-transform",
                 "Connection": "keep-alive",
-                "X-Accel-Buffering": "no",
+                "X-Accel-Buffering": "no",  # 禁用 Nginx 缓冲，确保实时推送
                 "Content-Type": "text/event-stream; charset=utf-8",
             },
         )
 
-    # 非流式 — ApiResponse.trace_id 自动从 contextvars 注入
+    # 非流式模式：同步执行，阻塞等待结果
     history = await memory_manager.get_history(req.user_id, req.conversation_id)
     restore_state = await memory_manager.restore_graph_state(req.user_id, req.conversation_id)
     result = await _run_graph(req, history, restore_state)
     await memory_manager.save_graph_state(req.user_id, req.conversation_id, result)
+    
     final_text = result.get("final_answer", "")
     if not final_text:
         final_text = "SORRY~ 老师～小SU遇到了问题，请查看服务器日志排查LLM连接"
+    
+    # 持久化对话回合
     await memory_manager.record_turn(
         user_id=req.user_id, conv_id=req.conversation_id,
         user_msg=req.message, assistant_msg=final_text,
         sources=result.get("sources"), intent=result.get("intent", "chat"),
     )
+    
     return ApiResponse(data={
         "file": result.get("primary_file", ""),
         "content": final_text,
@@ -112,23 +156,38 @@ async def chat_stream(req: ChatRequest, request: Request):
 async def _sse_generator(req: ChatRequest):
     """真流式 SSE 事件生成器 (v2.1)。
 
-    核心流程:
-      1. 从 contextvars 读取 trace_id（中间件已设置）
-      2. 创建 asyncio.Queue 作为 token 传输通道
+    【核心流程】
+      1. 从 contextvars 读取 trace_id（由 RequestTracingMiddleware 在请求入口设置）
+      2. 创建 asyncio.Queue 作为 token 传输通道（容量无限制）
       3. 将 Graph 执行作为背景 asyncio.Task 启动
       4. 主协程循环从 Queue 读取事件并实时 yield SSE
-      5. Graph 完成后发送 trace/meta/done 并持久化
-      6. meta / done / error 事件均携带 trace_id
+      5. Graph 完成后发送所有 trace/meta/done 事件
+      6. 持久化会话状态到 Redis
+      7. meta/done/error 事件均携带 trace_id（便于全链路追踪）
 
-    取消传播:
-      当客户端断开连接时，asyncio.CancelledError 向上传播 → bg_task.cancel()
-      → chat_node 的 chat_stream 迭代中断 → HTTP 连接关闭 → Java WebClient 取消订阅
+    【事件类型】
+      - token:  LLM 输出的单个 token（实时推送）
+      - trace:  工作过程步骤（节点执行状态）
+      - result: Graph 执行完成后的完整结果
+      - error:  执行过程中的错误信息
 
-    trace_id 传递:
-      不同于 JSON 路径使用 ApiResponse，SSE 是原始事件流。
-      本生成器在同 asyncio Task 中运行（由路由协程调用），
-      因此 contextvars 中的 trace_id 保持可用。
-      通过 get_trace_id() 读取后注入到 meta / done / error 事件 data 中。
+    【取消传播链】
+      客户端断开 → asyncio.CancelledError → bg_task.cancel() 
+        → chat_stream 迭代中断 → HTTP 连接关闭 → Java WebClient 取消订阅
+
+    【trace_id 传递】
+      SSE 是原始事件流，无法通过 ApiResponse 自动注入。
+      本生成器在路由协程的同一 asyncio Task 中运行，contextvars 保持可用。
+      通过 get_trace_id() 读取后手动注入到事件 data 中。
+
+    【超时处理】
+      队列读取超时 120 秒，超时后发送 error 事件并取消背景任务
+
+    Args:
+        req: ChatRequest 请求对象
+
+    Yields:
+        SSE 事件字符串（格式: event: <type>\ndata: <json>\n\n）
     """
     sender = StreamSender()
     token_queue: asyncio.Queue = asyncio.Queue()
@@ -317,8 +376,39 @@ async def _sse_generator(req: ChatRequest):
 # ============================================================
 
 async def _run_graph(req, history=None, restore_state=None):
-    """Execute LangGraph and return full result (blocking, for non-streaming endpoint)."""
-    """执行 LangGraph 并返回完整结果（阻塞式，供非流式端点使用）。"""
+    """执行 LangGraph 并返回完整结果（阻塞式，供非流式端点使用）。
+
+    【执行流程】
+      1. 准备 space_ids（默认为 [1]，兼容旧数据）
+      2. 调用 intern_graph.run() 执行完整的工作流
+      3. 返回包含最终答案、来源、trace 的完整结果
+
+    【参数说明】
+      - req: ChatRequest 请求对象
+      - history: 对话历史列表（可选，从 Redis 获取）
+      - restore_state: 恢复的图状态（可选，用于继续中断的任务）
+
+    【返回结构】
+      {
+        "final_answer": "...",     # 最终回答文本
+        "sources": [...],          # 引用来源列表
+        "intent": "...",           # 意图识别结果
+        "trace_steps": [...],      # 执行步骤追踪
+        "tokens_used": {...}       # Token 消耗统计
+      }
+
+    【兼容性注意】
+      space_ids 默认使用 [1] 是临时修复，因为 Milvus 中现有数据的 space_id 都是 1。
+      后续应从请求或配置中动态获取。
+
+    Args:
+        req: ChatRequest 请求对象
+        history: 对话历史列表
+        restore_state: 恢复的图状态
+
+    Returns:
+        Graph 执行结果字典
+    """
     # 临时修复：如果 space_ids 为空，默认使用 [1]（因为 Milvus 里的都是 space_id=1）
     space_ids = req.space_ids or [1]
     result = await intern_graph.run(
