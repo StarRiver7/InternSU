@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
       清理资源（当前无持久连接需显式关闭）。
     """
     logger.info("[InternSU AI] 正在启动，运行模式: %s...", settings.env)
-        logger.info(" 小SU 正在启动，准备开始帮老师们干活~ ")
+    logger.info("[InternSU AI] 小SU 正在启动，准备开始帮老师们干活~ ")
 
     # ── LLM Gateway 异步探活 ──
     try:

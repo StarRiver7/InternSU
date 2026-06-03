@@ -51,13 +51,13 @@ def _detect_device() -> str:
 
 
 class EmbeddingEngine:
-    """BGE-M3 embedding engine — 1024-dim, device-adaptive, dimension-guarded.
+    """BGE-M3 嵌入引擎 — 1024维，设备自适应，维度校验。
 
     使用 BGEM3FlagModel 加载 BAAI/bge-m3，输出 dense 向量。
     设备自适应：GPU → CUDA+FP16, 否则 CPU。
     每次 encode 后硬断言维度 == 1024。
 
-    Usage:
+    使用示例:
         engine = EmbeddingEngine()
         vec = await engine.embed_query("hello")
         # vec 保证是 len=1024 的 float 列表
@@ -149,9 +149,9 @@ class EmbeddingEngine:
         *,
         return_sparse: bool = False,
     ) -> list[list[float]]:
-        """Batch-embed texts into 1024-dim dense vectors.
+        """批量将文本嵌入为 1024 维稠密向量。
 
-        Raises:
+        抛出异常:
             ValueError: 任何输出向量维度 != 1024
         """
         if not texts:
@@ -214,7 +214,7 @@ class EmbeddingEngine:
         return result
 
     async def embed_query(self, query: str) -> list[float]:
-        """Embed a single query → 1024-dim vector."""
+        """嵌入单个查询文本 → 1024 维向量。"""
         results = await self.embed_texts([query])
         return results[0]
 

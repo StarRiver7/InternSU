@@ -20,15 +20,15 @@ logger = get_logger(__name__)
 
 
 class RAGPipeline:
-    """Complete RAG pipeline: ingest → search → cite.
+    """完整的 RAG 管道：摄入 → 搜索 → 引用。
 
-    Usage:
+    使用示例:
         pipeline = RAGPipeline()
 
-        # Ingest a document
+        # 摄入文档
         result = await pipeline.ingest("/path/to/doc.pdf", doc_id="123")
 
-        # Search with source citation
+        # 搜索并附带来源引用
         ctx = await pipeline.search("what is the policy?", with_citation=True)
     """
 
@@ -40,9 +40,9 @@ class RAGPipeline:
         metadata: dict | None = None,
         space_id: str = "default",
     ) -> dict:
-        """Full document ingestion pipeline.
+        """完整的文档摄入管道。
 
-        Returns ingestion summary with chunk count and timing.
+        返回包含 chunk 数量和耗时的摄入摘要。
         """
         start = time.time()
         logger.info(f"正在摄入文档: {file_path}（文档ID={doc_id}）")
@@ -98,9 +98,9 @@ class RAGPipeline:
         doc_ids: list[str] | None = None,
         space_id: str | None = None,
     ) -> list[dict]:
-        """Search the knowledge base with optional re-ranking.
+        """搜索知识库，可选择是否重排序。
 
-        Returns list of chunks with source citation metadata.
+        返回包含来源引用元数据的 chunk 列表。
         """
         start = time.time()
         top_k = top_k or settings.rag_top_k
@@ -139,9 +139,9 @@ class RAGPipeline:
         doc_ids: list[str] | None = None,
         space_id: str | None = None,
     ) -> str:
-        """Search and format results as LLM-ready context string.
+        """搜索并将结果格式化为 LLM 可用的上下文字符串。
 
-        Returns formatted context with source citations.
+        返回带来源引用的格式化上下文。
         """
         chunks = await self.search(
             query, top_k=top_k, use_rerank=use_rerank,

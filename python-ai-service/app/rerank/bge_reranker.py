@@ -1,8 +1,7 @@
 """
-BGE-Reranker — cross-encoder relevance scoring.
+BGE 重排序器 — 基于交叉编码器的相关性评分。
 
-Uses BGE-Reranker-v2-m3 for high-precision relevance re-ranking
-of retrieval results before final context assembly.
+使用 BGE-Reranker-v2-m3 模型在最终上下文组装前对检索结果进行高精度相关性重排序。
 """
 import time
 from typing import Optional
@@ -13,10 +12,9 @@ logger = get_logger(__name__)
 
 
 class BGEReranker:
-    """Cross-encoder re-ranker using BAAI/bge-reranker-v2-m3.
+    """基于 BAAI/bge-reranker-v2-m3 的交叉编码器重排序器。
 
-    Re-ranks retrieved chunks by computing fine-grained relevance
-    scores between query and each candidate document.
+    通过计算查询与每个候选文档之间的细粒度相关性分数来重排序检索结果。
     """
 
     def __init__(self, model_name: str | None = None):

@@ -1,8 +1,8 @@
 """
-Text Splitter — semantic chunk splitting using LangChain.
+文本分割器 — 使用 LangChain 进行语义分块。
 
-Uses RecursiveCharacterTextSplitter with language-aware
-separators for optimal chunk boundaries.
+使用支持语言感知的 RecursiveCharacterTextSplitter，
+根据优先级分隔符实现最优的 chunk 边界。
 """
 from typing import Optional
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -13,15 +13,15 @@ logger = get_logger(__name__)
 
 
 class TextSplitter:
-    """Split text into semantically coherent chunks.
+    """将文本分割为语义连贯的 chunk。
 
-    Uses RecursiveCharacterTextSplitter with priority separators:
-        1. Double newlines (paragraphs)
-        2. Single newlines (lines)
-        3. Chinese period + space
-        4. Period + space
-        5. Space (words)
-        6. Character-level fallback
+    使用 RecursiveCharacterTextSplitter，按以下优先级分隔：
+        1. 双换行符（段落）
+        2. 单换行符（行）
+        3. 中文句号 + 空格
+        4. 英文句号 + 空格
+        5. 空格（单词）
+        6. 字符级回退
     """
 
     SEPARATORS = [
@@ -61,9 +61,9 @@ class TextSplitter:
         text: str,
         metadata: dict | None = None,
     ) -> list[dict]:
-        """Split text into chunks with metadata.
+        """将文本分割为带元数据的 chunk。
 
-        Returns list of {content, metadata} dicts.
+        返回 {content, metadata} 字典列表。
         """
         if not text or not text.strip():
             return []

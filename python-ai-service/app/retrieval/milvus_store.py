@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 
 
 class MilvusVectorStore:
-    """Milvus Lite backed vector store with tenant isolation."""
+    """基于 Milvus Lite 的向量存储，支持租户隔离。"""
 
     COLLECTION_NAME = settings.milvus_collection
     DIM = settings.embedding_dim
@@ -89,9 +89,9 @@ class MilvusVectorStore:
         doc_id: str = "",
         space_id: str = "default",
     ) -> list[int]:
-        """Insert vectors with content and metadata.
+        """插入向量及其内容和元数据。
 
-        Returns list of auto-generated IDs.
+        返回自动生成的 ID 列表。
         """
         client = self._ensure_client()
         start = time.time()
@@ -129,9 +129,9 @@ class MilvusVectorStore:
         doc_ids: list[str] | None = None,
         space_id: str | None = None,
     ) -> list[dict]:
-        """Search for similar vectors.
+        """搜索相似向量。
 
-        Returns list of {id, doc_id, content, score, metadata} dicts.
+        返回 {id, doc_id, content, score, metadata} 字典列表。
         """
         client = self._ensure_client()
         start = time.time()
@@ -184,7 +184,7 @@ class MilvusVectorStore:
         return chunks
 
     async def delete_by_doc(self, doc_id: str):
-        """Delete all vectors for a document."""
+        """删除某个文档的所有向量。"""
         client = self._ensure_client()
         client.delete(
             collection_name=self.COLLECTION_NAME,

@@ -1,7 +1,7 @@
 """
-Document Loader — unified interface for PDF, DOCX, TXT, MD.
+文档加载器 — 支持 PDF、DOCX、TXT、MD 等格式的统一加载接口。
 
-Uses LangChain loaders with proper metadata extraction.
+基于 LangChain 加载器实现，自动提取文档元数据信息。
 """
 from pathlib import Path
 from typing import Optional
@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 
 @dataclass
 class LoadedDocument:
-    """Result of loading a document."""
+    """文档加载结果数据结构。"""
     content: str
     file_name: str
     file_type: str
@@ -22,10 +22,9 @@ class LoadedDocument:
 
 
 class DocumentLoader:
-    """Load documents from PDF, DOCX, TXT, MD files.
+    """文档加载器 — 支持从 PDF、DOCX、TXT、MD 文件加载内容。
 
-    Uses LangChain community loaders. Falls back gracefully
-    for absent optional dependencies.
+    基于 LangChain 社区加载器实现，当可选依赖缺失时自动降级到备选方案。
     """
 
     CHUNK_SIZE_FOR_LOADING = 1000000  # 1MB chunks for large files
@@ -82,7 +81,7 @@ class DocumentLoader:
             return self._load_pdf_fallback(file_path)
 
     def _load_pdf_fallback(self, file_path: str) -> str:
-        """Fallback using pypdf directly."""
+        """PDF 加载降级方案 — 直接使用 pypdf 库。"""
         try:
             from pypdf import PdfReader
             reader = PdfReader(file_path)
