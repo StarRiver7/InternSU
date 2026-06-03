@@ -64,6 +64,7 @@ class InternState(TypedDict, total=False):
     rag_answer: str                  # Final RAG answer
     answer_sources: list[dict]       # Sources used in answer
     sources: list[dict]              # Sources output (for API response)
+    primary_file: str               # Primary document name for top-level file field
 
     # -- Agentic Retrieval --
     retrieval_attempts: int          # Number of retrieval attempts
@@ -178,6 +179,7 @@ def create_initial_state(
         next_node="",
         trace_steps=[],
         sources=rs.get("sources", []),
+        primary_file=rs.get("primary_file", ""),
         system_prompt="",
         final_answer="",
         tokens_used=0,

@@ -85,6 +85,7 @@ async def chat(req: ChatRequest, request: Request):
         sources=result.get("sources"), intent=result.get("intent", "chat"),
     )
     return ApiResponse(data={
+        "file": result.get("primary_file", ""),
         "content": final_text,
         "conversation_id": req.conversation_id,
         "intent": result.get("intent", "chat"),
@@ -276,6 +277,7 @@ async def _sse_generator(req: ChatRequest):
             tokens_used=final_result.get("tokens_used", 0),
             model_name=final_result.get("model_name", ""),
             trace_id=trace_id,
+            file=final_result.get("primary_file", ""),
         )
 
         final_text = final_result.get("final_answer", "")
@@ -288,6 +290,7 @@ async def _sse_generator(req: ChatRequest):
             sources=final_result.get("sources", []),
             conversation_id=req.conversation_id,
             trace_id=trace_id,
+            file=final_result.get("primary_file", ""),
         )
 
         # 持久化到 Redis

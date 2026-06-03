@@ -98,7 +98,8 @@ async def rag_answer_node(state: InternState) -> InternState:
         source_label = f"来源{i + 1}"
         content = c.get("full_content", "")
         sources.append({
-            source_label: content[:200],
+            "label": source_label,
+            "text": content[:200],
             "score": round(c.get("relevance_score", 0.0), 4),
         })
 

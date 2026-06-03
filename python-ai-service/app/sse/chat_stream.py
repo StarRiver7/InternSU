@@ -62,6 +62,7 @@ class StreamSender:
         tokens_used: int = 0,
         model_name: str = "",
         trace_id: str = "",
+        file: str = "",
     ) -> str:
         """发送元数据。
 
@@ -72,6 +73,7 @@ class StreamSender:
             "sources": sources or [],
             "tokens_used": tokens_used,
             "model_name": model_name,
+            "file": file,
         }
         if trace_id:
             data["trace_id"] = trace_id
@@ -96,6 +98,7 @@ class StreamSender:
         sources: list | None = None,
         conversation_id: str = "",
         trace_id: str = "",
+        file: str = "",
     ) -> str:
         """发送完成事件。
 
@@ -105,6 +108,7 @@ class StreamSender:
             "intent": intent,
             "sources": sources or [],
             "conversation_id": conversation_id,
+            "file": file,
         }
         if trace_id:
             data["trace_id"] = trace_id

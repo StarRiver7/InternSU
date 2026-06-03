@@ -27,7 +27,8 @@ public class AIChatResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class SourceDoc {
-        private String file;
+        private String label;
+        private String text;
         private Double score;
     }
 }
