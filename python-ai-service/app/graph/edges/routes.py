@@ -29,12 +29,14 @@ def route_after_slot_collect(
 
 def route_after_router(
     state: InternState,
-) -> Literal["chat_node", "sql_node", "rag_retrieval_node"]:
+) -> Literal["chat_node", "sql_node", "rag_retrieval_node", "agent_node"]:
     intent = state.get("intent", "chat")
     if intent == "sql":
         return "sql_node"
     if intent == "rag":
         return "rag_retrieval_node"
+    if intent == "agent":
+        return "agent_node"
     return "chat_node"
 
 

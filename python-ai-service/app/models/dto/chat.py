@@ -1,19 +1,20 @@
 import uuid
 from pydantic import BaseModel, Field
-from typing import Optional, Literal, List, List
+from typing import Optional, Literal, List
 
 
 class ChatRequest(BaseModel):
-    """Chat request forwarded from Java service."""
+    """统一聊天请求 —— v2：系统自动判断意图，use_rag/use_tools 已废弃保留兼容。"""
     conversation_id: Optional[str] = Field(default=None, description="Conversation ID")
     user_id: str = Field(..., description="User ID")
     message: str = Field(..., min_length=1, max_length=32000, description="User message")
     model: Optional[str] = Field(default=None, description="Model name, uses default if not set")
     stream: bool = Field(default=True, description="Enable SSE streaming")
-    use_rag: bool = Field(default=True, description="Enable knowledge base search")
-    use_tools: bool = Field(default=True, description="Allow tool calls")
     doc_ids: Optional[List[int]] = Field(default=None, description="Filter by document IDs")
     space_ids: Optional[List[int]] = Field(default=None, description="Filter by knowledge space IDs")
+    # 以下字段已废弃（v2），保留兼容旧前端
+    use_rag: Optional[bool] = Field(default=None, description="@deprecated: system auto-detects intent")
+    use_tools: Optional[bool] = Field(default=None, description="@deprecated: system auto-detects intent")
 
 
 class ChatMessage(BaseModel):

@@ -8,7 +8,6 @@ import com.company.aiplatform.common.result.Result;
 import com.company.aiplatform.common.util.SecurityContextUtil;
 import com.company.aiplatform.rag.entity.Document;
 import com.company.aiplatform.rag.service.DocumentService;
-import com.company.aiplatform.user.entity.ChatRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -17,11 +16,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Map;
-import reactor.core.publisher.Mono;
-
 /**
- * 文档管理 Controller — V4 重构版.
+ * 文档管理 Controller — V5 重构版.
+ *
+ * <h2>v2 变更（统一入口）</h2>
+ * 文档内 AI 对话已合并至 {@code POST /api/ai/chat}（传 doc_ids 限定范围）。
+ * 本控制器仅保留文档 CRUD 管理端点。
  *
  * <h2>安全原则</h2>
  * <ul>
@@ -31,7 +31,7 @@ import reactor.core.publisher.Mono;
  * </ul>
  */
 @Slf4j
-@Tag(name = "文档管理", description = "文档上传、查询、删除 — V4 知识空间模型")
+@Tag(name = "文档管理", description = "文档上传、查询、删除")
 @RestController
 @RequestMapping("/api/v1/documents")
 @RequiredArgsConstructor
@@ -83,24 +83,8 @@ public class RagController {
             @CurrentUserId Long userId,
             @PathVariable Long id) {
 
-        // ★ 纵深防御：deptId 从安全上下文提取，用于权限校验
         Long deptId = securityContextUtil.getCurrentDeptId();
         documentService.deleteDocument(id, userId, deptId);
         return Result.success();
-    }
-
-    // ======================== AI 对话 ========================
-
-    @Operation(summary = "基于文档上下文的 AI 对话")
-    @PostMapping("/chat")
-    public Mono<Result<Map<String, Object>>> chat(
-            @CurrentUserId Long userId,
-            @Valid @RequestBody ChatRequest chatRequest) {
-
-        return documentService.chat(
-                userId,
-                chatRequest.getQuery(),
-                chatRequest.getDocumentIds()
-        ).map(Result::success);
     }
 }

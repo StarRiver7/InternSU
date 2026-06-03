@@ -7,6 +7,7 @@ from app.graph.nodes.task_resume_node import task_resume_node
 from app.graph.nodes.router_node import router_node
 from app.graph.nodes.chat_node import chat_node
 from app.graph.nodes.sql_node import sql_node
+from app.graph.nodes.agent_node import agent_node
 
 # -- RAG Sub-Graph Nodes --
 from app.graph.nodes.rag_retrieval_node import rag_retrieval_node
@@ -27,7 +28,7 @@ logger = get_logger(__name__)
 
 
 def build_intern_graph():
-    """Build the full Agentic RAG LangGraph."""
+    """Build the full Agentic RAG LangGraph (v2: added agent_node)."""
     graph = StateGraph(InternState)
 
     # -- Core Nodes --
@@ -38,6 +39,7 @@ def build_intern_graph():
     graph.add_node("router_node", router_node)
     graph.add_node("chat_node", chat_node)
     graph.add_node("sql_node", sql_node)
+    graph.add_node("agent_node", agent_node)          # ★ v2: 新增 Agent 节点
     graph.add_node("response_node", response_node)
     graph.add_node("memory_node", memory_node)
 
@@ -72,13 +74,14 @@ def build_intern_graph():
     graph.add_edge("clarify_node", END)
     graph.add_edge("task_resume_node", "router_node")
 
-    # -- Router -> Chat / SQL / RAG Retrieval --
+    # -- Router -> Chat / SQL / RAG / Agent --
     graph.add_conditional_edges(
         "router_node", route_after_router,
         {
             "chat_node": "chat_node",
             "sql_node": "sql_node",
             "rag_retrieval_node": "rag_retrieval_node",
+            "agent_node": "agent_node",         # ★ v2: Agent 路由
         },
     )
 
@@ -111,10 +114,11 @@ def build_intern_graph():
         },
     )
 
-    # -- Answer / Chat / SQL -> Response -> Memory -> END --
+    # -- Answer / Chat / SQL / Agent -> Response -> Memory -> END --
     graph.add_edge("chat_node", "response_node")
     graph.add_edge("sql_node", "response_node")
     graph.add_edge("rag_answer_node", "response_node")
+    graph.add_edge("agent_node", "response_node")    # ★ v2
     graph.add_edge("response_node", "memory_node")
     graph.add_edge("memory_node", END)
 
@@ -122,7 +126,7 @@ def build_intern_graph():
 
 
 class InternGraph:
-    """Agentic InternSU LangGraph with full RAG pipeline."""
+    """Agentic InternSU LangGraph with full RAG + Agent pipeline."""
 
     def __init__(self):
         self._graph = build_intern_graph()

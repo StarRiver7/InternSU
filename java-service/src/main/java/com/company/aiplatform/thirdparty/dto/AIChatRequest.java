@@ -9,6 +9,12 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/**
+ * Java → Python AI 聊天请求 DTO。
+ *
+ * <h2>v2 变更</h2>
+ * 移除 use_rag / use_tools —— Python intent_node 自动判断意图并路由。
+ */
 @Data
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -27,14 +33,6 @@ public class AIChatRequest {
 
     @Builder.Default
     private boolean stream = true;
-
-    @Builder.Default
-    @JsonProperty("use_rag")
-    private boolean useRag = true;
-
-    @Builder.Default
-    @JsonProperty("use_tools")
-    private boolean useTools = true;
 
     @JsonProperty("doc_ids")
     private List<Long> docIds;

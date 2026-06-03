@@ -1,4 +1,4 @@
-/** AI workspace types for internSU frontend */
+/** AI workspace types for internSU frontend (v2 unified). */
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -22,14 +22,26 @@ export interface AgentTrace {
   timestamp: number;
 }
 
+/** Unified chat request — v2: system auto-detects intent */
 export interface ChatRequest {
   user_id: string;
   conversation_id: string;
   message: string;
   model?: string;
   stream?: boolean;
+  space_ids?: number[];
+  doc_ids?: number[];
+  /** @deprecated v2: system auto-detects intent */
   use_rag?: boolean;
+  /** @deprecated v2: system auto-detects intent */
   use_tools?: boolean;
+}
+
+export interface RagSearchRequest {
+  query: string;
+  top_k?: number;
+  doc_ids?: number[];
+  space_id?: string;
 }
 
 export interface ChatResponse {
@@ -83,10 +95,31 @@ export interface Document {
   file_size: number;
   upload_user: number;
   upload_time: string;
-  parse_status: 'UPLOADED' | 'PARSING' | 'PARSED' | 'CHUNKING' | 'CHUNKED' | 'EMBEDDING' | 'INDEXING' | 'READY' | 'FAILED';
+  parse_status: string;
   embedding_status: string;
   chunk_count: number;
   token_count: number;
+}
+
+export interface ModelConfig {
+  id: number;
+  name: string;
+  provider: string;
+  model_name: string;
+  is_default: boolean;
+  is_active: boolean;
+  max_tokens: number;
+  temperature: number;
+}
+
+export interface PromptTemplate {
+  id: number;
+  name: string;
+  type: string;
+  content: string;
+  variables: string[];
+  is_default: boolean;
+  is_active: boolean;
 }
 
 export interface JavaUserInfo {

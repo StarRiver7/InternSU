@@ -321,7 +321,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
 
     @Override
     public Mono<Map<String, Object>> chat(Long userId, String query, List<Long> docIds) {
-        return aiBackendClient.chat(userId, null, query, true, true, docIds, null)
+        return aiBackendClient.chat(userId, null, query, docIds, null)
                 .flatMap(response -> {
                     Map<String, Object> result = new HashMap<>();
                     result.put("answer", response.getContent());
