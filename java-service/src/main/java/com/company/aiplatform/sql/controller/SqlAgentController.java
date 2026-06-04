@@ -4,6 +4,8 @@ import com.company.aiplatform.thirdparty.client.AIServiceClient;
 import com.company.aiplatform.common.result.Result;
 import com.company.aiplatform.sql.dto.SqlSchemaResponse;
 import com.company.aiplatform.sql.dto.TableInfo;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +32,8 @@ import java.util.List;
  *   <li>{@code POST /api/sql/query/stream} — 自然语言 SQL 查询（流式）</li>
  * </ul>
  */
+
+@Tag(name = "sql", description = "SQL Agent 管理控制器")
 @Slf4j
 @RestController
 @RequestMapping("/api/sql")
@@ -43,6 +47,7 @@ public class SqlAgentController {
      *
      * @return Schema 信息（表列表及其字段定义）
      */
+    @Operation(summary = "获取数据库 Schema 信息")
     @GetMapping("/schema")
     public Result<SqlSchemaResponse> getSchema() {
         log.info("Get SQL schema request");
@@ -54,6 +59,7 @@ public class SqlAgentController {
      *
      * @return 表列表
      */
+    @Operation(summary = "获取可查询的表列表")
     @GetMapping("/tables")
     public Result<List<TableInfo>> getTables() {
         log.info("Get SQL tables request");

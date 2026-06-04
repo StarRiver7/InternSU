@@ -227,6 +227,12 @@ class InternGraph:
             restore_state.get("clarify_pending") if restore_state else False,
         )
 
+        # ★ 注入 token_queue 到 state（绕过 LangGraph config 上下文传递问题）
+        if config and isinstance(config.get("configurable"), dict):
+            tq = config["configurable"].get("token_queue")
+            if tq is not None:
+                state["token_queue"] = tq
+
         result = await self._graph.ainvoke(state, config=config)
 
         logger.info(

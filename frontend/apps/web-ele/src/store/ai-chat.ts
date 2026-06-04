@@ -79,7 +79,7 @@ export const useChatStore = defineStore('internsu-chat', () => {
   async function ensureConversation(userId: string, title: string): Promise<string> {
     if (currentConvId.value) return currentConvId.value;
     try {
-      const res = await createConversation(userId, title);
+      const res = await createConversation(userId, '', title);
       currentConvId.value = res.conversation_id;
       await loadConversations(userId);
       return res.conversation_id;

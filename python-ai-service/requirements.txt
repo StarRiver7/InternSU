@@ -36,5 +36,8 @@ torch>=2.0.0
 transformers>=4.40.0
 sentence-transformers>=3.0.0
 FlagEmbedding>=1.2.0
+# SSE (Server-Sent Events)
+sse-starlette>=2.0.0
+
 # Misc
 numpy>=1.24.0

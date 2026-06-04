@@ -38,7 +38,6 @@ import java.util.Map;
 public class AIServiceClient {
 
     private final WebClient aiBackendWebClient;
-    private final ObjectMapper objectMapper;
 
     private static final long SSE_TIMEOUT_MS = 60_000L;
 

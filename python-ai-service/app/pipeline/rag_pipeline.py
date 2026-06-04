@@ -13,7 +13,7 @@ from app.pipeline.loader import document_loader, LoadedDocument
 from app.pipeline.splitter import text_splitter
 from app.pipeline.embedder import embedding_engine
 from app.retrieval.milvus_store import milvus_store
-from app.retrieval.hybrid_retriever import hybrid_retriever
+from app.retrieval.hybrid_retriever import hybrid_retriever, invalidate_global_bm25
 from app.rerank.bge_reranker import bge_reranker
 
 logger = get_logger(__name__)
@@ -75,6 +75,7 @@ class RAGPipeline:
             space_id=space_id,
         )
         logger.info(f"  [4/4] 已存储 {len(ids)} 个向量到 Milvus")
+        invalidate_global_bm25()
 
         elapsed = time.time() - start
         result = {
@@ -192,6 +193,7 @@ class RAGPipeline:
         """Remove all chunks for a document from the vector store."""
         await milvus_store.delete_by_doc(doc_id)
         logger.info(f"Deleted document: {doc_id}")
+        invalidate_global_bm25()
 
     async def stats(self) -> dict:
         """Get pipeline statistics."""

@@ -1,8 +1,13 @@
 """InternSU Chat API - SSE 流式聊天 + 工作过程推送。
 
 【API 端点】
-  POST /ai/chat         - 统一聊天接口（stream=true 时返回 SSE 流）
-  POST /ai/chat/stream  - 专用流式聊天端点（等价于 /ai/chat?stream=true）
+  POST /ai/chat                               - 统一聊天接口（stream=true 时返回 SSE 流）
+  POST /ai/chat/stream                        - 专用流式聊天端点（等价于 /ai/chat?stream=true）
+  GET /ai/conversations                       - 获取用户的会话列表
+  POST /ai/conversations                      - 创建会话（可选：AI 自动生成标题）
+  GET /ai/conversations/{conversation_id}/messages - 获取会话消息列表
+  GET /ai/conversations/{conversation_id}/history - 获取会话历史记录（兼容旧接口）
+  DELETE /ai/conversations/{conversation_id}   - 删除会话
 
 【SSE 事件类型】
   trace:  工作过程步骤（右侧面板展示执行进度）
@@ -13,20 +18,20 @@
 
 【架构设计 (v2 - 真流式)】
   ┌─────────────────────────────────────────────────────────────────┐
-  │                     _sse_generator 主协程                      │
-  │  ┌─────────────┐    ┌─────────────────────────────────────┐   │
-  │  │ 发送初始trace│───→│         主循环：读取 Queue         │───→│ SSE yield
-  │  └─────────────┘    │  token/trace/result/error 事件     │   │
-  │                     └───────────────┬───────────────────┘   │
-  └─────────────────────────────────────│───────────────────────┘
+  │                     _sse_generator 主协程                        │
+  │  ┌─────────────┐    ┌─────────────────────────────────────┐     │
+  │  │ 发送初始trace│───→│         主循环：读取 Queue            │────→│ SSE yield
+  │  └─────────────┘    │  token/trace/result/error 事件      │     │
+  │                     └───────────────┬─────────────────────┘    │
+  └─────────────────────────────────────│──────────────────────────┘
                                         │
                                         ▼
                     ┌─────────────────────────────────────┐
-                    │    背景 Task: intern_graph.run_stream │
+                    │   背景 Task: intern_graph.run_stream │
                     │  ┌─────────────────────────────┐    │
-                    │  │   chat_node 调用 LLM        │    │
+                    │  │   chat_node 调用 LLM         │    │
                     │  │   llm_gateway.chat_stream() │    │
-                    │  │   每收到 token 推入 Queue   │    │
+                    │  │   每收到 token 推入 Queue     │    │
                     │  └─────────────────────────────┘    │
                     └─────────────────────────────────────┘
 
@@ -56,7 +61,8 @@ from fastapi.responses import StreamingResponse
 from app.models.dto.chat import ChatRequest
 from app.graph.intern_graph import intern_graph
 from app.memory.memory_manager import memory_manager
-from app.sse.chat_stream import StreamSender
+from app.sse.chat_stream import StreamSender, _token_queue_ctx
+from app.llm.gateway import llm_gateway
 from app.common.response.common import ApiResponse
 from app.core.logger import get_logger, get_trace_id
 
@@ -147,6 +153,140 @@ async def chat_stream(req: ChatRequest, request: Request):
     """专用流式端点。"""
     req.stream = True
     return await chat(req, request)
+
+
+# ============================================================
+# GET /ai/conversations
+# ============================================================
+
+@router.get("/conversations")
+async def get_conversations(user_id: str = Query(..., description="用户 ID")):
+    """获取用户的会话列表。
+
+    Args:
+        user_id: 用户 ID
+
+    Returns:
+        ApiResponse: 会话列表
+    """
+    logger.info("获取会话列表: user_id=%s", user_id)
+    conversations = await memory_manager.list_conversations(user_id)
+    return ApiResponse(data={
+        "conversations": conversations,
+        "total": len(conversations),
+    }).model_dump()
+
+
+# ============================================================
+# POST /ai/conversations
+# ============================================================
+
+@router.post("/conversations")
+async def create_conversation(
+    user_id: str = Query(..., description="用户 ID"),
+    title: str = Query("", description="会话标题（可选，为空时由 AI 自动生成）"),
+    message: str = Query("", description="首条消息（用于 AI 生成标题）"),
+):
+    logger.info("创建会话: user_id=%s, title=%s", user_id, title)
+    conv_id = await memory_manager.start_conversation(user_id, title)
+
+    final_title = title or "新对话"
+    if not title and message:
+        try:
+            gen_prompt = (
+                "根据用户的第一条消息，生成一个简洁的会话标题（不超过15个字）。"
+                "\n只返回标题本身，不要加引号或解释。"
+                "\n\n用户消息: " + message + "\n\n标题:"
+            )
+            resp = await llm_gateway.chat(
+                [{"role": "user", "content": gen_prompt}],
+                temperature=0.3,
+                max_tokens=30,
+            )
+            generated = resp.content.strip().strip('"\'').strip()
+            if generated and len(generated) <= 30:
+                final_title = generated
+                await memory_manager._update_conv_list(user_id, conv_id, final_title)
+                logger.info("AI 生成标题: %s -> %s", message[:30], final_title)
+        except Exception as e:
+            logger.warning("AI 标题生成失败: %s", e)
+
+    return ApiResponse(data={
+        "conversation_id": conv_id,
+        "title": final_title,
+    }).model_dump()
+
+
+# ============================================================
+# GET /ai/conversations/{conversation_id}/messages
+# ============================================================
+
+@router.get("/conversations/{conversation_id}/messages")
+async def get_messages(
+    conversation_id: str,
+    user_id: str = Query(..., description="用户 ID"),
+    limit: int = Query(50, description="消息数量限制"),
+):
+    logger.info("获取消息: user_id=%s, conv_id=%s, limit=%d", user_id, conversation_id, limit)
+    history = await memory_manager.get_history(user_id, conversation_id)
+    return ApiResponse(data={
+        "conversation_id": conversation_id,
+        "messages": history[-limit:] if history else [],
+        "total": len(history),
+    }).model_dump()
+
+
+# ============================================================
+# GET /ai/conversations/{conversation_id}/history
+# ============================================================
+
+@router.get("/conversations/{conversation_id}/history")
+async def get_conversation_history(
+    conversation_id: str,
+    user_id: str = Query(..., description="用户 ID"),
+):
+    """获取单个会话的历史记录。
+
+    Args:
+        conversation_id: 会话 ID
+        user_id: 用户 ID
+
+    Returns:
+        ApiResponse: 会话历史记录
+    """
+    logger.info("获取会话历史: user_id=%s, conversation_id=%s", user_id, conversation_id)
+    history = await memory_manager.get_history(user_id, conversation_id)
+    return ApiResponse(data={
+        "conversation_id": conversation_id,
+        "history": history,
+        "total": len(history),
+    }).model_dump()
+
+
+# ============================================================
+# DELETE /ai/conversations/{conversation_id}
+# ============================================================
+
+@router.delete("/conversations/{conversation_id}")
+async def delete_conversation(
+    conversation_id: str,
+    user_id: str = Query(..., description="用户 ID"),
+):
+    """删除会话。
+
+    Args:
+        conversation_id: 会话 ID
+        user_id: 用户 ID
+
+    Returns:
+        ApiResponse: 删除结果
+    """
+    logger.info("删除会话: user_id=%s, conversation_id=%s", user_id, conversation_id)
+    await memory_manager.clear(user_id, conversation_id)
+    return ApiResponse(data={
+        "conversation_id": conversation_id,
+        "message": "会话已删除",
+    }).model_dump()
 
 
 # ============================================================
@@ -350,6 +490,7 @@ async def _sse_generator(req: ChatRequest):
             conversation_id=req.conversation_id,
             trace_id=trace_id,
             file=final_result.get("primary_file", ""),
+            answer=final_text,
         )
 
         # 持久化到 Redis
@@ -368,6 +509,7 @@ async def _sse_generator(req: ChatRequest):
             sources=[],
             conversation_id=req.conversation_id,
             trace_id=trace_id,
+            answer="",
         )
 
 

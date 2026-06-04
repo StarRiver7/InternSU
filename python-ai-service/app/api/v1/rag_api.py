@@ -10,11 +10,30 @@
 """
 
 from fastapi import APIRouter
-from app.models.dto.rag import RagIndexRequest
+from app.models.dto.rag import RagIndexRequest, RagSearchRequest
 from app.pipeline.rag_pipeline import rag_pipeline
 from app.common.response.common import ApiResponse
 
 router = APIRouter(prefix="/ai/rag", tags=["RAG Management"])
+
+
+@router.post("/search")
+async def search(req: RagSearchRequest):
+    """知识库搜索接口（管理工具，非聊天入口）。
+
+    RAG 聊天走 /ai/chat 的 intent_node 自动路由，
+    此端点用于知识管理页面中的手动文档搜索。
+    """
+    from app.pipeline.rag_pipeline import rag_pipeline
+    chunks = await rag_pipeline.search(
+        query=req.query,
+        top_k=req.top_k or 10,
+        use_rerank=True,
+        with_citation=True,
+        doc_ids=[str(d) for d in req.doc_ids] if req.doc_ids else None,
+        space_id=req.space_id or "default",
+    )
+    return ApiResponse(data={"chunks": chunks, "total": len(chunks)}).model_dump()
 
 
 @router.post("/index")

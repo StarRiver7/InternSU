@@ -11,6 +11,35 @@ def trace_step(node: str, message: str, status: str = "running", detail: dict | 
     if duration_ms is not None: step["duration_ms"] = duration_ms
     return step
 
+class SQLTrace:
+    """SQL 执行跟踪器，用于记录执行步骤。"""
+
+    def __init__(self):
+        self._steps = []
+
+    def add_step(self, step_name: str, description: str, detail: dict | None = None):
+        """添加执行步骤。"""
+        step = {
+            "step": step_name,
+            "description": description,
+            "timestamp": _now()
+        }
+        if detail:
+            step["detail"] = detail
+        self._steps.append(step)
+
+    def get_steps(self):
+        """获取所有执行步骤。"""
+        return self._steps
+
+# 全局实例
+sql_trace = SQLTrace()
+
+# 创建追踪实例的工厂函数
+def create_trace():
+    """创建新的 SQLTrace 实例。"""
+    return SQLTrace()
+
 SQL_TRACE_MESSAGES = {
     "schema_analysis": "正在分析数据库结构...",
     "schema_analysis_done": "数据库结构分析完成",

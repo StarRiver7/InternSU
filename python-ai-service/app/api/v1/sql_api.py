@@ -27,11 +27,12 @@ from app.sql_agent.schema_loader import schema_loader
 from app.sql_agent.schema_cache import schema_cache
 from app.sql_agent.executor import sql_executor
 from app.sql_agent.generator import sql_generator
-from app.sql_agent.summarizer import sql_summarizer
+from app.sql_agent.sql_summarizer import sql_summarizer
 from app.sql_agent.security import sql_security
-from app.sql_agent.memory import sql_memory
-from app.sql_agent.trace import sql_trace
-from app.common.logger import logger
+from app.sql_agent.sql_memory import sql_memory
+from app.sql_agent.sql_trace import create_trace
+from app.core.logger import get_logger
+logger = get_logger(__name__)
 from sse_starlette.sse import EventSourceResponse
 import asyncio
 import json

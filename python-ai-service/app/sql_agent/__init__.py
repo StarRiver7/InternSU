@@ -24,8 +24,8 @@ from app.sql_agent.sql_prompt import (
     SQL_SUMMARIZE_SYSTEM, SQL_SUMMARIZE_USER,
 )
 from app.sql_agent.sql_summarizer import sql_summarizer, SQLSummarizer
-from app.sql_agent.sql_trace import trace_step, SQL_TRACE_MESSAGES
-from app.sql_agent.sql_memory import sql_memory_helper, SQLMemory
+from app.sql_agent.sql_trace import trace_step, SQL_TRACE_MESSAGES, sql_trace, create_trace
+from app.sql_agent.sql_memory import sql_memory_helper, SQLMemory, sql_memory
 
 __all__ = [
     "sql_generator", "SQLGenerator",
@@ -38,5 +38,7 @@ __all__ = [
     "SQL_SUMMARIZE_SYSTEM", "SQL_SUMMARIZE_USER",
     "sql_summarizer", "SQLSummarizer",
     "trace_step", "SQL_TRACE_MESSAGES",
+    "sql_trace", "create_trace",
     "sql_memory_helper", "SQLMemory",
+    "sql_memory",
 ]

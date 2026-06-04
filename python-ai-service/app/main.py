@@ -53,7 +53,15 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error("LLM Gateway 初始化异常: %s", e, exc_info=True)
 
-    yield
+    yield  # ── 以下为 Shutdown 阶段 ──
+
+    # 关闭 Milvus 连接，释放文件锁（防止重启时 LOCK 残留）
+    try:
+        from app.retrieval.milvus_store import milvus_store
+        milvus_store.close()
+        logger.info("[InternSU AI] Milvus 连接已关闭")
+    except Exception as e:
+        logger.warning("[InternSU AI] Milvus 关闭异常: %s", e)
 
     logger.info("[InternSU AI] 小SU 下班了~")
 

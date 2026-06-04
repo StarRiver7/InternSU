@@ -14,6 +14,7 @@
 
 import time
 from app.graph.state import InternState
+from app.sse.chat_stream import _token_queue_ctx
 from app.llm.gateway import llm_gateway
 from app.core.logger import get_logger
 
@@ -56,9 +57,11 @@ async def chat_node(state: InternState, config: dict = None) -> InternState:
     state["current_node"] = "chat_node"
 
     # ── 提取令牌队列（流式通路的关键桥梁） ──
-    token_queue = None
-    if config and isinstance(config.get("configurable"), dict):
+    # Priority: state (most reliable) > config (LangGraph may not forward)
+    token_queue = state.get("token_queue")
+    if token_queue is None and config and isinstance(config.get("configurable"), dict):
         token_queue = config["configurable"].get("token_queue")
+    logger.info("ChatNode: token_queue=%s", token_queue is not None)
 
     step_idx = len(state.get("trace_steps", []))
     trace_running = {

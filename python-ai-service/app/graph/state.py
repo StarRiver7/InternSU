@@ -105,6 +105,9 @@ class InternState(TypedDict, total=False):
     retrieval_fallback_used: bool  # 是否使用了回退策略
     retrieval_failed: bool    # 所有检索是否全部失败
 
+    # ==================== SSE 流式 ====================
+    token_queue: Optional[object]  # asyncio.Queue for streaming tokens (runtime only, not serialized)
+
     # ==================== 工作流控制 ====================
     current_node: str        # 当前执行节点名称
     next_node: str           # 下一个待执行节点

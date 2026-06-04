@@ -95,11 +95,11 @@ class Settings(BaseSettings):
     # NOTE: 以下参数直接影响检索效果和响应延迟，需根据实际场景调优
     chunk_size: int = 512  # 分块大小（字符数），过大增加噪声，过小丢失上下文
     chunk_overlap: int = 64  # 分块重叠（字符数），保证跨块语义连续性
-    rag_top_k: int = 30  # 初始 Top-K（混合检索阶段）
+    rag_top_k: int = 50  # 初始 Top-K（混合检索阶段）
     rag_final_k: int = 20  # 最终 Top-K（重排序后）
-    rag_score_threshold: float = 0.05  # 最低相关度阈值（过低引入噪声）
-    hybrid_weight_vector: float = 0.7  # 密集向量检索权重（语义相似性）
-    hybrid_weight_keyword: float = 0.3  # 稀疏关键词检索权重（精确匹配）
+    rag_score_threshold: float = 0.01  # 最低相关度阈值（过低引入噪声）
+    hybrid_weight_vector: float = 0.5  # 密集向量检索权重（语义相似性）
+    hybrid_weight_keyword: float = 0.5  # 稀疏关键词检索权重（精确匹配）
 
     # ==================== Redis 会话存储配置 ====================
     # NOTE: Redis 用于存储对话历史和会话状态，支持跨请求恢复

@@ -12,8 +12,14 @@ v2 变更: meta 和 done 事件支持传递 trace_id，确保流式 SSE 路径
         下 Java 网关也能通过解析事件体获取链路追踪 ID。
 """
 
+import contextvars
 import json
 import time
+
+
+# ContextVar for passing token_queue from SSE generator to LangGraph nodes
+# (More reliable than RunnableConfig, which LangGraph may not always forward)
+_token_queue_ctx: contextvars.ContextVar = contextvars.ContextVar("token_queue", default=None)
 
 
 class StreamSender:
@@ -99,16 +105,15 @@ class StreamSender:
         conversation_id: str = "",
         trace_id: str = "",
         file: str = "",
+        answer: str = "",
     ) -> str:
-        """发送完成事件。
-
-        trace_id 用于 Java 网关在流式路径下实现全链路追踪关联。
-        """
+        """发送完成事件（含完整回答，供 Java 网关持久化到 MySQL）。"""
         data = {
             "intent": intent,
             "sources": sources or [],
             "conversation_id": conversation_id,
             "file": file,
+            "answer": answer,
         }
         if trace_id:
             data["trace_id"] = trace_id
