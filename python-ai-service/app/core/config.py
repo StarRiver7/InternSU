@@ -137,14 +137,22 @@ class Settings(BaseSettings):
 
     @property
     def mysql_write_url(self) -> str:
-        """构建 MySQL 写连接 URL。
-
-        Returns:
-            完整的 MySQL 连接字符串（pymysql 驱动 + utf8mb4 字符集）
-        """
+        """构建 MySQL 写连接 URL（internsu 应用数据库）。"""
         return (
             f"mysql+pymysql://{self.mysql_user}:{self.mysql_password}"
             f"@{self.mysql_host}:{self.mysql_port}/{self.mysql_database}"
+            "?charset=utf8mb4"
+        )
+
+    @property
+    def business_db_url(self) -> str:
+        """构建业务数据库（intersu_business）只读连接 URL。
+
+        SQL Agent 使用该数据库进行查询，与 internsu 应用库物理隔离。
+        """
+        return (
+            f"mysql+pymysql://{self.mysql_user}:{self.mysql_password}"
+            f"@{self.mysql_host}:{self.mysql_port}/intersu_business"
             "?charset=utf8mb4"
         )
 

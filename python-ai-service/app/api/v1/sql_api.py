@@ -48,7 +48,7 @@ async def get_schema():
         ))
 
     return SqlSchemaResponse(
-        database_name="internsu",
+        database_name="intersu_business",
         tables=tables,
         last_updated=schema_cache.get_last_updated()
     )

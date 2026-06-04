@@ -92,7 +92,7 @@ class SQLExecutor:
     def __init__(self):
         self._readonly_url = os.getenv(
             "SQL_READONLY_URL",
-            os.getenv("DATABASE_URL", "mysql+pymysql://readonly:readonly@localhost:3306/internsu"),
+            os.getenv("DATABASE_URL", "mysql+pymysql://root:123456@localhost:3306/intersu_business"),
         )
         self._engine: Optional[AsyncEngine] = None
         self._sessionmaker: Optional[sessionmaker] = None
