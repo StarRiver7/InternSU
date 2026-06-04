@@ -66,6 +66,8 @@ async def chat_node(state: InternState, config: dict = None) -> InternState:
     step_idx = len(state.get("trace_steps", []))
     trace_running = {
         "node": "chat_node",
+        "step_type": "llm_generation",
+        "step_name": "LLM生成",
         "message": "正在整理回答...",
         "status": "running",
         "timestamp": _now(),
@@ -76,7 +78,8 @@ async def chat_node(state: InternState, config: dict = None) -> InternState:
     if token_queue:
         await _emit(token_queue, "trace",
                     node="chat_node", status="running", step_order=step_idx,
-                    detail={"message": "正在整理回答..."})
+                    detail={"message": "正在整理回答..."},
+                    step_type="llm_generation", step_name="LLM生成")
 
     # ── 构建消息 ──
     message = state["user_message"]
@@ -114,6 +117,8 @@ async def chat_node(state: InternState, config: dict = None) -> InternState:
             state["tokens_used"] = state.get("tokens_used", 0) + (
                 resp.usage.get("total_tokens", 0) if resp.usage else 0
             )
+            if resp.usage:
+                state["token_usage"] = resp.usage
 
         logger.info(
             "ChatNode: 回答长度=%d, 模型=%s, 流式=%s",
@@ -138,6 +143,8 @@ async def chat_node(state: InternState, config: dict = None) -> InternState:
     duration_ms = int((time.time() - t0) * 1000)
     state["trace_steps"][-1] = {
         "node": "chat_node",
+        "step_type": "llm_generation",
+        "step_name": "LLM生成",
         "message": "回答已生成",
         "status": "completed",
         "detail": {"model": model, "tokens": state.get("tokens_used", 0)},
@@ -150,7 +157,8 @@ async def chat_node(state: InternState, config: dict = None) -> InternState:
         await _emit(token_queue, "trace",
                     node="chat_node", status="completed", step_order=step_idx,
                     detail={"model": model, "tokens": state.get("tokens_used", 0)},
-                    duration_ms=duration_ms)
+                    duration_ms=duration_ms,
+                    step_type="llm_generation", step_name="LLM生成")
 
     return state
 

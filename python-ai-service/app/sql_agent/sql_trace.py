@@ -5,8 +5,17 @@ from datetime import datetime, timezone
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
-def trace_step(node: str, message: str, status: str = "running", detail: dict | None = None, duration_ms: int | None = None) -> dict:
-    step = {"node": node, "message": message, "status": status, "timestamp": _now()}
+def trace_step(node: str, message: str, status: str = "running",
+              detail: dict | None = None, duration_ms: int | None = None,
+              step_type: str = "unknown", step_name: str = "") -> dict:
+    step = {
+        "node": node,
+        "message": message,
+        "status": status,
+        "step_type": step_type or "unknown",
+        "step_name": step_name or node,
+        "timestamp": _now(),
+    }
     if detail: step["detail"] = detail
     if duration_ms is not None: step["duration_ms"] = duration_ms
     return step

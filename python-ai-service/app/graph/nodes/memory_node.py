@@ -124,6 +124,8 @@ def _add_trace(state: InternState, message: str):
     """
     state["trace_steps"] = state.get("trace_steps", []) + [{
         "node": "memory_node",
+        "step_type": "memory",
+        "step_name": "记忆持久化",
         "message": message,
         "status": "running",
         "timestamp": _now(),
@@ -142,6 +144,8 @@ def _finish_trace(state: InternState, message: str, t0: float):
     if state.get("trace_steps"):
         state["trace_steps"][-1] = {
             "node": "memory_node",
+            "step_type": "memory",
+            "step_name": "记忆持久化",
             "message": message,
             "status": "completed",
             "duration_ms": duration_ms,

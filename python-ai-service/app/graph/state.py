@@ -50,6 +50,7 @@ class InternState(TypedDict, total=False):
     intent: str           # 意图类型: rag | sql | chat | clarify | unknown
     intent_confidence: float  # 意图识别置信度 [0, 1]
     intent_detail: str     # 意图细分: rag_query | sql_query | chat | clarify
+    selected_tool: str     # ★ v3: LLM Tool Selection 选择的工具名: chat/rag/sql/agent/clarify
 
     # ==================== 槽位收集与反问澄清 ====================
     clarify_required: bool     # 是否需要反问澄清
@@ -190,6 +191,7 @@ def create_initial_state(
         intent=rs.get("intent", "chat"),
         intent_confidence=rs.get("intent_confidence", 0.0),
         intent_detail=rs.get("intent_detail", "chat"),
+        selected_tool=rs.get("selected_tool", "chat"),
 
         # 槽位收集（从恢复状态继承）
         clarify_required=rs.get("clarify_required", False),

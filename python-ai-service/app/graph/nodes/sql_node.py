@@ -93,7 +93,7 @@ async def sql_node(state: InternState) -> InternState:
 
     # ===== Phase 1: Schema Analysis =====
     t1 = time.time()
-    trace_steps.append(trace_step("sql_node", SQL_TRACE_MESSAGES["schema_analysis"], "running"))
+    trace_steps.append(trace_step("sql_node", SQL_TRACE_MESSAGES["schema_analysis"], "running", step_type="sql_execution", step_name="SQL\u67e5\u8be2"))
     try:
         # 加载数据库表结构和字段信息
         schema_context = await schema_loader.get_schema_context()
@@ -112,7 +112,7 @@ async def sql_node(state: InternState) -> InternState:
 
     # ===== Phase 2: SQL Generation =====
     t2 = time.time()
-    trace_steps.append(trace_step("sql_node", SQL_TRACE_MESSAGES["sql_generation"], "running"))
+    trace_steps.append(trace_step("sql_node", SQL_TRACE_MESSAGES["sql_generation"], "running", step_type="sql_execution", step_name="SQL\u67e5\u8be2"))
     # 从槽位中提取 SQL 上下文（支持多轮查询继承）
     sql_context = sql_memory_helper.extract_sql_context(collected_slots)
     context_hint = sql_memory_helper.build_context_hint(sql_context)
@@ -136,7 +136,7 @@ async def sql_node(state: InternState) -> InternState:
 
     # ===== Phase 3: Security Check =====
     t3 = time.time()
-    trace_steps.append(trace_step("sql_node", SQL_TRACE_MESSAGES["sql_security"], "running"))
+    trace_steps.append(trace_step("sql_node", SQL_TRACE_MESSAGES["sql_security"], "running", step_type="sql_execution", step_name="SQL\u67e5\u8be2"))
     security_result = sql_security.check(generated_sql)
     if not security_result["passed"]:
         # 【安全拦截】SQL 未通过安全检查
@@ -162,7 +162,7 @@ async def sql_node(state: InternState) -> InternState:
 
     # ===== Phase 4: SQL Execution =====
     t4 = time.time()
-    trace_steps.append(trace_step("sql_node", SQL_TRACE_MESSAGES["sql_execution"], "running"))
+    trace_steps.append(trace_step("sql_node", SQL_TRACE_MESSAGES["sql_execution"], "running", step_type="sql_execution", step_name="SQL\u67e5\u8be2"))
     try:
         # 执行经过安全检查的 SQL
         exec_result = await sql_executor.execute(security_result["sanitized_sql"])
@@ -185,12 +185,12 @@ async def sql_node(state: InternState) -> InternState:
 
     # ===== Phase 5: Result Summary =====
     t5 = time.time()
-    trace_steps.append(trace_step("sql_node", SQL_TRACE_MESSAGES["sql_summarize"], "running"))
+    trace_steps.append(trace_step("sql_node", SQL_TRACE_MESSAGES["sql_summarize"], "running", step_type="sql_execution", step_name="SQL\u67e5\u8be2"))
     try:
         summary = await sql_summarizer.summarize(
-            user_message=user_message,
-            executed_sql=security_result["sanitized_sql"],
-            query_result=exec_result,
+            question=user_message,
+            sql=security_result["sanitized_sql"],
+            result=exec_result,
         )
         trace_steps[-1] = trace_step(
             "sql_node", SQL_TRACE_MESSAGES["sql_summarize_done"], "completed",

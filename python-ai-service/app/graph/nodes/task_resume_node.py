@@ -70,6 +70,8 @@ async def task_resume_node(state: InternState) -> InternState:
 
     state["trace_steps"] = state.get("trace_steps", []) + [{
         "node": "task_resume_node",
+        "step_type": "task_resume",
+        "step_name": "任务恢复",
         "message": "正在恢复原始任务...",
         "status": "running",
         "timestamp": _now()
@@ -94,6 +96,8 @@ async def task_resume_node(state: InternState) -> InternState:
     dur = int((time.time() - t0) * 1000)
     state["trace_steps"][-1] = {
         "node": "task_resume_node",
+        "step_type": "task_resume",
+        "step_name": "任务恢复",
         "message": f"已恢复任务: {orig_intent}，携带槽位 {list(collected.keys())}",
         "status": "completed",
         "detail": {"pending_task": pending, "collected_slots": collected},

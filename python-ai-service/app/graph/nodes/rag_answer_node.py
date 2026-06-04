@@ -197,6 +197,7 @@ async def rag_answer_node(state: InternState) -> InternState:
         # 累计 Token 消耗
         if resp.usage:
             state["tokens_used"] = state.get("tokens_used", 0) + resp.usage.get("total_tokens", 0)
+            state["token_usage"] = resp.usage
 
         state["rag_answer"] = answer
         state["final_answer"] = answer
@@ -248,6 +249,8 @@ def _add_trace(state: InternState, message: str) -> None:
     """
     state["trace_steps"] = state.get("trace_steps", []) + [{
         "node": "rag_answer_node",
+        "step_type": "llm_generation",
+        "step_name": "RAG回答生成",
         "message": message,
         "status": "running",
         "timestamp": _now(),
@@ -266,6 +269,8 @@ def _finish_trace(state: InternState, message: str, t0: float) -> None:
     if state.get("trace_steps"):
         state["trace_steps"][-1] = {
             "node": "rag_answer_node",
+            "step_type": "llm_generation",
+            "step_name": "RAG回答生成",
             "message": message,
             "status": "completed",
             "duration_ms": duration_ms,

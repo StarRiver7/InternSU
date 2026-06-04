@@ -1,20 +1,12 @@
-"""意图识别节点 — 用户查询意图分类与信息充分性检查。
+"""Tool Router —— LLM 自主选择工具，替代关键词意图分类。
 
-【架构定位】
-该节点是 LangGraph 工作流的第一跳，负责分析用户消息的意图类型，
-并判断是否需要反问澄清以收集必要信息。
+【架构 v3】
+不再用 Prompt 关键词 + 规则来做意图分类，而是把每个能力定义为一个 Tool，
+让 LLM 根据工具描述自行判断该用哪个。
 
-【意图类型（v2 扩展）】
-- chat: 闲聊、问候、一般性问答
-- rag: 需要检索公司知识库的问题（政策、流程、规章等）
-- sql: 需要查询数据库的统计类问题（销售额、人数等）
-- agent: 需要调用工具/执行多步骤任务（批量操作、跨系统查询等）
-- clarify: 信息不足，需要反问澄清
-
-【意图识别策略】
-1. LLM 零样本分类：基于预定义的意图描述进行分类
-2. 规则增强：对 SQL/RAG 类意图进行关键词检查
-3. 上下文感知：检测是否处于反问后的回答状态
+【扩展性】
+新增 SQL Agent / 飞书 Agent 时，只需在 TOOLS 列表中加一行定义，
+不需要改任何路由逻辑。
 """
 
 import time
@@ -24,62 +16,116 @@ from app.core.logger import get_logger
 
 logger = get_logger(__name__)
 
+# ═══════════════════════════════════════════════════════════════
+# Tool 定义 —— 每个能力一个 Tool，LLM 自主选择
+# ═══════════════════════════════════════════════════════════════
 
-# ── 意图分类 Prompt（v2：新增 agent 类别）─────────────────────────────
-INTENT_CLASSIFY_PROMPT = """分析用户消息的意图。只回复一个类别名称。
+TOOLS_PROMPT = """你是小SU，公司内部的AI助手。以下是你可以使用的工具。请根据老师的问题，选择最合适的工具。
 
-类别说明:
-- chat: 闲聊、问候、简单问答、不涉及数据查询和文档检索的知识性问题
-- rag: 需要查询公司文档/知识库的问题（政策、规章、流程说明、how-to 等）
-- sql: 需要查询数据库的统计/数量/排名类问题（销售额、人数、订单数、各部门数据等）
-- agent: 需要调用外部工具或执行多步骤任务（批量操作、发送消息、跨系统联动、自动化流程等）
-- clarify: 问题信息严重不足，无法判断意图，需要反问澄清
+【可用工具】
 
-判断要点:
-- 如果问题中同时包含 统计指标 + 时间范围 + 部门/店铺范围 → sql
-  例: "昨天成都店销售额多少" → sql
-  例: "本月新入职员工人数" → sql
-  例: "各部门Q1业绩排名" → sql
-- 如果问题涉及公司政策、规定、流程名称、员工手册内容 → rag
-  例: "公司报销流程是什么" → rag
-  例: "年假怎么算" → rag
-- 如果问题涉及批量操作、跨系统任务、需要"帮我做..."的自动化请求 → agent
-  例: "帮我给技术部全员发一封会议通知" → agent
-  例: "总结飞书群最近的消息" → agent
-- 如果问题只是"查一下数据"/"帮我查"/"看看"且缺少具体条件 → clarify
-- 如果问题只是一般性聊天或通用知识问答 → chat
-  例: "SpringBoot为什么要使用IOC" → chat
+1. chat —— 通用对话
+   适用场景：
+   - 闲聊、问候、感谢
+   - 通用知识问答（技术问题、行业知识、概念解释等）
+   - 不涉及公司内部数据、文档、制度的任何问题
+   示例：
+   - "你好" → chat
+   - "SpringBoot为什么要用IOC？" → chat
+   - "Python和Java哪个更适合后端？" → chat
+   - "高级后端工程师一般工资多少？" → chat（这是行业问题，不涉及公司数据库）
 
-用户消息: {user_message}
+2. rag_search —— 搜索公司知识库
+   适用场景：
+   - 公司制度、政策、规定、流程
+   - 员工手册、操作指南、FAQ
+   - 任何需要从公司上传的文档中查找答案的问题
+   示例：
+   - "公司报销流程是什么？" → rag_search
+   - "年假怎么算？" → rag_search
+   - "连续旷工会怎么样？" → rag_search
 
-意图类别:"""
+3. sql_query —— 查询业务数据库
+   适用场景：
+   - 统计类问题（COUNT、SUM、AVG、排名、对比、趋势）
+   - 涉及多条记录的聚合分析
+   - 明确要求"查一下/帮我统计/有多少"且能对应到数据库表
+   可用数据表：
+   【HR模块】
+   - hr_candidate: 候选人（姓名、手机、邮箱、应聘职位、来源、技能、学历、状态）
+   - hr_department: HR部门（名称、上级部门、编制人数、在职人数）
+   - hr_interview: 面试记录（候选人、职位、面试官、轮次、类型、结果、评分）
+   - hr_position: 招聘职位（名称、部门、职级、最低薪资、最高薪资、要求、职责、状态）
+   【OA模块】
+   - oa_attendance: 考勤（员工、日期、签到/签退、状态、请假类型、工时）
+   - oa_department: OA部门（名称、上级部门、负责人）
+   - oa_employee: 员工（工号、姓名、邮箱、手机、部门、职位、在职状态、入职日期）
+   - oa_project: 项目（名称、负责人、部门、状态、起止日期、预算）
+   - oa_task: 任务（标题、项目、负责人、优先级、状态、截止日期、进度）
+   示例：
+   - "本月入职了多少新员工？" → sql_query (COUNT聚合 oa_employee)
+   - "各部门Q1业绩排名" → sql_query (聚合+排序)
+   - "上月考勤异常人数" → sql_query (COUNT+条件 oa_attendance)
+   注意：如果问题不涉及聚合/统计/排名，即使表里有相关字段，也应优先考虑 chat 或 rag_search。
+
+4. agent —— 调用外部工具/执行多步骤任务
+   适用场景：
+   - 需要调用飞书、邮件等外部系统
+   - 批量操作、自动化流程
+   - 跨系统数据联动
+   示例：
+   - "帮我给技术部全员发会议通知" → agent
+
+5. feishu_agent —— 飞书操作
+   适用场景：查飞书消息、发通知、查日程
+   示例：
+   - "总结今天技术群的重要消息" → feishu_agent
+
+6. clarify —— 信息不足，需要反问
+   适用场景：
+   - 问题过于模糊，无法判断该用哪个工具
+   - SQL类问题缺少必要的查询条件（时间/范围/指标）
+   示例：
+   - "帮我查一下数据" → clarify
+   - "看看最近的情况" → clarify
+
+
+【输出格式】
+只回复工具名称，不要任何解释：
+chat
+或
+rag_search
+或
+sql_query
+或
+agent
+或
+clarify
+
+老师的问题: {user_message}
+
+工具:"""
 
 
 async def intent_node(state: InternState) -> InternState:
-    """意图识别与信息充分性检查。
+    """Tool Router —— LLM 根据工具描述自主选择。
 
-    工作流程：
-    1. 调用 LLM 对用户消息进行意图分类
-    2. 基于规则检查信息是否充分
-    3. 决定是否需要反问澄清
-    4. 记录追踪步骤
+    替代旧的关键词匹配意图分类，LLM 看到完整的工具清单后自行判断。
 
     Args:
-        state: LangGraph 工作流状态对象
+        state: LangGraph 工作流状态
 
     Returns:
-        更新后的状态对象，包含以下字段:
-        - intent: 意图类型 (chat/rag/sql/agent/clarify)
-        - intent_confidence: 意图识别置信度 [0, 1]
-        - clarify_required: 是否需要反问澄清
-        - clarify_round: 反问轮次计数
+        更新后的 state，包含 selected_tool、intent、clarify_required
     """
     t0 = time.time()
     state["current_node"] = "intent_node"
 
     state["trace_steps"] = state.get("trace_steps", []) + [{
         "node": "intent_node",
-        "message": "正在理解老师的问题...",
+        "step_type": "intent_recognition",
+        "step_name": "意图识别",
+        "message": "正在分析老师的问题...",
         "status": "running",
         "timestamp": _now(),
     }]
@@ -87,44 +133,63 @@ async def intent_node(state: InternState) -> InternState:
     message = state["user_message"]
     history = state.get("conversation_context", [])
 
-    # ── Step 1: LLM 意图分类 ──────────────────────────────────────
+    # ── LLM Tool Selection ──────────────────────────────────────
     try:
-        classify_msg = INTENT_CLASSIFY_PROMPT.format(user_message=message)
+        prompt = TOOLS_PROMPT.format(user_message=message)
         resp = await llm_gateway.chat(
-            [{"role": "user", "content": classify_msg}],
+            [{"role": "user", "content": prompt}],
             temperature=0.0,
-            max_tokens=10
+            max_tokens=20,
         )
-        intent = resp.content.strip().lower()
-        # 兜底：非法意图映射为 chat
-        if intent not in ("chat", "rag", "sql", "agent", "clarify"):
-            intent = "chat"
-        state["intent"] = intent
-        state["intent_confidence"] = 0.9
-        logger.info(f"IntentNode: '{message[:40]}...' → {intent}")
+        tool = resp.content.strip().lower()
+
+        # 兜底：非法工具名 → chat
+        valid_tools = {"chat", "rag_search", "sql_query", "agent", "clarify"}
+        if tool not in valid_tools:
+            logger.warning("LLM returned invalid tool '%s', fallback to chat", tool)
+            tool = "chat"
     except Exception as e:
-        logger.warning(f"Intent classification fallback: {e}")
-        state["intent"] = "chat"
-        state["intent_confidence"] = 0.3
+        logger.warning("Tool selection failed: %s, fallback to chat", e)
+        tool = "chat"
 
-    # ── Step 2: 信息充分性检查 ─────────────────────────────────────
-    clarify_required = _check_clarify_needed(state["intent"], message, history)
-    state["clarify_required"] = clarify_required
+    # ── 映射 tool → intent ──────────────────────────────────────
+    tool_to_intent = {
+        "chat": "chat",
+        "rag_search": "rag",
+        "sql_query": "sql",
+        "agent": "agent",
+        "clarify": "clarify",
+    }
+    intent = tool_to_intent[tool]
 
-    if clarify_required:
+    state["selected_tool"] = tool
+    state["intent"] = intent
+    state["intent_confidence"] = 0.9
+
+    # ── 澄清判断 ─────────────────────────────────────────────────
+    if tool == "clarify":
+        state["clarify_required"] = True
         state["clarify_round"] = state.get("clarify_round", 0) + 1
+        logger.info("ToolRouter: '%s...' → clarify (need more info)", message[:40])
+    else:
+        # 检查是否处于反问后的回答状态
+        state["clarify_required"] = False
+        last_msg = history[-1] if history else {}
+        if last_msg.get("role") == "assistant" and _looks_like_clarify_response(
+            last_msg.get("content", "")
+        ):
+            state["clarify_required"] = False  # 用户正在回答反问
+        logger.info("ToolRouter: '%s...' → %s", message[:40], tool)
 
-    # ── 记录完成 ──────────────────────────────────────────────────
+    # ── Trace ────────────────────────────────────────────────────
     duration_ms = int((time.time() - t0) * 1000)
     state["trace_steps"][-1] = {
         "node": "intent_node",
-        "message": f"已识别问题类型: {_intent_cn(state['intent'])}",
+        "step_type": "intent_recognition",
+        "step_name": "意图识别",
+        "message": f"选择工具: {tool}",
         "status": "completed",
-        "detail": {
-            "intent": state["intent"],
-            "confidence": state["intent_confidence"],
-            "clarify_required": clarify_required,
-        },
+        "detail": {"tool": tool, "intent": intent},
         "duration_ms": duration_ms,
         "timestamp": _now(),
     }
@@ -132,103 +197,11 @@ async def intent_node(state: InternState) -> InternState:
     return state
 
 
-def _check_clarify_needed(intent: str, message: str, history: list[dict]) -> bool:
-    """检查是否需要反问澄清。
-
-    判定规则（按优先级）：
-    1. 意图本身是 clarify → 一定需要澄清
-    2. 上一轮刚反问过 → 不需要（用户正在回答）
-    3. SQL 类问题缺少指标/时间/范围中的任一 → 需要澄清
-    4. RAG 类问题关键词过少（< 5 字）→ 需要澄清
-
-    Args:
-        intent: LLM 识别的意图类型
-        message: 用户原始消息
-        history: 对话历史
-
-    Returns:
-        是否需要反问澄清
-    """
-    if intent == "clarify":
-        return True
-
-    last_msg = history[-1] if history else {}
-    if last_msg.get("role") == "assistant" and _looks_like_clarify_response(last_msg.get("content", "")):
-        return False
-
-    if intent == "sql":
-        has_metric = any(w in message for w in
-            ["多少", "数量", "统计", "查询", "销售", "金额", "人数", "排名",
-             "TOP", "汇总", "总计", "平均", "增长率", "业绩", "指标", "KPI"])
-        has_time = any(w in message for w in
-            ["今天", "昨天", "本周", "本月", "上月", "上个月", "今年", "去年",
-             "季度", "Q1", "Q2", "最近", "过去", "年度"])
-        has_scope = any(w in message for w in
-            ["部门", "全公司", "组", "团队", "产品", "项目", "各", "每个", "按",
-             "技术", "前端", "后端", "运维", "测试", "销售", "市场", "财务", "人事",
-             "店", "成都", "北京", "上海"])
-
-        if not (has_metric and has_time and has_scope):
-            return True
-
-    if intent == "rag":
-        if len(message) < 5:
-            return True
-
-    if intent == "agent":
-        if len(message) < 8:
-            return True
-
-    return False
-
-
-def _check_info_sufficiency(intent: str, message: str, history: list[dict]) -> tuple[bool, list[str]]:
-    """兼容性封装：返回 (是否充分, 缺失字段列表)。"""
-    clarify_needed = _check_clarify_needed(intent, message, history)
-    if not clarify_needed:
-        return True, []
-
-    missing = []
-    if intent == 'sql':
-        has_metric = any(w in message for w in
-            ['多少', '数量', '统计', '查询', '销售', '金额', '人数', '排名', '业绩'])
-        has_time = any(w in message for w in
-            ['今天', '昨天', '本周', '本月', '上月', '今年', '去年', '季度', 'Q1', 'Q2'])
-        has_scope = any(w in message for w in
-            ['部门', '全公司', '组', '团队', '产品', '项目', '各', '每个', '按', '店'])
-        if not has_metric:
-            missing.append('统计指标')
-        if not has_time:
-            missing.append('时间范围')
-        if not has_scope:
-            missing.append('查询范围')
-    elif intent == 'rag':
-        missing.append('查询关键词')
-    elif intent == 'agent':
-        missing.append('任务描述')
-    elif intent == 'clarify':
-        missing.append('问题内容')
-    return False, missing
-
-
 def _looks_like_clarify_response(content: str) -> bool:
     """检查回复内容是否是反问格式。"""
     return any(kw in content for kw in ["收到老师", "确认", "请问", "需要确认"])
 
 
-def _intent_cn(intent: str) -> str:
-    """意图类型中文映射。"""
-    return {
-        "chat": "一般对话",
-        "rag": "知识检索",
-        "sql": "数据查询",
-        "agent": "工具调用",
-        "clarify": "需要确认",
-        "unclear": "不明确",
-    }.get(intent, intent)
-
-
 def _now() -> str:
-    """获取当前 UTC 时间的 ISO 格式字符串。"""
     from datetime import datetime, timezone
     return datetime.now(timezone.utc).isoformat()

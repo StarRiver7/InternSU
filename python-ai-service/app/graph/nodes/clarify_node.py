@@ -59,7 +59,7 @@ async def clarify_node(state: InternState) -> InternState:
     """
     t0 = time.time()
     state["current_node"] = "clarify_node"
-    state["trace_steps"] = state.get("trace_steps", []) + [{"node": "clarify_node", "message": "正在确认信息完整性...", "status": "running", "timestamp": _now()}]
+    state["trace_steps"] = state.get("trace_steps", []) + [{"node": "clarify_node", "step_type": "clarification", "step_name": "反问澄清", "message": "正在确认信息完整性...", "status": "running", "timestamp": _now()}]
     message = state["user_message"]
     intent = state.get("intent", "chat")
     # 【意图映射】sql/rag 查询对应特定的槽位集合
@@ -100,7 +100,7 @@ async def clarify_node(state: InternState) -> InternState:
             state["clarify_finished"] = True
             state["clarify_required"] = False
         dur = int((time.time() - t0) * 1000)
-        state["trace_steps"][-1] = {"node": "clarify_node", "message": "信息完整，无需澄清", "status": "completed", "duration_ms": dur, "timestamp": _now()}
+        state["trace_steps"][-1] = {"node": "clarify_node", "step_type": "clarification", "step_name": "反问澄清", "message": "信息完整，无需澄清", "status": "completed", "duration_ms": dur, "timestamp": _now()}
         return state
     # 【生成澄清问题】渲染 Prompt，告知 LLM 缺失的槽位信息
     prompt = build_clarify_prompt(message, missing, slots)
@@ -109,6 +109,8 @@ async def clarify_node(state: InternState) -> InternState:
         resp = await llm_gateway.chat(msgs, temperature=0.5, max_tokens=512)
         clarify_text = resp.content.strip()
         state["tokens_used"] = state.get("tokens_used", 0) + (resp.usage.get("total_tokens", 0) if resp.usage else 0)
+        if resp.usage:
+            state["token_usage"] = resp.usage
     except Exception as e:
         logger.error(f"[ClarifyNode] 澄清问题生成失败: {e}")
         clarify_text = "receive teacher~ not sure what you want, can you be more specific?"
@@ -117,7 +119,7 @@ async def clarify_node(state: InternState) -> InternState:
     state["final_answer"] = clarify_text
     state["done"] = True
     dur = int((time.time() - t0) * 1000)
-    state["trace_steps"][-1] = {"node": "clarify_node", "message": "需要向老师确认 " + str(len(missing)) + " 项信息", "status": "completed", "detail": {"missing_slots": missing, "clarify_round": state.get("clarify_round", 1)}, "duration_ms": dur, "timestamp": _now()}
+    state["trace_steps"][-1] = {"node": "clarify_node", "step_type": "clarification", "step_name": "反问澄清", "message": "需要向老师确认 " + str(len(missing)) + " 项信息", "status": "completed", "detail": {"missing_slots": missing, "clarify_round": state.get("clarify_round", 1)}, "duration_ms": dur, "timestamp": _now()}
     logger.info(f"[ClarifyNode] 缺失槽位={missing}, 澄清轮次={state.get('clarify_round', 1)}")
     return state
 

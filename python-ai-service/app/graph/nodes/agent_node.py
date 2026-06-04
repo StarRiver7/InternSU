@@ -39,6 +39,8 @@ async def agent_node(state: InternState) -> InternState:
 
     state["trace_steps"] = state.get("trace_steps", []) + [{
         "node": "agent_node",
+        "step_type": "agent",
+        "step_name": "Agent调用",
         "message": "正在分析任务并调用工具...",
         "status": "running",
         "timestamp": _now(),
@@ -67,6 +69,8 @@ async def agent_node(state: InternState) -> InternState:
     duration_ms = int((time.time() - t0) * 1000)
     state["trace_steps"][-1] = {
         "node": "agent_node",
+        "step_type": "agent",
+        "step_name": "Agent调用",
         "message": "Agent 能力建设中，已返回引导提示",
         "status": "completed",
         "duration_ms": duration_ms,

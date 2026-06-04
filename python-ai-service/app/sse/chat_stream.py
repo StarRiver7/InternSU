@@ -35,6 +35,8 @@ class StreamSender:
         step_order: int = 0,
         detail: dict | None = None,
         duration_ms: int | None = None,
+        step_type: str = "unknown",
+        step_name: str = "",
     ) -> str:
         """发送工作过程追踪事件。
 
@@ -42,6 +44,8 @@ class StreamSender:
         """
         data = {
             "step": step,
+            "step_type": step_type or "unknown",
+            "step_name": step_name or step,
             "status": status,
             "step_order": step_order,
         }
@@ -69,11 +73,15 @@ class StreamSender:
         model_name: str = "",
         trace_id: str = "",
         file: str = "",
+        prompt_tokens: int | None = None,
+        completion_tokens: int | None = None,
+        total_tokens: int | None = None,
     ) -> str:
         """发送元数据。
 
         在 token 流开始前或结束后发送 Source 引用、Token 统计和 trace_id。
         trace_id 用于 Java 网关在流式路径下实现全链路追踪关联。
+        v3: prompt_tokens/completion_tokens/total_tokens 用于 Trace 精确 Token 统计。
         """
         data = {
             "sources": sources or [],
@@ -83,6 +91,12 @@ class StreamSender:
         }
         if trace_id:
             data["trace_id"] = trace_id
+        if prompt_tokens is not None:
+            data["prompt_tokens"] = prompt_tokens
+        if completion_tokens is not None:
+            data["completion_tokens"] = completion_tokens
+        if total_tokens is not None:
+            data["total_tokens"] = total_tokens
         return _sse_event("meta", data)
 
     @staticmethod
@@ -130,6 +144,8 @@ class StreamSender:
         """向后兼容的 thinking 事件，映射为 trace 事件。"""
         return _sse_event("trace", {
             "step": "thinking",
+            "step_type": "llm_generation",
+            "step_name": "思考中",
             "status": "running",
             "detail": {"content": content},
         })
@@ -147,11 +163,13 @@ class InternSSEHandler:
         events = []
         for t in traces:
             events.append(await StreamSender.trace(
-                step=t.get("step", ""),
+                step=t.get("step", "") or t.get("node", ""),
                 status=t.get("status", "completed"),
                 step_order=t.get("step_order", 0),
                 detail=t.get("detail"),
                 duration_ms=t.get("duration_ms"),
+                step_type=t.get("step_type", "unknown"),
+                step_name=t.get("step_name", t.get("node", "")),
             ))
         return events
 

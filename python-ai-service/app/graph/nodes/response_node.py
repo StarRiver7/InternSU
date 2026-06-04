@@ -56,13 +56,22 @@ async def response_node(state: InternState) -> InternState:
     t0 = time.time()
     state["current_node"] = "response_node"
 
+    # ── 汇总 Token 统计（精确值优先，否则用估算值）──
+    token_usage = state.get("token_usage", {})
+    tokens_used = state.get("tokens_used", 0)
+    prompt_tokens = token_usage.get("prompt_tokens")
+    completion_tokens = token_usage.get("completion_tokens")
+    total_tokens = token_usage.get("total_tokens") or tokens_used
+
     # 追加最终汇总 trace 步骤
     state["trace_steps"] = state.get("trace_steps", []) + [{
         "node": "response_node",
+        "step_type": "response_build",
+        "step_name": "回答构建",
         "message": "正在准备输出...",
         "status": "completed",
         "detail": {
-            "total_tokens": state.get("tokens_used", 0),
+            "total_tokens": total_tokens,
             "intent": state.get("intent", "chat"),
             "trace_count": len(state.get("trace_steps", [])),
             "clarify_pending": state.get("clarify_pending", False),
@@ -70,6 +79,9 @@ async def response_node(state: InternState) -> InternState:
         "duration_ms": int((time.time() - t0) * 1000),
         "timestamp": _now(),
     }]
+    state["_prompt_tokens"] = prompt_tokens
+    state["_completion_tokens"] = completion_tokens
+    state["_total_tokens"] = total_tokens
 
     # 【关键】标记工作流完成，SSE handler 据此生成最终事件
     state["done"] = True

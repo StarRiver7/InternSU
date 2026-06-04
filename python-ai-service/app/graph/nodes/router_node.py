@@ -44,6 +44,8 @@ async def router_node(state: InternState) -> InternState:
 
     state["trace_steps"] = state.get("trace_steps", []) + [{
         "node": "router_node",
+        "step_type": "intent_routing",
+        "step_name": "路由分发",
         "message": f"正在分配任务: {_intent_cn(intent)}",
         "status": "completed",
         "detail": {"intent": intent, "next": next_node},

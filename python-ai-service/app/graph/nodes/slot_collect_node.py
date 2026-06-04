@@ -73,6 +73,8 @@ async def slot_collect_node(state: InternState) -> InternState:
 
     state["trace_steps"] = state.get("trace_steps", []) + [{
         "node": "slot_collect_node",
+        "step_type": "slot_collection",
+        "step_name": "槽位收集",
         "message": "正在收集老师的回答信息...",
         "status": "running",
         "timestamp": _now()
@@ -101,6 +103,8 @@ async def slot_collect_node(state: InternState) -> InternState:
     dur = int((time.time() - t0) * 1000)
     state["trace_steps"][-1] = {
         "node": "slot_collect_node",
+        "step_type": "slot_collection",
+        "step_name": "槽位收集",
         "message": f"已收集 {len(extracted)} 个槽位，还剩 {len(missing)} 个待确认",
         "status": "completed",
         "detail": {"extracted": extracted, "remaining_missing": missing},

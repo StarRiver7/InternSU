@@ -28,6 +28,12 @@ const props = defineProps<{
 }>();
 const contentRef = ref<HTMLElement | null>(null);
 const expanded = ref(false);
+const traceCollapsed = ref(true);
+const formattedDuration = (ms?: number) => {
+  if (!ms) return '';
+  if (ms < 1000) return ms + 'ms';
+  return (ms / 1000).toFixed(1) + 's';
+};
 const renderedContent = computed(() => {
  let content = props.message.content;
  content = content.replace(/```(\w+)?\n([\s\S]*?)```/g, (_match, lang, code) => {
@@ -147,6 +153,36 @@ watch(() => props.message.content, async () => {
               <p class="text-xs text-gray-600 mt-1 line-clamp-2">{{ citation.snippet }}</p>
             </div>
             <ExternalLink class="w-4 h-4 text-gray-400 flex-shrink-0" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Trace execution panel -->
+      <div v-if="message.trace && message.trace.length > 0 && message.role === 'assistant'" class="mt-3 text-left">
+        <button
+          @click="traceCollapsed = !traceCollapsed"
+          class="flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600 transition-colors"
+        >
+          <component :is="traceCollapsed ? ChevronDown : ChevronUp" class="w-3 h-3" />
+          <span class="font-medium">{{ traceCollapsed ? '查看执行过程' : '收起执行过程' }}</span>
+        </button>
+        <div v-if="!traceCollapsed" class="mt-2 space-y-1">
+          <div
+            v-for="(step, i) in message.trace"
+            :key="i"
+            class="flex items-center gap-2 px-2 py-1 rounded text-xs"
+            :class="{
+              'bg-green-50 text-green-700': step.status === 'completed',
+              'bg-red-50 text-red-600': step.status === 'failed',
+              'bg-blue-50 text-blue-600': step.status === 'running',
+              'bg-gray-50 text-gray-500': !step.status || step.status === 'pending',
+            }"
+          >
+            <span class="shrink-0 w-4 text-center">
+              {{ step.status === 'completed' ? '✓' : step.status === 'running' ? '⏳' : step.status === 'failed' ? '✗' : '·' }}
+            </span>
+            <span class="flex-1">{{ step.step_name || step.message }}</span>
+            <span v-if="step.duration_ms" class="text-gray-400 font-mono">{{ formattedDuration(step.duration_ms) }}</span>
           </div>
         </div>
       </div>

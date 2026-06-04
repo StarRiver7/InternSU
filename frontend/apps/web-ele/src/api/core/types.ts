@@ -17,8 +17,12 @@ export interface CitationSource {
 
 export interface AgentTrace {
   node: string;
+  step_type: string;
+  step_name: string;
   message: string;
   status: 'running' | 'completed' | 'failed';
+  duration_ms?: number;
+  detail?: Record<string, any>;
   timestamp: number;
 }
 

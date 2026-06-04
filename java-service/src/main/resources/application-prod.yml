@@ -8,7 +8,7 @@ spring:
     import: optional:file:./config/application-secrets.yml
 
   datasource:
-    url: "jdbc:mysql://prod-db-host:3306/enterprise_ai?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai"
+    url: "jdbc:mysql://prod-db-host:3306/internsu?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai"
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 20

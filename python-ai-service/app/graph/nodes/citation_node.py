@@ -176,6 +176,8 @@ def _add_trace(state: InternState, message: str) -> None:
     """
     state["trace_steps"] = state.get("trace_steps", []) + [{
         "node": "citation_node",
+        "step_type": "citation",
+        "step_name": "来源引用",
         "message": message,
         "status": "running",
         "timestamp": _now(),

@@ -116,7 +116,7 @@ class SchemaLoader:
             ColumnInfo("skills", "text", True, "", "技能标签", 8),
             ColumnInfo("education", "varchar", True, "", "最高学历", 9),
             ColumnInfo("experience", "text", True, "", "工作经历", 10),
-            ColumnInfo("status", "varchar", False, "", "状态: new/screening/interviewing/offered/hired/rejected", 11),
+            ColumnInfo("status", "varchar", False, "", "状态: 待筛选/筛选通过/面试中/已录用/已拒绝", 11),
             ColumnInfo("create_time", "datetime", False, "", "创建时间", 12),
         ])
         tables["hr_department"] = TableInfo("hr_department", "HR部门表", [
@@ -135,8 +135,8 @@ class SchemaLoader:
             ColumnInfo("position_id", "bigint", False, "MUL", "职位ID", 3),
             ColumnInfo("interviewer_id", "bigint", True, "", "面试官ID(oa_employee)", 4),
             ColumnInfo("round", "int", False, "", "面试轮次: 1/2/3", 5),
-            ColumnInfo("type", "varchar", False, "", "面试类型: phone/onsite/video", 6),
-            ColumnInfo("status", "varchar", False, "", "状态: scheduled/completed/cancelled", 7),
+            ColumnInfo("type", "varchar", False, "", "面试类型: 初试/复试/技术面/HR面/终面", 6),
+            ColumnInfo("status", "varchar", False, "", "状态: 待面试/已面试/通过/未通过", 7),
             ColumnInfo("interview_date", "datetime", True, "", "面试时间", 8),
             ColumnInfo("result", "varchar", True, "", "结果: pass/fail/pending", 9),
             ColumnInfo("score", "int", True, "", "评分 0-100", 10),
@@ -147,12 +147,12 @@ class SchemaLoader:
             ColumnInfo("id", "bigint", False, "PRI", "职位ID", 1),
             ColumnInfo("name", "varchar", False, "", "职位名称", 2),
             ColumnInfo("department_id", "bigint", True, "MUL", "所属部门ID", 3),
-            ColumnInfo("level", "varchar", True, "", "职级: P5/P6/P7/M1/M2", 4),
+            ColumnInfo("level", "varchar", True, "", "职级: 初级/中级/高级/资深/管理", 4),
             ColumnInfo("salary_min", "int", True, "", "最低薪资", 5),
             ColumnInfo("salary_max", "int", True, "", "最高薪资", 6),
             ColumnInfo("requirements", "text", True, "", "任职要求", 7),
             ColumnInfo("responsibilities", "text", True, "", "岗位职责", 8),
-            ColumnInfo("status", "varchar", False, "", "状态: open/closed/filled", 9),
+            ColumnInfo("status", "varchar", False, "", "状态: 招聘中/暂停招聘/已关闭", 9),
             ColumnInfo("open_date", "date", True, "", "开放日期", 10),
             ColumnInfo("close_date", "date", True, "", "截止日期", 11),
             ColumnInfo("create_time", "datetime", False, "", "创建时间", 12),
@@ -163,8 +163,8 @@ class SchemaLoader:
             ColumnInfo("date", "date", False, "", "日期", 3),
             ColumnInfo("check_in_time", "datetime", True, "", "签到时间", 4),
             ColumnInfo("check_out_time", "datetime", True, "", "签退时间", 5),
-            ColumnInfo("status", "varchar", False, "", "状态: normal/late/early/absent/leave", 6),
-            ColumnInfo("leave_type", "varchar", True, "", "请假类型: sick/personal/annual", 7),
+            ColumnInfo("status", "varchar", False, "", "状态: 正常/迟到/早退/旷工/请假", 6),
+            ColumnInfo("leave_type", "varchar", True, "", "请假类型: 事假/病假/年假/调休", 7),
             ColumnInfo("hours", "decimal", True, "", "工时/请假小时数", 8),
             ColumnInfo("remark", "varchar", True, "", "备注", 9),
             ColumnInfo("create_time", "datetime", False, "", "创建时间", 10),
@@ -186,7 +186,7 @@ class SchemaLoader:
             ColumnInfo("phone", "varchar", True, "", "手机号", 5),
             ColumnInfo("department_id", "bigint", True, "MUL", "所属部门ID", 6),
             ColumnInfo("position", "varchar", True, "", "职位名称", 7),
-            ColumnInfo("status", "varchar", False, "", "状态: active/resigned/suspended", 8),
+            ColumnInfo("status", "varchar", False, "", "状态: 在职/离职/试用期", 8),
             ColumnInfo("hire_date", "date", True, "", "入职日期", 9),
             ColumnInfo("leave_date", "date", True, "", "离职日期", 10),
             ColumnInfo("create_time", "datetime", False, "", "创建时间", 11),
@@ -197,7 +197,7 @@ class SchemaLoader:
             ColumnInfo("description", "text", True, "", "项目描述", 3),
             ColumnInfo("manager_id", "bigint", True, "MUL", "项目经理ID(oa_employee)", 4),
             ColumnInfo("department_id", "bigint", True, "MUL", "所属部门ID", 5),
-            ColumnInfo("status", "varchar", False, "", "状态: planning/active/completed/cancelled", 6),
+            ColumnInfo("status", "varchar", False, "", "状态: 待启动/进行中/已完成/已终止", 6),
             ColumnInfo("start_date", "date", True, "", "开始日期", 7),
             ColumnInfo("end_date", "date", True, "", "结束日期", 8),
             ColumnInfo("budget", "decimal", True, "", "预算(元)", 9),
@@ -209,8 +209,8 @@ class SchemaLoader:
             ColumnInfo("description", "text", True, "", "任务描述", 3),
             ColumnInfo("project_id", "bigint", True, "MUL", "所属项目ID", 4),
             ColumnInfo("assignee_id", "bigint", True, "MUL", "负责人ID(oa_employee)", 5),
-            ColumnInfo("priority", "varchar", False, "", "优先级: low/medium/high/urgent", 6),
-            ColumnInfo("status", "varchar", False, "", "状态: todo/in_progress/review/done", 7),
+            ColumnInfo("priority", "varchar", False, "", "优先级: 高/中/低/紧急", 6),
+            ColumnInfo("status", "varchar", False, "", "状态: 待处理/进行中/已完成/已取消", 7),
             ColumnInfo("due_date", "date", True, "", "截止日期", 8),
             ColumnInfo("progress", "int", False, "", "进度百分比 0-100", 9),
             ColumnInfo("create_time", "datetime", False, "", "创建时间", 10),
@@ -259,10 +259,55 @@ class SchemaLoader:
             "- oa_task.assignee_id -> oa_employee.id (任务负责人)\n"
         )
 
+    # 需要采样 DISTINCT 值的列（只配列名，值从数据库动态读取）
+    _VALUE_SAMPLE_COLUMNS = {
+        "oa_employee": ["status"],
+        "oa_attendance": ["status", "leave_type"],
+        "oa_project": ["status"],
+        "oa_task": ["status", "priority"],
+        "hr_candidate": ["status"],
+        "hr_position": ["status", "level"],
+        "hr_interview": ["status", "type"],
+        "hr_department": ["status"],
+        "oa_department": ["status"],
+    }
+
+    async def _load_value_hints(self) -> str:
+        """从数据库动态读取枚举字段的 DISTINCT 值，避免硬编码脱节。"""
+        try:
+            from sqlalchemy import text
+            from sqlalchemy.ext.asyncio import create_async_engine
+            url = settings.business_db_url.replace("mysql+pymysql://", "mysql+aiomysql://")
+            engine = create_async_engine(url, echo=False, pool_pre_ping=True)
+            lines = ["## 字段值提示（WHERE 条件请使用这些精确值）"]
+            try:
+                async with engine.connect() as conn:
+                    for table, columns in self._VALUE_SAMPLE_COLUMNS.items():
+                        for col in columns:
+                            try:
+                                r = await conn.execute(
+                                    text(f"SELECT DISTINCT `{col}` FROM `{table}`"
+                                         f" WHERE `{col}` IS NOT NULL LIMIT 30")
+                                )
+                                vals = [str(row[0]) for row in r.fetchall() if row[0] is not None]
+                                if vals:
+                                    quoted = " / ".join(f"'{v}'" for v in vals)
+                                    lines.append(f"- {table}.{col}: {quoted}")
+                            except Exception:
+                                pass
+            finally:
+                await engine.dispose()
+            return "\n".join(lines) if len(lines) > 1 else ""
+        except Exception:
+            return ""
+
     async def get_schema_context(self, tables: list | None = None) -> str:
         schema = await self.load()
         ctx = self.build_context(schema, tables)
         ctx += "\n" + self.get_join_hints()
+        value_hints = await self._load_value_hints()
+        if value_hints:
+            ctx += "\n" + value_hints
         cached = schema_cache.get_context()
         if not cached:
             schema_cache.set_context(ctx)

@@ -1,8 +1,6 @@
 package com.company.aiplatform.thirdparty.client;
 
 import com.company.aiplatform.thirdparty.dto.*;
-import com.company.aiplatform.sql.dto.SqlSchemaResponse;
-import com.company.aiplatform.sql.dto.TableInfo;
 import com.company.aiplatform.common.exception.BusinessException;
 import com.company.aiplatform.common.enums.ResultCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,13 +21,12 @@ import java.util.Map;
 /**
  * Python AI 服务 HTTP 客户端。
  *
- * <h2>v2 变更（统一入口）</h2>
- * SQL 查询能力已合并至 {@code POST /ai/chat}，移除了独立的 sqlQuery / sqlQueryStream 方法。
+ * <h2>v3 变更</h2>
+ * SQL 元数据（Schema / Tables）已改为 Java 直连 MySQL，不再代理到 Python。
  * 保留的方法：
  * <ul>
  *   <li>{@code chat()} / {@code chatStream()} — 统一聊天（含 RAG / SQL / Agent）</li>
  *   <li>{@code indexDocumentAsync()} / {@code deleteDocumentAsync()} — 文档管理</li>
- *   <li>{@code getSqlSchema()} / {@code getSqlTables()} — SQL 元数据</li>
  * </ul>
  */
 @Slf4j
@@ -43,9 +40,6 @@ public class AIServiceClient {
 
     // ======================== Chat（统一入口） ========================
 
-    /**
-     * 非流式聊天 —— 统一入口，Python intent_node 自动路由。
-     */
     public Mono<AIChatResponse> chat(Long userId, String conversationId, String query,
                                       List<Long> docIds, List<Long> spaceIds) {
         AIChatRequest request = AIChatRequest.builder()
@@ -155,32 +149,6 @@ public class AIServiceClient {
                 .retrieve()
                 .bodyToMono(Void.class)
                 .doOnError(e -> log.error("Document deletion failed: documentId={}", documentId, e));
-    }
-
-    // ======================== SQL 元数据 ========================
-
-    public Mono<SqlSchemaResponse> getSqlSchema() {
-        return aiBackendWebClient.get()
-                .uri("/ai/sql/schema")
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<AICommonResponse<SqlSchemaResponse>>() {})
-                .map(this::unwrap)
-                .doOnError(WebClientResponseException.class, e ->
-                        log.error("Get SQL schema failed: status {}", e.getStatusCode()))
-                .onErrorMap(e -> new BusinessException(ResultCode.AI_SERVICE_UNAVAILABLE,
-                        "Get SQL schema failed: " + e.getMessage()));
-    }
-
-    public Mono<List<TableInfo>> getSqlTables() {
-        return aiBackendWebClient.get()
-                .uri("/ai/sql/tables")
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<AICommonResponse<List<TableInfo>>>() {})
-                .map(this::unwrap)
-                .doOnError(WebClientResponseException.class, e ->
-                        log.error("Get SQL tables failed: status {}", e.getStatusCode()))
-                .onErrorMap(e -> new BusinessException(ResultCode.AI_SERVICE_UNAVAILABLE,
-                        "Get SQL tables failed: " + e.getMessage()));
     }
 
     // ======================== Internal Helpers ========================

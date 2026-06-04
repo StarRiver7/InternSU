@@ -60,6 +60,8 @@ public class SecurityConfig {
                         ).permitAll()
                         // 认证相关接口
                         .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/refresh").permitAll()
+                        // 内部服务调用：Python AI 服务执行 SQL（X-Api-Key 认证）
+                        .requestMatchers("/api/sql/execute").permitAll()
                         .requestMatchers("/auth/register").permitAll()
                         // 其余全部需要认证
                         .anyRequest().authenticated()

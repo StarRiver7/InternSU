@@ -148,6 +148,8 @@ async def rag_retrieval_node(state: InternState) -> InternState:
 def _add_trace(state: InternState, message: str) -> None:
     state["trace_steps"] = state.get("trace_steps", []) + [{
         "node": "rag_retrieval_node",
+        "step_type": "vector_search",
+        "step_name": "向量检索",
         "message": message,
         "status": "running",
         "timestamp": _now(),

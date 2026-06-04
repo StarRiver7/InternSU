@@ -324,8 +324,8 @@ INSERT INTO `oa_employee` (`id`, `employee_no`, `name`, `email`, `phone`, `depar
 (75, 'EMP075', '郑博文', 'zhengbowen@internsu.com', '13800138075', 3, '高级运营经理', '在职', '2020-08-01'),
 (76, 'EMP076', '王思远', 'wangsiyuan@internsu.com', '13800138076', 4, 'HR总监助理', '在职', '2021-04-10'),
 (77, 'EMP077', '陈雨萱', 'chenyuxuan@internsu.com', '13800138077', 5, '财务总监助理', '在职', '2021-10-01'),
-(78, 'EMP078', '刘博文', 'liubowen@internsu.com', '13800138078', 6, '前端工程师', '离职', '2022-03-15', '2024-06-30'),
-(79, 'EMP079', '赵雨萱', 'zhaoyuxuan@internsu.com', '13800138079', 7, '后端工程师', '离职', '2022-08-01', '2024-12-15'),
+(78, 'EMP078', '刘博文', 'liubowen@internsu.com', '13800138078', 6, '前端工程师', '离职', '2022-03-15'),
+(79, 'EMP079', '赵雨萱', 'zhaoyuxuan@internsu.com', '13800138079', 7, '后端工程师', '离职', '2022-08-01'),
 (80, 'EMP080', '孙浩宇', 'sunhaoyu@internsu.com', '13800138080', 8, '测试工程师', '试用期', '2025-12-01'),
 (81, 'EMP081', '周浩宇', 'zhouhaoyu@internsu.com', '13800138081', 9, '运维工程师', '试用期', '2026-01-15'),
 (82, 'EMP082', '吴浩宇', 'wuhaoyu@internsu.com', '13800138082', 10, 'UI设计师', '试用期', '2026-02-01'),
@@ -341,8 +341,7 @@ INSERT INTO `oa_employee` (`id`, `employee_no`, `name`, `email`, `phone`, `depar
 (92, 'EMP095', '林博文', 'linbowen@internsu.com', '13800138095', 3, '运营工程师', '在职', '2026-05-15'),
 (93, 'EMP096', '罗博文', 'luobowen@internsu.com', '13800138096', 4, 'HR工程师', '在职', '2026-05-20'),
 (94, 'EMP097', '梁博文', 'liangbowen@internsu.com', '13800138097', 5, '财务工程师', '在职', '2026-05-25'),
-(95, 'EMP099', '宋博文', 'songbowen@internsu.com', '13800138099', 7, '后端工程师', '在职', '2026-05-30'),
-
+(95, 'EMP099', '宋博文', 'songbowen@internsu.com', '13800138099', 7, '后端工程师', '在职', '2026-05-30');
 -- 插入项目数据
 INSERT INTO `oa_project` (`id`, `name`, `description`, `manager_id`, `department_id`, `status`, `start_date`, `end_date`, `budget`) VALUES
 (1, '企业级RAG知识库系统', '基于大语言模型的企业级知识库检索系统，支持文档上传、智能问答、多模态检索', 1, 1, '进行中', '2025-01-01', '2025-12-31', 5000000.00),

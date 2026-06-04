@@ -395,6 +395,8 @@ async def _sse_generator(req: ChatRequest):
         yield await sender.trace(
             "loading", "completed", step_order=0,
             detail={"history_rounds": 0},
+            step_type="loading",
+            step_name="初始化",
         )
 
         # ── Step 2: 主循环 —— 从队列读取并实时 yield SSE ──
@@ -427,6 +429,8 @@ async def _sse_generator(req: ChatRequest):
                     step_order=item.get("step_order", 0),
                     detail=item.get("detail"),
                     duration_ms=item.get("duration_ms"),
+                    step_type=item.get("step_type", "unknown"),
+                    step_name=item.get("step_name", item.get("node", "")),
                 )
 
             elif item["type"] == "result":
@@ -468,15 +472,20 @@ async def _sse_generator(req: ChatRequest):
                 step_order=i,
                 detail=t.get("detail"),
                 duration_ms=t.get("duration_ms"),
+                step_type=t.get("step_type", "unknown"),
+                step_name=t.get("step_name", t.get("node", "")),
             )
 
-        # 发送 meta — 携带 trace_id 供 Java 网关解析
+        # 发送 meta — 携带 trace_id 和 Token 详细统计供 Java 网关解析
         yield await sender.meta(
             sources=final_result.get("sources", []),
             tokens_used=final_result.get("tokens_used", 0),
             model_name=final_result.get("model_name", ""),
             trace_id=trace_id,
             file=final_result.get("primary_file", ""),
+            prompt_tokens=final_result.get("_prompt_tokens"),
+            completion_tokens=final_result.get("_completion_tokens"),
+            total_tokens=final_result.get("_total_tokens"),
         )
 
         final_text = final_result.get("final_answer", "")

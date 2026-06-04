@@ -108,6 +108,8 @@ def _add_trace(state: InternState, message: str) -> None:
     """
     state["trace_steps"] = state.get("trace_steps", []) + [{
         "node": "rag_rerank_node",
+        "step_type": "rerank",
+        "step_name": "重排序",
         "message": message,
         "status": "running",
         "timestamp": _now(),
