@@ -78,6 +78,7 @@ async def chat_node(state: InternState, config: dict = None) -> InternState:
     if token_queue:
         await _emit(token_queue, "trace",
                     node="chat_node", status="running", step_order=step_idx,
+                    message="正在整理回答...",
                     detail={"message": "正在整理回答..."},
                     step_type="llm_generation", step_name="LLM生成")
 
@@ -156,6 +157,7 @@ async def chat_node(state: InternState, config: dict = None) -> InternState:
     if token_queue:
         await _emit(token_queue, "trace",
                     node="chat_node", status="completed", step_order=step_idx,
+                    message="回答已生成",
                     detail={"model": model, "tokens": state.get("tokens_used", 0)},
                     duration_ms=duration_ms,
                     step_type="llm_generation", step_name="LLM生成")

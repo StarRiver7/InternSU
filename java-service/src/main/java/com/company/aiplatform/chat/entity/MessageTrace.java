@@ -5,10 +5,12 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 消息工作过程追踪实体 —— 对应 t_message_trace 表。
+ * 消息工作过程追踪实体 —— 对应 t_message_trace 表（v8 清理版）。
  *
  * <p>每次 AI 回答生成后，将 LangGraph 工作流中每个节点的执行信息
  * 记录到此表，供前端展示"查看执行过程"折叠面板。</p>
+ *
+ * <p>v8: 移除 step_detail / started_at / completed_at / error_message（从未被代码写入）</p>
  */
 @Data
 @TableName("t_message_trace")
@@ -26,42 +28,30 @@ public class MessageTrace {
     /** 步骤序号（从 1 开始） */
     private Integer stepOrder;
 
-    /** 步骤类型枚举：intent_recognition / query_rewrite / vector_search / rerank / sql_generation / sql_execution / llm_generation / response_build / unknown */
+    /** 步骤类型枚举：intent_recognition / vector_search / rerank / sql_execution / llm_generation / response_build / ... */
     private String stepType;
 
-    /** 人类可读的步骤展示名（如：意图识别 / 向量检索 / SQL生成） */
+    /** 人类可读的步骤展示名（如：意图识别 / 向量检索 / SQL查询） */
     private String stepName;
 
-    /** 输入摘要（截断至 512 字符） */
+    /** 输入摘要（截断至 512 字符，来自 trace 事件的 message 字段） */
     private String inputSummary;
 
-    /** 输出摘要（截断至 512 字符） */
+    /** 输出摘要（截断至 512 字符，暂未充分使用，预留给后续扩展） */
     private String outputSummary;
 
     /** 步骤状态：running / completed / failed */
     private String stepStatus;
 
-    /** 步骤详情 JSON（可选扩展字段） */
-    private String stepDetail;
-
-    /** 步骤开始时间 */
-    private LocalDateTime startedAt;
-
-    /** 步骤完成时间 */
-    private LocalDateTime completedAt;
-
     /** 耗时（毫秒） */
     private Integer durationMs;
 
-    /** LLM 输入 Token 数 */
+    /** LLM 输入 Token 数（仅非流式路径有值） */
     private Integer promptTokens;
 
-    /** LLM 输出 Token 数 */
+    /** LLM 输出 Token 数（仅非流式路径有值） */
     private Integer completionTokens;
 
     /** 总 Token 消耗 */
     private Integer totalTokens;
-
-    /** 错误信息（步骤失败时填写） */
-    private String errorMessage;
 }

@@ -37,8 +37,9 @@ class StreamSender:
         duration_ms: int | None = None,
         step_type: str = "unknown",
         step_name: str = "",
+        message: str = "",
     ) -> str:
-        """发送工作过程追踪事件。
+        """发送工作过程追踪事件 —— v4 增加 message 字段供 Java input_summary 使用。
 
         对应前端"实习生工作过程"右侧面板的每一步。
         """
@@ -49,6 +50,8 @@ class StreamSender:
             "status": status,
             "step_order": step_order,
         }
+        if message:
+            data["message"] = message
         if detail:
             data["detail"] = detail
         if duration_ms is not None:
@@ -170,6 +173,7 @@ class InternSSEHandler:
                 duration_ms=t.get("duration_ms"),
                 step_type=t.get("step_type", "unknown"),
                 step_name=t.get("step_name", t.get("node", "")),
+                message=t.get("message", ""),
             ))
         return events
 

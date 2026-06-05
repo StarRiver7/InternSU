@@ -431,6 +431,7 @@ async def _sse_generator(req: ChatRequest):
                     duration_ms=item.get("duration_ms"),
                     step_type=item.get("step_type", "unknown"),
                     step_name=item.get("step_name", item.get("node", "")),
+                    message=item.get("message", ""),
                 )
 
             elif item["type"] == "result":
@@ -474,6 +475,7 @@ async def _sse_generator(req: ChatRequest):
                 duration_ms=t.get("duration_ms"),
                 step_type=t.get("step_type", "unknown"),
                 step_name=t.get("step_name", t.get("node", "")),
+                message=t.get("message", ""),
             )
 
         # 发送 meta — 携带 trace_id 和 Token 详细统计供 Java 网关解析

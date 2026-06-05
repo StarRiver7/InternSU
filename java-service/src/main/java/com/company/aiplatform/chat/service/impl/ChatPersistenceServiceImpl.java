@@ -84,8 +84,6 @@ public class ChatPersistenceServiceImpl implements ChatPersistenceService {
             step.setMessageId(messageId);
             if (step.getTraceId() == null) step.setTraceId(traceId);
             if (step.getStepOrder() == null) step.setStepOrder(i + 1);
-            if (step.getStartedAt() == null) step.setStartedAt(LocalDateTime.now());
-            if (step.getCompletedAt() == null) step.setCompletedAt(LocalDateTime.now());
             traceMapper.insert(step);
         }
         log.info("Trace 已持久化: msgId={}, steps={}, traceId={}", messageId, steps.size(), traceId);

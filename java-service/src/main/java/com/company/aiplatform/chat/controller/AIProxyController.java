@@ -101,12 +101,13 @@ public class AIProxyController {
                                 if (node.has("tokens_used")) tokensRef.set(node.get("tokens_used").asInt());
                                 if (node.has("sources")) sourcesRef.set(node.get("sources").toString());
                                 if (node.has("trace_id")) traceIdRef.set(node.get("trace_id").asText());
-                                if (node.has("prompt_tokens") && node.has("completion_tokens")) {
-                                    // Token 详细统计（如果有的话）
-                                    updateLastTraceTokens(traceSteps,
-                                            node.has("prompt_tokens") ? node.get("prompt_tokens").asInt() : null,
-                                            node.has("completion_tokens") ? node.get("completion_tokens").asInt() : null,
-                                            node.has("total_tokens") ? node.get("total_tokens").asInt() : null);
+                                // Token 统计：精确值优先，降级为 tokens_used 估算值
+                                Integer prompt = node.has("prompt_tokens") ? node.get("prompt_tokens").asInt() : null;
+                                Integer completion = node.has("completion_tokens") ? node.get("completion_tokens").asInt() : null;
+                                Integer total = node.has("total_tokens") ? node.get("total_tokens").asInt()
+                                        : (node.has("tokens_used") ? node.get("tokens_used").asInt() : null);
+                                if (prompt != null || completion != null || total != null) {
+                                    updateLastTraceTokens(traceSteps, prompt, completion, total);
                                 }
                                 break;
                             case "done":
@@ -172,13 +173,19 @@ public class AIProxyController {
                 .retrieve()
                 .bodyToMono(MAP_TYPE)
                 .doOnSuccess(result -> {
-                    if (result == null) return;
+                    if (result == null) {
+                        return;
+                    }
                     @SuppressWarnings("unchecked")
                     Map<String, Object> data = (Map<String, Object>) result.get("data");
-                    if (data == null) return;
+                    if (data == null) {
+                        return;
+                    }
                     String conversationUuid = (String) data.get("conversation_id");
                     String generatedTitle = (String) data.get("title");
-                    if (conversationUuid == null || conversationUuid.isEmpty()) return;
+                    if (conversationUuid == null || conversationUuid.isEmpty()) {
+                        return;
+                    }
                     if (generatedTitle != null && !generatedTitle.isBlank()
                             && !"新对话".equals(generatedTitle)) {
                         chatPersistenceService.updateConversationTitle(
@@ -198,13 +205,21 @@ public class AIProxyController {
             trace.setStepName(node.has("step_name") ? node.get("step_name").asText()
                     : (node.has("node") ? node.get("node").asText() : null));
             trace.setStepStatus(node.has("status") ? node.get("status").asText() : "completed");
-            if (node.has("duration_ms")) trace.setDurationMs(node.get("duration_ms").asInt());
+            if (node.has("duration_ms")) {
+                trace.setDurationMs(node.get("duration_ms").asInt());
+            }
             if (node.has("detail") && node.get("detail").isObject()) {
                 JsonNode detail = node.get("detail");
-                if (detail.has("input")) trace.setInputSummary(truncate(detail.get("input").asText(), 500));
-                if (detail.has("output")) trace.setOutputSummary(truncate(detail.get("output").asText(), 500));
+                if (detail.has("input")) {
+                    trace.setInputSummary(truncate(detail.get("input").asText(), 500));
+                }
+                if (detail.has("output")) {
+                    trace.setOutputSummary(truncate(detail.get("output").asText(), 500));
+                }
             }
-            if (node.has("message")) trace.setInputSummary(truncate(node.get("message").asText(), 500));
+            if (node.has("message")) {
+                trace.setInputSummary(truncate(node.get("message").asText(), 500));
+            }
             return trace;
         } catch (Exception e) {
             return null;
@@ -224,8 +239,12 @@ public class AIProxyController {
                 if ("completed".equals(incoming.getStepStatus())
                         || "failed".equals(incoming.getStepStatus())) {
                     existing.setStepStatus(incoming.getStepStatus());
-                    if (incoming.getDurationMs() != null) existing.setDurationMs(incoming.getDurationMs());
-                    if (incoming.getOutputSummary() != null) existing.setOutputSummary(incoming.getOutputSummary());
+                    if (incoming.getDurationMs() != null) {
+                        existing.setDurationMs(incoming.getDurationMs());
+                    }
+                    if (incoming.getOutputSummary() != null) {
+                        existing.setOutputSummary(incoming.getOutputSummary());
+                    }
                 }
                 return;
             }
@@ -235,11 +254,19 @@ public class AIProxyController {
 
     private void updateLastTraceTokens(List<MessageTrace> steps,
                                         Integer prompt, Integer completion, Integer total) {
-        if (steps.isEmpty()) return;
+        if (steps.isEmpty()) {
+            return;
+        }
         MessageTrace last = steps.get(steps.size() - 1);
-        if (prompt != null) last.setPromptTokens(prompt);
-        if (completion != null) last.setCompletionTokens(completion);
-        if (total != null) last.setTotalTokens(total);
+        if (prompt != null) {
+            last.setPromptTokens(prompt);
+        }
+        if (completion != null) {
+            last.setCompletionTokens(completion);
+        }
+        if (total != null) {
+            last.setTotalTokens(total);
+        }
     }
 
     private void persistChatAndTraces(Long userId, ChatProxyRequest request,
@@ -299,13 +326,17 @@ public class AIProxyController {
         try {
             var auth = org.springframework.security.core.context.SecurityContextHolder
                     .getContext().getAuthentication();
-            if (auth != null && auth.isAuthenticated()) return auth.getName();
+            if (auth != null && auth.isAuthenticated()) {
+                return auth.getName();
+            }
         } catch (Exception ignored) {}
         return "anonymous";
     }
 
     private static String truncate(String s, int maxLen) {
-        if (s == null) return null;
+        if (s == null) {
+            return null;
+        }
         return s.length() <= maxLen ? s : s.substring(0, maxLen) + "...";
     }
 }
