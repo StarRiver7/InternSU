@@ -1,1 +1,1 @@
-"""Tools module — External integrations and agents."""
+"""工具模块 — 外部集成和代理。"""

@@ -1,15 +1,15 @@
 """
-FeishuSummary — Prompt builder and LLM summarizer for chat messages.
+飞书摘要 — 聊天消息的提示词构建器和 LLM 摘要生成器。
 
-Converts scored messages into a structured summary prompt,
-calls LLM to extract key information, and returns formatted result.
+将评分后的消息转换为结构化摘要提示词，
+调用 LLM 提取关键信息，并返回格式化结果。
 
-Output format:
-  [Notification] ...
-  [Task] ...
-  [Meeting] ...
-  [Risk] ...
-  [Other] ...
+输出格式:
+  [通知] ...
+  [任务] ...
+  [会议] ...
+  [风险] ...
+  [其他] ...
 """
 
 import logging
@@ -22,103 +22,103 @@ logger = logging.getLogger(__name__)
 
 
 # ============================================================
-# Summary System Prompt
+# 摘要系统提示词
 # ============================================================
 
-SUMMARY_SYSTEM_PROMPT = """You are a senior enterprise assistant AI. Your task is to read enterprise chat messages and produce a structured summary.
+SUMMARY_SYSTEM_PROMPT = """你是一位资深企业助理 AI。你的任务是阅读企业聊天消息并生成结构化摘要。
 
-## Summary Rules
+## 摘要规则
 
-1. Extract and categorize information into sections:
-   - [Notification]: Official announcements, release notices, policy changes
-   - [Task]: Assigned tasks, action items, TODO items, deadlines
-   - [Meeting]: Meeting announcements, review schedules, meeting conclusions
-   - [Risk]: Incidents, bugs, alerts, urgent issues, production problems
-   - [Other]: Important discussions that don't fit above categories
+1. 提取并分类信息到各个部分:
+   - [通知]: 官方公告、发布通知、政策变更
+   - [任务]: 分配的任务、行动项、待办事项、截止日期
+   - [会议]: 会议通知、评审安排、会议结论
+   - [风险]: 事故、Bug、告警、紧急问题、生产问题
+   - [其他]: 不符合上述类别的重要讨论
 
-2. For each item, include:
-   - Who (sender name if available)
-   - What (core content in 1-2 lines)
-   - When (time or deadline)
+2. 对于每个条目，包含:
+   - 谁 (发送者姓名，如有)
+   - 什么 (核心内容，1-2 行)
+   - 何时 (时间或截止日期)
 
-3. Quality requirements:
-   - Do NOT simply repeat the chat messages verbatim
-   - Prioritize decisions, conclusions, and action items over chatter
-   - If a topic spans multiple messages, merge them into one entry
-   - Omit trivial conversations (greetings, emojis, off-topic chat)
-   - Use professional but friendly tone
+3. 质量要求:
+   - 不要简单地逐字重复聊天消息
+   - 优先提取决策、结论和行动项，而非闲聊
+   - 如果一个主题跨越多条消息，将其合并为一个条目
+   - 略去琐碎对话 (问候、表情符号、无关话题)
+   - 使用专业但友好的语气
 
-4. Output format:
-   Start each section with its marker, followed by bullet points (- ).
-   If a section has no relevant content, output "None" under it.
-   Keep the total summary concise, under 500 words."""
+4. 输出格式:
+   每个部分以标记开头，后跟要点 (- )。
+   如果某个部分没有相关内容，输出 "无"。
+   保持总摘要简洁，不超过 500 字。"""
 
 
-SUMMARY_USER_TEMPLATE = """Below are recent important messages from the enterprise chat group.
+SUMMARY_USER_TEMPLATE = """以下是企业聊天群中的近期重要消息。
 
-Chat name: {chat_name}
-Time range: last {hours}h
-Total messages: {total_count}
-Important messages (filtered): {important_count}
+聊天名称: {chat_name}
+时间范围: 最近 {hours} 小时
+消息总数: {total_count}
+重要消息 (已过滤): {important_count}
 
 ---
 {message_list}
 ---
 
-Please produce a structured summary following the format rules."""
+请按照格式规则生成结构化摘要。"""
 
 
 # ============================================================
-# Message Formatter for Prompt
+# 消息格式化器 (用于提示词)
 # ============================================================
 
 def format_messages_for_prompt(
     messages: List[ScoredMessage],
     max_chars_per_msg: int = 300,
 ) -> str:
-    """Format scored messages into a compact prompt string.
+    """将评分后的消息格式化为紧凑的提示词字符串。
 
-    Each message is formatted as:
-      [time] sender (score:N, cat:category):
-        text...
+    每条消息格式化为:
+      [时间] 发送者 (分数:N, 类别:类别):
+        文本...
 
-    Messages are grouped by category for easier LLM processing.
+    消息按类别分组以便 LLM 处理。
 
-    Args:
-        messages: Scored messages sorted by importance.
-        max_chars_per_msg: Max characters per message text (truncation).
+    参数:
+        messages: 按重要性排序的评分消息。
+        max_chars_per_msg: 每条消息文本的最大字符数 (截断)。
 
-    Returns:
-        Formatted string ready for prompt insertion.
+    返回:
+        格式化的字符串，可直接插入提示词。
     """
     if not messages:
-        return "(No important messages found)"
+        return "(未找到重要消息)"
 
     lines: List[str] = []
     current_category = ""
 
     for sm in messages:
-        # Add category header when switching categories
+        # 切换类别时添加类别标题
         cat_label = _category_label(sm.category)
         if sm.category != current_category:
             current_category = sm.category
             lines.append(f"\n--- {cat_label} ---")
 
-        # Truncate long messages
+        # 截断长消息
         text = sm.plain_text
         if len(text) > max_chars_per_msg:
             text = text[:max_chars_per_msg - 3] + "..."
 
-        # Format: [HH:MM] Name: text
+        # 格式: [HH:MM] 姓名: 文本
         time_str = sm.time_str or "--:--"
-        at_flag = " [@all]" if sm.is_at_everyone else ""
+        at_flag = " [@所有人]" if sm.is_at_everyone else ""
         lines.append(f"[{time_str}] {sm.sender_name}{at_flag}: {text}")
 
     return "\n".join(lines)
 
 
 def _category_label(category: str) -> str:
-    """Chinese category label for prompt display."""
+    """用于提示显示的中文类别标签。"""
     labels = {
         "notification": "Notification/Announcement",
         "meeting": "Meeting",
@@ -130,24 +130,24 @@ def _category_label(category: str) -> str:
 
 
 # ============================================================
-# Summary Generator
+# 摘要生成器
 # ============================================================
 
 class FeishuSummaryGenerator:
-    """Generates structured summary from scored messages using LLM.
+    """使用 LLM 从评分消息生成结构化摘要。
 
-    Usage:
+    用法:
         gen = FeishuSummaryGenerator(llm_chat_fn)
-        summary = await gen.generate(messages, chat_name="Tech Team")
+        summary = await gen.generate(messages, chat_name="技术团队")
     """
 
     def __init__(self, llm_chat_fn):
-        """Initialize with an async LLM chat function.
+        """使用异步 LLM 聊天函数初始化。
 
-        Args:
-            llm_chat_fn: Async function with signature:
+        参数:
+            llm_chat_fn: 异步函数，签名:
                 async def fn(messages, temperature, max_tokens) -> LLMResponse
-                where LLMResponse has .content (str).
+                其中 LLMResponse 有 .content (str)。
         """
         self._chat = llm_chat_fn
 
@@ -160,31 +160,31 @@ class FeishuSummaryGenerator:
         temperature: float = 0.3,
         max_tokens: int = 1200,
     ) -> Dict[str, Any]:
-        """Generate structured summary from scored messages.
+        """从评分消息生成结构化摘要。
 
-        Pipeline:
-          1. Format messages into prompt string (grouped by category)
-          2. Build system + user messages
-          3. Call LLM
-          4. Parse output into structured sections (fallback if parsing fails)
+        流程:
+          1. 将消息格式化为提示词字符串 (按类别分组)
+          2. 构建系统 + 用户消息
+          3. 调用 LLM
+          4. 解析输出为结构化部分 (解析失败时回退)
 
-        Args:
-            messages: Scored messages sorted by importance.
-            chat_name: Chat group name for context.
-            hours_back: Time window for display.
-            total_count: Total raw message count (before filtering).
-            temperature: LLM temperature (lower = more focused).
-            max_tokens: Max output tokens.
+        参数:
+            messages: 按重要性排序的评分消息。
+            chat_name: 聊天群名称，用于上下文。
+            hours_back: 显示的时间窗口。
+            total_count: 原始消息总数 (过滤前)。
+            temperature: LLM 温度 (越低越专注)。
+            max_tokens: 最大输出令牌数。
 
-        Returns:
-            Dict with keys: summary (str), sections (dict), stats (dict).
+        返回:
+            包含键: summary (str), sections (dict), stats (dict) 的字典。
         """
-        # Step 1: Format messages for prompt
+        # 步骤 1: 格式化消息用于提示词
         formatted = format_messages_for_prompt(messages)
 
-        # Step 2: Build prompts
+        # 步骤 2: 构建提示词
         user_prompt = SUMMARY_USER_TEMPLATE.format(
-            chat_name=chat_name or "company chat",
+            chat_name=chat_name or "公司聊天",
             hours=hours_back,
             total_count=total_count,
             important_count=len(messages),
@@ -196,7 +196,7 @@ class FeishuSummaryGenerator:
             {"role": "user", "content": user_prompt},
         ]
 
-        # Step 3: Call LLM
+        # 步骤 3: 调用 LLM
         try:
             resp = await self._chat(
                 messages=llm_messages,
@@ -205,8 +205,8 @@ class FeishuSummaryGenerator:
             )
             summary_text = resp.content if hasattr(resp, "content") else str(resp)
         except Exception as exc:
-            logger.exception("LLM summarization failed")
-            # Fallback: build simple summary from scored messages
+            logger.exception("LLM 摘要生成失败")
+            # 回退: 从评分消息构建简单摘要
             summary_text = _build_fallback_summary(messages, chat_name, hours_back)
             return {
                 "summary": summary_text,
@@ -219,10 +219,10 @@ class FeishuSummaryGenerator:
                 },
             }
 
-        # Step 4: Parse sections from LLM output
+        # 步骤 4: 从 LLM 输出解析部分
         sections = _parse_sections(summary_text)
 
-        # Step 5: Build stats
+        # 步骤 5: 构建统计信息
         stats = _build_stats(messages, total_count, hours_back)
 
         return {
@@ -233,31 +233,31 @@ class FeishuSummaryGenerator:
 
 
 # ============================================================
-# Output Parsing
+# 输出解析
 # ============================================================
 
 def _parse_sections(summary_text: str) -> Dict[str, str]:
-    """Parse LLM output into structured sections.
+    """将 LLM 输出解析为结构化部分。
 
-    Splits on section markers like [Notification], [Task], etc.
-    If parsing fails, returns entire text under "raw" key.
+    在部分标记如 [通知]、[任务] 等处分割。
+    如果解析失败，将整个文本放在 "raw" 键下。
 
-    Args:
-        summary_text: Raw LLM output.
+    参数:
+        summary_text: 原始 LLM 输出。
 
-    Returns:
-        Dict mapping section name to content string.
+    返回:
+        映射部分名称到内容字符串的字典。
     """
     import re
 
     sections: Dict[str, str] = {}
-    # Known section markers
+    # 已知部分标记
     markers = [
-        ("notification", r"\[Notification\]"),
-        ("task", r"\[Task\]"),
-        ("meeting", r"\[Meeting\]"),
-        ("risk", r"\[Risk\]"),
-        ("other", r"\[Other\]"),
+        ("notification", r"\[通知\]"),
+        ("task", r"\[任务\]"),
+        ("meeting", r"\[会议\]"),
+        ("risk", r"\[风险\]"),
+        ("other", r"\[其他\]"),
     ]
 
     remaining = summary_text
@@ -268,7 +268,7 @@ def _parse_sections(summary_text: str) -> Dict[str, str]:
             continue
 
         start = match.end()
-        # Find next marker or end of text
+        # 查找下一个标记或文本结尾
         next_start = len(remaining)
         for _, next_pattern in markers[i + 1:]:
             next_match = re.search(next_pattern, remaining[start:], re.IGNORECASE)
@@ -277,11 +277,11 @@ def _parse_sections(summary_text: str) -> Dict[str, str]:
                 break
 
         content = remaining[start:next_start].strip()
-        # Clean up: remove leading/trailing whitespace and bullets
+        # 清理: 移除前后空白和要点符号
         sections[key] = content
         remaining = remaining[next_start:]
 
-    # If no sections were parsed, put everything under "raw"
+    # 如果没有解析到任何部分，将所有内容放在 "raw" 下
     if not any(sections.values()):
         sections["raw"] = summary_text
 
@@ -293,9 +293,9 @@ def _build_stats(
     total_count: int,
     hours_back: int,
 ) -> Dict[str, Any]:
-    """Build summary statistics from scored messages.
+    """从评分消息构建摘要统计信息。
 
-    Includes: message counts by category, time range, top keywords.
+    包含: 各类别消息计数、时间范围、热门关键词。
     """
     categories: Dict[str, int] = {}
     senders: Dict[str, int] = {}
@@ -308,10 +308,10 @@ def _build_stats(
         for kw in sm.matched_keywords:
             top_kws[kw] = top_kws.get(kw, 0) + 1
 
-    # Sort and limit top keywords
+    # 排序并限制热门关键词
     sorted_kws = sorted(top_kws.items(), key=lambda x: -x[1])[:10]
 
-    # Time range
+    # 时间范围
     times = [sm.create_time for sm in messages if sm.create_time]
     time_range = ""
     if times:
@@ -336,21 +336,21 @@ def _build_fallback_summary(
     chat_name: str,
     hours_back: int,
 ) -> str:
-    """Build a simple summary when LLM is unavailable.
+    """当 LLM 不可用时构建简单摘要。
 
-    Groups messages by category and lists top items.
-    This is a degradation strategy, not the primary path.
+    按类别分组消息并列出前几项。
+    这是一个降级策略，不是主要路径。
     """
     if not messages:
-        return f"No important messages found in the last {hours_back} hours."
+        return f"最近 {hours_back} 小时内未找到重要消息。"
 
     lines = [
-        f"Chat: {chat_name or 'company chat'}",
-        f"Time: last {hours_back}h, {len(messages)} important messages",
+        f"聊天: {chat_name or '公司聊天'}",
+        f"时间: 最近 {hours_back}h, {len(messages)} 条重要消息",
         "",
     ]
 
-    # Group by category
+    # 按类别分组
     from collections import defaultdict
     by_cat: Dict[str, List[ScoredMessage]] = defaultdict(list)
     for sm in messages:
@@ -358,11 +358,11 @@ def _build_fallback_summary(
 
     cat_order = ["notification", "risk", "meeting", "task", "other"]
     cat_labels = {
-        "notification": "[Notification]",
-        "risk": "[Risk/Incident]",
-        "meeting": "[Meeting]",
-        "task": "[Task]",
-        "other": "[Other]",
+        "notification": "[通知]",
+        "risk": "[风险/事故]",
+        "meeting": "[会议]",
+        "task": "[任务]",
+        "other": "[其他]",
     }
 
     for cat in cat_order:

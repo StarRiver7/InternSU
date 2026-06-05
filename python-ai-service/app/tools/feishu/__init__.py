@@ -1,10 +1,10 @@
 """
-Feishu Agent Module — Enterprise chat message summary.
+飞书代理模块 — 企业聊天消息摘要。
 
-Modules:
-  feishu_client:           Feishu Open API client (token, chats, messages)
-  feishu_message_filter:   Enterprise message importance scoring & filtering
-  feishu_summary:          LLM prompt builder & structured summary generator
+模块:
+  feishu_client:           飞书开放 API 客户端 (令牌、聊天、消息)
+  feishu_message_filter:   企业消息重要性评分与过滤
+  feishu_summary:          LLM 提示词构建器与结构化摘要生成器
 """
 
 from app.tools.feishu.feishu_client import (

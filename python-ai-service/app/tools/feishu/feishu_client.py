@@ -1,11 +1,11 @@
 """
-FeishuClient — Feishu Open API Client.
+飞书客户端 — 飞书开放 API 客户端。
 
-Encapsulates Feishu Open Platform API calls:
-  - Tenant access token management (auto-refresh)
-  - List chats
-  - List messages with pagination and time range
-  - Message content parsing
+封装飞书开放平台 API 调用:
+  - 租户访问令牌管理 (自动刷新)
+  - 列出聊天
+  - 列出消息 (分页和时间范围)
+  - 消息内容解析
 """
 
 import json
@@ -21,12 +21,12 @@ logger = logging.getLogger(__name__)
 
 
 # ============================================================
-# Data Models
+# 数据模型
 # ============================================================
 
 @dataclass
 class FeishuMessage:
-    """Parsed Feishu message entity."""
+    """解析后的飞书消息实体。"""
     message_id: str
     chat_id: str
     chat_name: str = ""
@@ -43,7 +43,7 @@ class FeishuMessage:
 
 @dataclass
 class ChatInfo:
-    """Chat group basic info."""
+    """聊天群基本信息。"""
     chat_id: str
     name: str = ""
     description: str = ""
@@ -52,7 +52,7 @@ class ChatInfo:
 
 @dataclass
 class PaginatedResult:
-    """Unified pagination result."""
+    """统一分页结果。"""
     items: List[Any] = field(default_factory=list)
     total: int = 0
     has_more: bool = False
@@ -61,7 +61,7 @@ class PaginatedResult:
 
 @dataclass
 class TokenCache:
-    """In-memory access_token cache with TTL."""
+    """带 TTL 的内存访问令牌缓存。"""
     token: str = ""
     expires_at: float = 0.0
 
@@ -71,15 +71,15 @@ class TokenCache:
 
 
 # ============================================================
-# FeishuClient
+# 飞书客户端
 # ============================================================
 
 class FeishuClient:
-    """Feishu Open Platform async HTTP client.
+    """飞书开放平台异步 HTTP 客户端。
 
-    Handles token lifecycle, pagination, retries, and error logging.
+    处理令牌生命周期、分页、重试和错误日志。
 
-    Usage:
+    用法:
         config = settings  # from app.core.config
         client = FeishuClient(
             app_id=config.feishu_app_id,
@@ -100,16 +100,16 @@ class FeishuClient:
         max_retries: int = 3,
         request_timeout: float = 30.0,
     ):
-        """Initialize FeishuClient.
+        """初始化飞书客户端。
 
-        Args:
-            app_id: Feishu app ID (from open platform).
-            app_secret: Feishu app secret.
-            base_url: API base URL (use open.larksuite.com for international).
-            token_cache_ttl: Token cache TTL in seconds (default 110 min).
-            default_page_size: Default page size for list APIs.
-            max_retries: Max retry count on failure.
-            request_timeout: HTTP request timeout in seconds.
+        参数:
+            app_id: 飞书应用 ID (来自开放平台)。
+            app_secret: 飞书应用密钥。
+            base_url: API 基础 URL (国际版使用 open.larksuite.com)。
+            token_cache_ttl: 令牌缓存 TTL (秒，默认 110 分钟)。
+            default_page_size: 列表 API 的默认页面大小。
+            max_retries: 失败时的最大重试次数。
+            request_timeout: HTTP 请求超时 (秒)。
         """
         if not app_id or not app_secret:
             raise ValueError("feishu_app_id and feishu_app_secret are required")
@@ -126,10 +126,10 @@ class FeishuClient:
         self._client: Optional[httpx.AsyncClient] = None
 
     # ----------------------------------------------------------
-    # HTTP Client (lazy init for async context)
+    # HTTP 客户端 (异步上下文延迟初始化)
     # ----------------------------------------------------------
     async def _get_client(self) -> httpx.AsyncClient:
-        """Get or create httpx AsyncClient (connection pool reuse)."""
+        """获取或创建 httpx AsyncClient (连接池复用)。"""
         if self._client is None:
             self._client = httpx.AsyncClient(
                 base_url=self._base_url,
@@ -138,16 +138,16 @@ class FeishuClient:
         return self._client
 
     # ----------------------------------------------------------
-    # Token Management
+    # 令牌管理
     # ----------------------------------------------------------
     async def _fetch_access_token(self) -> str:
-        """Call Feishu tenant_access_token API, cache the result.
+        """调用飞书租户访问令牌 API，缓存结果。
 
-        Returns:
-            Access token string.
+        返回:
+            访问令牌字符串。
 
-        Raises:
-            RuntimeError: If token fetch fails after all retries.
+        异常:
+            RuntimeError: 如果令牌获取在所有重试后失败。
         """
         client = await self._get_client()
         url = "/open-apis/auth/v3/tenant_access_token/internal"
@@ -167,7 +167,7 @@ class FeishuClient:
 
                 token = data["tenant_access_token"]
                 self._token_cache.token = token
-                # Expire 10 minutes early as safety margin
+                # 提前 10 分钟过期作为安全边际
                 self._token_cache.expires_at = time.time() + self._token_cache_ttl
                 logger.info("Feishu access_token refreshed successfully")
                 return token
@@ -181,19 +181,19 @@ class FeishuClient:
                     raise RuntimeError(
                         f"Feishu token fetch failed after {self._max_retries} attempts"
                     ) from exc
-                # Exponential backoff: 2s, 4s, 8s...
+                # 指数退避: 2s, 4s, 8s...
                 await _sleep(2 ** attempt)
 
         raise RuntimeError("Feishu token fetch aborted unexpectedly")
 
     async def _ensure_token(self) -> str:
-        """Return cached token if valid, otherwise fetch new one."""
+        """如果缓存的令牌有效则返回，否则获取新令牌。"""
         if self._token_cache.is_valid:
             return self._token_cache.token
         return await self._fetch_access_token()
 
     # ----------------------------------------------------------
-    # Low-level HTTP Request
+    # 底层 HTTP 请求
     # ----------------------------------------------------------
     async def _request(
         self,
@@ -202,16 +202,16 @@ class FeishuClient:
         params: Optional[Dict] = None,
         json_body: Optional[Dict] = None,
     ) -> Dict:
-        """Unified HTTP request with auth, retry, and error handling.
+        """统一的 HTTP 请求，包含认证、重试和错误处理。
 
-        Args:
-            method: HTTP method (GET/POST).
-            path: API path (e.g. /open-apis/im/v1/chats).
-            params: URL query parameters.
-            json_body: JSON request body.
+        参数:
+            method: HTTP 方法 (GET/POST)。
+            path: API 路径 (例如 /open-apis/im/v1/chats)。
+            params: URL 查询参数。
+            json_body: JSON 请求体。
 
-        Returns:
-            API response data dict (extracted from Feishu standard envelope).
+        返回:
+            API 响应数据字典 (从飞书标准信封中提取)。
         """
         token = await self._ensure_token()
         client = await self._get_client()
@@ -231,7 +231,7 @@ class FeishuClient:
 
                 code = data.get("code", -1)
                 if code != 0:
-                    # Token expired error codes: refresh and retry once
+                    # 令牌过期错误码: 刷新并重试一次
                     if code in (99991663, 99991664, 99991665):
                         logger.info("Feishu token expired, refreshing...")
                         self._token_cache.token = ""
@@ -270,18 +270,18 @@ class FeishuClient:
         raise RuntimeError(f"Feishu API aborted: {method} {path}")
 
     # ----------------------------------------------------------
-    # Chat List
+    # 聊天列表
     # ----------------------------------------------------------
     async def list_chats(
         self,
         page_size: Optional[int] = None,
         page_token: Optional[str] = None,
     ) -> PaginatedResult:
-        """List chats the bot belongs to.
+        """列出机器人所属的聊天。
 
-        Args:
-            page_size: Items per page (default from config).
-            page_token: Pagination token for next page.
+        参数:
+            page_size: 每页条目数 (默认来自配置)。
+            page_token: 下一页的分页令牌。
         """
         ps = page_size or self._default_page_size
         params: Dict = {"page_size": min(ps, 100)}
@@ -308,7 +308,7 @@ class FeishuClient:
         )
 
     # ----------------------------------------------------------
-    # Message List
+    # 消息列表
     # ----------------------------------------------------------
     async def list_messages(
         self,
@@ -318,14 +318,14 @@ class FeishuClient:
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
     ) -> PaginatedResult:
-        """List messages in a chat.
+        """列出聊天中的消息。
 
-        Args:
-            chat_id: Chat group ID.
-            page_size: Items per page.
-            page_token: Pagination token.
-            start_time: Earliest message time (inclusive).
-            end_time: Latest message time (inclusive).
+        参数:
+            chat_id: 聊天群 ID。
+            page_size: 每页条目数。
+            page_token: 分页令牌。
+            start_time: 最早消息时间 (包含)。
+            end_time: 最晚消息时间 (包含)。
         """
         ps = page_size or self._default_page_size
         params: Dict = {
@@ -357,25 +357,25 @@ class FeishuClient:
         )
 
     # ----------------------------------------------------------
-    # Message Parsing
+    # 消息解析
     # ----------------------------------------------------------
     def _parse_message(self, raw: Dict, default_chat_id: str) -> FeishuMessage:
-        """Parse raw Feishu message JSON into FeishuMessage entity.
+        """将原始飞书消息 JSON 解析为 FeishuMessage 实体。
 
-        Extracts plain text according to msg_type:
-          - text: direct text field
-          - post: iterate content blocks, join text elements
-          - interactive: extract card text fields
-          - others: marked as [non-text]
+        根据 msg_type 提取纯文本:
+          - text: 直接文本字段
+          - post: 遍历内容块，连接文本元素
+          - interactive: 提取卡片文本字段
+          - 其他: 标记为 [non-text]
         """
         msg_type = raw.get("msg_type", "text")
         body = raw.get("body", {})
         content = body.get("content", "")
 
-        # Extract plain text by message type
+        # 提取纯文本
         plain_text = _extract_plain_text(msg_type, content)
 
-        # Extract mentions
+        # 提取提及
         mentions: List[str] = []
         for m in raw.get("mentions", []):
             mid = m.get("id", "")
@@ -385,7 +385,7 @@ class FeishuClient:
                 uid = str(mid) if mid else ""
             if uid:
                 mentions.append(uid)
-        # Parse create_time (millisecond timestamp)
+        # 解析创建时间 (毫秒时间戳)
         create_time = None
         raw_time = raw.get("create_time", "")
         if raw_time:
@@ -410,7 +410,7 @@ class FeishuClient:
         )
 
     # ----------------------------------------------------------
-    # Convenience: fetch messages for summary
+    # 便捷方法: 获取摘要消息
     # ----------------------------------------------------------
     async def fetch_messages_for_summary(
         self,
@@ -418,79 +418,81 @@ class FeishuClient:
         lookback_hours: int = 24,
         max_messages: int = 100,
     ) -> List[FeishuMessage]:
-        """Fetch recent text messages for LLM summarization.
+        """获取最近的文本消息用于 LLM 摘要。
 
-        Auto-paginates until max_messages limit or no more data.
-        Filters out non-text messages (images, files, stickers).
+        自动分页直到达到 max_messages 限制或没有更多数据。
+        过滤掉非文本消息 (图片、文件、表情包)。
 
-        Args:
-            chat_id: Chat group ID.
-            lookback_hours: Time window in hours.
-            max_messages: Max message count (prevents token overflow).
+        参数:
+            chat_id: 聊天群 ID。
+            lookback_hours: 时间窗口 (小时)。
+            max_messages: 最大消息数量 (防止令牌溢出)。
 
-        Returns:
-            Text messages sorted by time ascending (oldest first).
+        返回:
+            按时间升序排序的文本消息 (最旧的在前)。
         """
         from datetime import timedelta
 
-        end_time = datetime.now()
-        start_time = end_time - timedelta(hours=lookback_hours)
+        cutoff_time = datetime.now() - timedelta(hours=lookback_hours)
 
         all_msgs: List[FeishuMessage] = []
         page_token: Optional[str] = None
+        done = False
 
-        while len(all_msgs) < max_messages:
+        while len(all_msgs) < max_messages and not done:
             result = await self.list_messages(
                 chat_id=chat_id,
                 page_size=min(50, max_messages - len(all_msgs)),
                 page_token=page_token,
-                start_time=start_time,
-                end_time=end_time,
             )
 
-            # Keep only messages with readable text
-            text_msgs = [
-                m for m in result.items
-                if m.plain_text and m.plain_text != "[non-text]"
-            ]
-            all_msgs.extend(text_msgs)
+            for m in result.items:
+                # 一旦遇到早于截止时间的消息就停止分页
+                if m.create_time and m.create_time < cutoff_time:
+                    done = True
+                    break
+                # 只保留有可读文本的消息
+                if m.plain_text and m.plain_text != "[non-text]":
+                    all_msgs.append(m)
 
+            if done:
+                break
             if not result.has_more or not result.page_token:
                 break
             page_token = result.page_token
 
-        # Sort ascending by time (oldest first for LLM context)
+        # 按时间升序排序 (最旧的在前，用于 LLM 上下文)
         all_msgs.sort(key=lambda m: m.create_time or datetime.min)
         return all_msgs[:max_messages]
 
     # ----------------------------------------------------------
-    # Cleanup
+    # 清理
     # ----------------------------------------------------------
     async def close(self) -> None:
-        """Close HTTP client connection pool."""
+        """关闭 HTTP 客户端连接池。"""
         if self._client is not None:
             await self._client.aclose()
             self._client = None
 
 
 # ============================================================
-# Helpers
+# 辅助函数
 # ============================================================
 
 async def _sleep(seconds: float) -> None:
-    """Async sleep helper."""
+    """异步睡眠辅助函数。"""
     import asyncio
     await asyncio.sleep(seconds)
 
 
 def _extract_plain_text(msg_type: str, content: str) -> str:
-    """Extract plain text from Feishu message content JSON.
+    """从飞书消息内容 JSON 中提取纯文本。
 
-    Feishu message content is a JSON string whose structure depends on msg_type:
+    飞书消息内容是一个 JSON 字符串，其结构取决于 msg_type:
       - text:  {"text": "hello"}
       - post:  {"title": "...", "content": [[{"tag":"text","text":"..."}]]}
-      - interactive: card with header/elements
-      - image/file/audio/media/sticker: no text
+      - interactive: 带有 header/elements 的卡片
+      - image/file/audio/media/sticker: 无文本
     """
     if not content:
         return ""
