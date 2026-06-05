@@ -29,14 +29,14 @@ def route_after_slot_collect(
 
 def route_after_router(
     state: InternState,
-) -> Literal["chat_node", "sql_node", "rag_retrieval_node", "agent_node"]:
+) -> Literal["chat_node", "agent_node"]:
     """v3: 基于 LLM Tool Selection 路由，不再依赖 intent 字符串。"""
     tool = state.get("selected_tool", "chat")
 
     tool_map = {
         "chat": "chat_node",
-        "rag_search": "rag_retrieval_node",
-        "sql_query": "sql_node",
+        "rag_search": "agent_node",
+        "sql_query": "agent_node",
         "agent": "agent_node",
         "feishu_agent": "agent_node",
     }

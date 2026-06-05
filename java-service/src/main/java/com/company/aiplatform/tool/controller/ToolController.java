@@ -4,31 +4,34 @@ import com.company.aiplatform.common.result.Result;
 import com.company.aiplatform.tool.entity.ToolDefinition;
 import com.company.aiplatform.tool.service.ToolDefinitionService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
- * 工具管理控制器
+ * Tool management controller — V3 with full CRUD.
  *
- * <p>提供 Agent 可用工具的查询接口，供 Python Agent 查询可用的工具定义。
- * 工具定义包括：
+ * <p>Provides:
  * <ul>
- *   <li>工具名称</li>
- *   <li>工具描述</li>
- *   <li>输入参数 Schema</li>
- *   <li>执行方式（本地执行 / 远程调用）</li>
+ *   <li>List all enabled tools (used by Python Agent for function calling)</li>
+ *   <li>List all tools including disabled (admin)</li>
+ *   <li>Enable/disable tools at runtime</li>
+ *   <li>Update tool configuration</li>
  * </ul>
  *
- * <p>安全说明：
- * <ul>
- *   <li>只有启用状态（status=1）的工具才会被返回</li>
- *   <li>工具执行权限由 Python Agent 层做二次校验</li>
- * </ul>
+ * <p>Usage flow:
+ * <ol>
+ *   <li>Python Agent starts up, calls {@code GET /list} to discover tools</li>
+ *   <li>Python Agent registers tools from DB into its ToolRegistry</li>
+ *   <li>LLM selects tool based on descriptions, ToolManager executes</li>
+ * </ol>
  */
-@Tag(name = "工具管理", description = "工具定义查询")
+@Tag(name = "Tool Management", description = "Tool definition query and management")
 @RestController
 @RequestMapping("/api/v1/tools")
 @RequiredArgsConstructor
@@ -36,17 +39,98 @@ public class ToolController {
 
     private final ToolDefinitionService toolDefinitionService;
 
+    // ======================== Query ========================
+
     /**
-     * 查询所有已启用的工具列表
+     * List all enabled tools.
      *
-     * <p>返回给 Python Agent，用于动态生成 Function Calling 可用工具列表。
+     * <p>Called by Python Agent on startup to build its ToolRegistry.
+     * Only returns tools with is_active=1.
      *
-     * @return 已启用的工具定义列表
+     * @return List of enabled tool definitions.
      */
-    @Operation(summary = "查询所有已启用的工具列表")
+    @Operation(summary = "List all enabled tools")
     @GetMapping("/list")
     public Result<List<ToolDefinition>> listEnabledTools() {
         List<ToolDefinition> tools = toolDefinitionService.listEnabledTools();
         return Result.success(tools);
+    }
+
+    /**
+     * List all tools (including disabled).
+     *
+     * <p>For admin management UI.
+     *
+     * @return List of all tool definitions.
+     */
+    @Operation(summary = "List all tools (admin)")
+    @GetMapping("/admin/list")
+    public Result<List<ToolDefinition>> listAllTools() {
+        List<ToolDefinition> tools = toolDefinitionService.listAllTools();
+        return Result.success(tools);
+    }
+
+    /**
+     * Get tool by name.
+     *
+     * @param name Tool name (e.g. 'sql_query', 'feishu_summary').
+     * @return Tool definition if found.
+     */
+    @Operation(summary = "Get tool by name")
+    @GetMapping("/{name}")
+    public Result<ToolDefinition> getTool(
+            @Parameter(description = "Tool name") @PathVariable String name) {
+        Optional<ToolDefinition> tool = toolDefinitionService.findByName(name);
+        return tool.map(Result::success)
+                .orElse(Result.fail(404, "Tool not found: " + name));
+    }
+
+    // ======================== Management ========================
+
+    /**
+     * Enable or disable a tool at runtime.
+     *
+     * <p>Disabled tools are not returned by /list and are not available
+     * for LLM function calling. Existing ToolRegistry instances need to
+     * refresh to pick up the change.
+     *
+     * @param name Tool name.
+     * @param body Request body with "enabled": true/false.
+     * @return Success indication.
+     */
+    @Operation(summary = "Enable or disable a tool")
+    @PutMapping("/{name}/enabled")
+    public Result<Void> setEnabled(
+            @Parameter(description = "Tool name") @PathVariable String name,
+            @RequestBody Map<String, Boolean> body) {
+        Boolean enabled = body.getOrDefault("enabled", true);
+        boolean ok = toolDefinitionService.setEnabled(name, enabled);
+        if (ok) {
+            return Result.success(null);
+        }
+        return Result.fail(404, "Tool not found: " + name);
+    }
+
+    /**
+     * Update tool configuration.
+     *
+     * <p>Allows runtime config changes without restart (e.g. model name,
+     * API endpoint, threshold values).
+     *
+     * @param name Tool name.
+     * @param body Request body with "config_json": "{...}".
+     * @return Success indication.
+     */
+    @Operation(summary = "Update tool configuration")
+    @PutMapping("/{name}/config")
+    public Result<Void> updateConfig(
+            @Parameter(description = "Tool name") @PathVariable String name,
+            @RequestBody Map<String, String> body) {
+        String configJson = body.getOrDefault("config_json", "{}");
+        boolean ok = toolDefinitionService.updateConfig(name, configJson);
+        if (ok) {
+            return Result.success(null);
+        }
+        return Result.fail(404, "Tool not found: " + name);
     }
 }

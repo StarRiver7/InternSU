@@ -5,7 +5,13 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 工具定义实体 — 对应 t_tool_definition 表 (V2).
+ * Tool definition entity — maps to t_tool_definition (V3).
+ *
+ * <p>V3 changes:
+ * <ul>
+ *   <li>Added {@code version} — semantic version for tracking tool changes</li>
+ *   <li>Added {@code configJson} — JSON configuration (API endpoints, model names, etc.)</li>
+ * </ul>
  */
 @Data
 @TableName("t_tool_definition")
@@ -14,32 +20,38 @@ public class ToolDefinition {
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    /** 工具名称（函数名） */
+    /** Tool name (function name, e.g. 'sql_query', 'feishu_summary') */
     private String name;
 
-    /** 显示名称 */
+    /** Display name for UI (e.g. 'SQL Data Query') */
     private String displayName;
 
-    /** 功能描述（给 LLM 看） */
+    /** Description for LLM to understand when to use this tool */
     private String description;
 
-    /** 参数 JSON Schema */
+    /** Parameters JSON Schema (for function calling) */
     private String parametersSchema;
 
-    /** 类型: builtin / custom */
+    /** Tool type: builtin / custom */
     private String type;
 
-    /** 自定义工具实现模块路径 */
+    /** Custom tool executor module path (for custom tools) */
     private String executorPath;
 
-    /** 是否需要用户确认: 0=否 1=是 */
+    /** Whether user confirmation is required: 0=no 1=yes */
     private Integer isRequireConfirm;
 
-    /** 执行超时秒数 */
+    /** Execution timeout in seconds */
     private Integer timeoutSeconds;
 
-    /** 是否启用: 0=禁用 1=启用 */
+    /** Whether enabled: 0=disabled 1=enabled */
     private Integer isActive;
+
+    /** Semantic version (e.g. '2.0.0') — V3 new field */
+    private String version;
+
+    /** JSON config for tool-specific settings — V3 new field */
+    private String configJson;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
