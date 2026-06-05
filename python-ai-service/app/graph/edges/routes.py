@@ -38,6 +38,7 @@ def route_after_router(
         "rag_search": "rag_retrieval_node",
         "sql_query": "sql_node",
         "agent": "agent_node",
+        "feishu_agent": "agent_node",
     }
 
     target = tool_map.get(tool, "chat_node")

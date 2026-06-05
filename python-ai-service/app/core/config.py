@@ -130,6 +130,17 @@ class Settings(BaseSettings):
     # WARNING: 生产环境应限制为具体的前端域名，禁止使用通配符 "*"
     cors_origins: list[str] = ["*"]  # 允许的跨域来源
 
+    # ==================== 飞书集成配置 ====================
+    # NOTE: 敏感配置（app_id、app_secret）务必通过环境变量注入，禁止硬编码
+    # 环境变量名：FEISHU_APP_ID、FEISHU_APP_SECRET、FEISHU_BASE_URL
+    feishu_app_id: str = ""  # 飞书应用 ID（环境变量 FEISHU_APP_ID）
+    feishu_app_secret: str = ""  # 飞书应用密钥（环境变量 FEISHU_APP_SECRET）
+    feishu_base_url: str = ""  # 飞书 API 端点
+    feishu_token_cache_ttl: int = 110 * 60  # Token 缓存时间（秒），默认 110 分钟
+    feishu_default_page_size: int = 50  # 分页查询默认条数
+    feishu_max_retries: int = 3  # 最大重试次数
+    feishu_request_timeout: float = 30.0  # 请求超时时间（秒）
+
     # ==================== HuggingFace 离线模式配置 ====================
     # NOTE: 设为 True 时强制使用本地缓存模型，适用于内网部署环境
     hf_hub_offline: bool = False  # HuggingFace Hub 离线模式

@@ -144,7 +144,7 @@ async def intent_node(state: InternState) -> InternState:
         tool = resp.content.strip().lower()
 
         # 兜底：非法工具名 → chat
-        valid_tools = {"chat", "rag_search", "sql_query", "agent", "clarify"}
+        valid_tools = {"chat", "rag_search", "sql_query", "agent", "feishu_agent", "clarify"}
         if tool not in valid_tools:
             logger.warning("LLM returned invalid tool '%s', fallback to chat", tool)
             tool = "chat"
@@ -158,6 +158,7 @@ async def intent_node(state: InternState) -> InternState:
         "rag_search": "rag",
         "sql_query": "sql",
         "agent": "agent",
+        "feishu_agent": "agent",
         "clarify": "clarify",
     }
     intent = tool_to_intent[tool]
