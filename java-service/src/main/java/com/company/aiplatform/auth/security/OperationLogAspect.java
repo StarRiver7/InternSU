@@ -47,7 +47,7 @@ public class OperationLogAspect {
             try {
                 recordLog(joinPoint, status, failReason, elapsed);
             } catch (Exception e) {
-                log.warn("Failed to record operation log", e);
+                log.warn("记录操作日志失败", e);
             }
         }
 
@@ -83,7 +83,7 @@ public class OperationLogAspect {
         }
 
         loginLogMapper.insert(logEntry);
-        log.debug("Operation logged: type={}, user={}, status={}, elapsed={}ms",
+        log.debug("操作日志已记录: type={}, user={}, status={}, elapsed={}ms",
                 annotation.type(), logEntry.getUsername(), status, elapsed);
     }
 

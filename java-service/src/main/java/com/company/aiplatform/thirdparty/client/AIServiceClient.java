@@ -59,10 +59,10 @@ public class AIServiceClient {
                 .bodyToMono(new ParameterizedTypeReference<AICommonResponse<AIChatResponse>>() {})
                 .map(this::unwrap)
                 .doOnError(WebClientResponseException.class, e ->
-                        log.error("Chat request failed: status {}, body {}",
+                        log.error("聊天请求失败: status {}, body {}",
                                 e.getStatusCode(), e.getResponseBodyAsString()))
                 .onErrorMap(e -> new BusinessException(ResultCode.AI_SERVICE_UNAVAILABLE,
-                        "AI chat failed: " + e.getMessage()));
+                        "AI 聊天失败: " + e.getMessage()));
     }
 
     // ======================== SSE Stream ========================
@@ -71,7 +71,7 @@ public class AIServiceClient {
         final SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
         request.setStream(true);
 
-        log.debug("SSE stream start: conv={}, timeout={}ms",
+        log.debug("SSE 流启动: conv={}, timeout={}ms",
                 request.getConversationId(), SSE_TIMEOUT_MS);
 
         final Disposable subscription = aiBackendWebClient.post()
@@ -83,36 +83,36 @@ public class AIServiceClient {
                 .bodyToFlux(String.class)
                 .doOnNext(line -> processSseLine(line, emitter, request))
                 .doOnComplete(() -> {
-                    log.debug("SSE upstream completed: conv={}", request.getConversationId());
+                    log.debug("SSE 上游完成: conv={}", request.getConversationId());
                     safeComplete(emitter);
                 })
                 .doOnError(ex -> {
-                    log.error("SSE upstream error: conv={}, error={}",
+                    log.error("SSE 上游错误: conv={}, error={}",
                             request.getConversationId(), ex.getMessage());
                     safeCompleteWithError(emitter, ex);
                 })
                 .doOnCancel(() -> log.info(
-                        "SSE upstream cancelled (client disconnected): conv={}",
+                        "SSE 上游已取消（客户端断开连接）: conv={}",
                         request.getConversationId()))
                 .subscribe();
 
         final Runnable cancelUpstream = () -> {
             if (subscription != null && !subscription.isDisposed()) {
-                log.info("SSE disposing upstream: conv={}", request.getConversationId());
+                log.info("SSE 释放上游: conv={}", request.getConversationId());
                 subscription.dispose();
             }
         };
 
         emitter.onTimeout(() -> {
-            log.warn("SSE timeout ({}ms): conv={}", SSE_TIMEOUT_MS, request.getConversationId());
+            log.warn("SSE 超时 ({}ms): conv={}", SSE_TIMEOUT_MS, request.getConversationId());
             cancelUpstream.run();
         });
         emitter.onError(ex -> {
-            log.error("SSE emitter error: conv={}", request.getConversationId(), ex);
+            log.error("SSE emitter 错误: conv={}", request.getConversationId(), ex);
             cancelUpstream.run();
         });
         emitter.onCompletion(() -> {
-            log.debug("SSE emitter completed: conv={}", request.getConversationId());
+            log.debug("SSE emitter 完成: conv={}", request.getConversationId());
             cancelUpstream.run();
         });
 
@@ -138,9 +138,9 @@ public class AIServiceClient {
                 .bodyToMono(new ParameterizedTypeReference<AICommonResponse<Map<String, Object>>>() {})
                 .map(this::unwrap)
                 .doOnError(WebClientResponseException.class, e ->
-                        log.error("Document indexing failed: status {}", e.getStatusCode()))
+                        log.error("文档索引失败: status {}", e.getStatusCode()))
                 .onErrorMap(e -> new BusinessException(ResultCode.AI_SERVICE_UNAVAILABLE,
-                        "RAG index failed: " + e.getMessage()));
+                        "RAG 索引失败: " + e.getMessage()));
     }
 
     public Mono<Void> deleteDocumentAsync(String documentId) {
@@ -148,7 +148,7 @@ public class AIServiceClient {
                 .uri("/ai/rag/document/{docId}", documentId)
                 .retrieve()
                 .bodyToMono(Void.class)
-                .doOnError(e -> log.error("Document deletion failed: documentId={}", documentId, e));
+                .doOnError(e -> log.error("文档删除失败: documentId={}", documentId, e));
     }
 
     // ======================== Internal Helpers ========================
@@ -158,17 +158,17 @@ public class AIServiceClient {
             if (line.startsWith("data: ")) {
                 String data = line.substring(6);
                 if ("[DONE]".equals(data)) {
-                    log.debug("SSE [DONE] received: conv={}", request.getConversationId());
+                    log.debug("收到 SSE [DONE]: conv={}", request.getConversationId());
                     safeComplete(emitter);
                     return;
                 }
                 emitter.send(SseEmitter.event().data(data));
             } else if (line.startsWith("event: done")) {
-                log.debug("SSE event:done received: conv={}", request.getConversationId());
+                log.debug("收到 SSE event:done: conv={}", request.getConversationId());
                 safeComplete(emitter);
             }
         } catch (Exception e) {
-            log.debug("SSE send failed (client likely disconnected): conv={}",
+            log.debug("SSE 发送失败（客户端可能已断开连接）: conv={}",
                     request.getConversationId());
             safeCompleteWithError(emitter, e);
         }

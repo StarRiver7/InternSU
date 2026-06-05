@@ -126,18 +126,18 @@ public class SqlAgentController {
             @Valid @RequestBody SqlExecuteRequest request) {
 
         if (apiKeyHeader == null || !apiKeyHeader.equals(apiKey)) {
-            log.warn("SQL execute: invalid or missing X-Api-Key");
+            log.warn("SQL 执行: X-Api-Key 无效或缺失");
             throw new BusinessException(ResultCode.FORBIDDEN, "Invalid API Key");
         }
 
         String sql = request.getSql().trim();
-        log.info("SQL execute: sql_preview={}", sql.length() > 200 ? sql.substring(0, 200) + "..." : sql);
+        log.info("SQL 执行: sql_preview={}", sql.length() > 200 ? sql.substring(0, 200) + "..." : sql);
 
         String upper = sql.toUpperCase().replaceAll("\\s+", " ").trim();
         if (!upper.startsWith("SELECT") && !upper.startsWith("SHOW")
                 && !upper.startsWith("DESCRIBE") && !upper.startsWith("EXPLAIN")
                 && !upper.startsWith("WITH")) {
-            log.warn("SQL execute blocked: non-readonly SQL");
+            log.warn("SQL 执行被阻止: 非只读 SQL");
             throw new BusinessException(ResultCode.BAD_REQUEST, "仅允许只读查询（SELECT/SHOW/DESCRIBE/EXPLAIN）");
         }
 
@@ -163,7 +163,7 @@ public class SqlAgentController {
                     .build());
 
         } catch (Exception e) {
-            log.error("SQL execute failed: {}", e.getMessage());
+            log.error("SQL 执行失败: {}", e.getMessage());
             throw new BusinessException(ResultCode.INTERNAL_ERROR,
                     "SQL 执行失败: " + e.getMessage());
         }

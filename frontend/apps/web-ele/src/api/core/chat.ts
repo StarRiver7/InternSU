@@ -1,10 +1,10 @@
 /**
- * AI Chat API — Unified through Java security gateway (v2).
+ * AI Chat API — 通过 Java 安全网关统一入口 (v2).
  *
- * v2 changes:
- *   - Removed use_rag / use_tools (system auto-detects intent)
- *   - Added space_ids / doc_ids (knowledge space/document scope selector)
- *   - Removed all direct Python calls (chatNonStream etc.)
+ * v2 变更:
+ *   - 移除 use_rag / use_tools（系统自动检测意图）
+ *   - 新增 space_ids / doc_ids（知识库/文档范围选择器）
+ *   - 移除所有直接 Python 调用（chatNonStream 等）
  */
 import { requestClient } from '#/api/request';
 import type { ChatRequest } from './types';
@@ -72,7 +72,7 @@ async function assertResponseOk(response: Response): Promise<void> {
     const errorBody = await response.clone().json();
     serverMessage =
       errorBody?.message || errorBody?.detail || errorBody?.error || '';
-  } catch { /* non-JSON response, use status text fallback */ }
+  } catch { /* 非 JSON 响应，使用状态文本回退 */ }
   const message = buildErrorMessage(response.status, serverMessage);
   throw new HttpError(response.status, message);
 }
@@ -80,17 +80,17 @@ async function assertResponseOk(response: Response): Promise<void> {
 function buildErrorMessage(status: number, serverMsg: string): string {
   switch (status) {
     case 401:
-      return serverMsg || 'Login expired, please re-login';
+      return serverMsg || '登录已过期，请重新登录';
     case 403:
-      return serverMsg || 'No permission to access this feature';
+      return serverMsg || '无权访问此功能';
     case 429:
-      return serverMsg || 'Too many requests, please try later';
+      return serverMsg || '请求过多，请稍后重试';
     case 500:
     case 502:
     case 503:
     case 504:
-      return serverMsg || 'Service temporarily unavailable';
+      return serverMsg || '服务暂时不可用';
     default:
-      return serverMsg || ('Request failed (HTTP ' + status + ')');
+      return serverMsg || ('请求失败 (HTTP ' + status + ')');
   }
 }

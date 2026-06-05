@@ -26,7 +26,7 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
   const client = new RequestClient({ ...options, baseURL });
 
   async function doReAuthenticate() {
-    console.warn('Access token or refresh token is invalid or expired.');
+    console.warn('访问令牌或刷新令牌无效或已过期。');
     const accessStore = useAccessStore();
     const authStore = useAuthStore();
     accessStore.setAccessToken(null);

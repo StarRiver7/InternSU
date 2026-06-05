@@ -106,7 +106,7 @@ export const useChatStore = defineStore('internsu-chat', () => {
   }
 
   function addTrace(trace: AgentTrace) {
-    // Update existing trace with same node name or add new
+    // 更新相同节点名的已有 trace 或添加新 trace
     const existing = traceSteps.value.find(t => t.node === trace.node);
     if (existing) {
       existing.status = trace.status;

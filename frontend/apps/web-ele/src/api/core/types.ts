@@ -1,4 +1,4 @@
-/** AI workspace types for internSU frontend (v2 unified). */
+/** internSU 前端 AI 工作区类型定义 (v2 统一版). */
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -26,7 +26,7 @@ export interface AgentTrace {
   timestamp: number;
 }
 
-/** Unified chat request — v2: system auto-detects intent */
+/** 统一聊天请求 — v2: 系统自动检测意图 */
 export interface ChatRequest {
   user_id: string;
   conversation_id: string;
@@ -35,9 +35,9 @@ export interface ChatRequest {
   stream?: boolean;
   space_ids?: number[];
   doc_ids?: number[];
-  /** @deprecated v2: system auto-detects intent */
+  /** @deprecated v2: 系统自动检测意图 */
   use_rag?: boolean;
-  /** @deprecated v2: system auto-detects intent */
+  /** @deprecated v2: 系统自动检测意图 */
   use_tools?: boolean;
 }
 

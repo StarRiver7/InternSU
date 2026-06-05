@@ -70,7 +70,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         Path uploadDir = Paths.get(uploadPath).toAbsolutePath().normalize();
         if (!Files.exists(uploadDir)) {
             Files.createDirectories(uploadDir);
-            log.info("Created upload directory: {}", uploadDir);
+            log.info("创建上传目录: {}", uploadDir);
         }
         return uploadDir;
     }
@@ -146,9 +146,9 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         if (existing != null) {
             // 同空间同哈希 → 删除刚上传的文件，返回已有记录
             if (!destFile.delete()) {
-                log.warn("Failed to delete duplicate upload file: {}", absolutePath);
+                log.warn("删除重复上传文件失败: {}", absolutePath);
             }
-            log.info("Duplicate document detected: existingId={}, hash={}", existing.getId(), fileHash);
+            log.info("检测到重复文档: existingId={}, hash={}", existing.getId(), fileHash);
             return existing;
         }
 
@@ -176,7 +176,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         perm.setCreatorId(userId);
         documentPermissionMapper.insert(perm);
 
-        log.info("Document uploaded: id={}, spaceId={}, fileName={}, hash={}, size={}",
+        log.info("文档上传成功: id={}, spaceId={}, fileName={}, hash={}, size={}",
                 document.getId(), spaceId, originalFilename, fileHash, file.getSize());
 
         // ── 6. 异步触发解析 Pipeline ──
@@ -190,7 +190,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     @Override
     @Async("ragTaskExecutor")
     public void processDocumentAsync(Long documentId, String filePath, String fileHash, Long spaceId) {
-        log.info("Document processing started: id={}", documentId);
+        log.info("开始处理文档: id={}", documentId);
 
         // ── Step 1: 同步检查文件存在（快速操作） ──
         File file = new File(filePath);
@@ -226,7 +226,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
                 document.setChunkCount(chunkCount);
                 this.updateById(document);
             }
-            log.info("Document indexed: id={}, chunks={}", documentId, result.get("chunk_count"));
+            log.info("文档索引完成: id={}, chunks={}", documentId, result.get("chunk_count"));
         } else {
             transitionStatus(documentId, Document.STATUS_FAILED, "AI 服务返回空结果");
         }
@@ -234,7 +234,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
 
     /** 索引失败回调 —— 在 boundedElastic 线程上执行. */
     private void onIndexError(Long documentId, Throwable error) {
-        log.error("Document processing failed: id={}", documentId, error);
+        log.error("文档处理失败: id={}", documentId, error);
         transitionStatus(documentId, Document.STATUS_FAILED, truncateMsg(error.getMessage()));
     }
 
@@ -253,7 +253,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
             doc.setErrorMsg(errorMsg);
         }
         this.updateById(doc);
-        log.debug("Document status transition: id={}, status={}, error={}",
+        log.debug("文档状态转换: id={}, status={}, error={}",
                 documentId, newStatus, errorMsg);
     }
 
@@ -278,7 +278,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
                         null
                 );
             } catch (Exception e) {
-                log.warn("Failed to persist chat record: {}", e.getMessage());
+                log.warn("保存聊天记录失败: {}", e.getMessage());
             }
         }).subscribeOn(Schedulers.boundedElastic()).then();
     }
@@ -304,16 +304,16 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         try {
             aiBackendClient.deleteDocumentAsync(String.valueOf(documentId)).subscribe();
         } catch (Exception e) {
-            log.error("Failed to notify AI backend for document deletion: id={}", documentId, e);
+            log.error("通知 AI 后端删除文档失败: id={}", documentId, e);
         }
 
         // 删除本地物理文件
         File file = new File(document.getFilePath());
         if (file.exists() && !file.delete()) {
-            log.warn("Failed to delete local file: {}", document.getFilePath());
+            log.warn("删除本地文件失败: {}", document.getFilePath());
         }
 
-        log.info("Document deleted: id={}, spaceId={}, fileName={}",
+        log.info("文档删除成功: id={}, spaceId={}, fileName={}",
                 documentId, document.getSpaceId(), document.getFileName());
     }
 

@@ -29,7 +29,7 @@ public class GlobalExceptionHandler {
     // === 业务异常 ===
     @ExceptionHandler(BusinessException.class)
     public Result<Void> handleBusinessException(BusinessException e) {
-        log.warn("Business exception: code={}, message={}", e.getCode(), e.getMessage());
+        log.warn("业务异常: code={}, message={}", e.getCode(), e.getMessage());
         return Result.fail(e.getCode(), e.getMessage());
     }
 
@@ -105,7 +105,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AsyncRequestTimeoutException.class)
     @ResponseStatus(HttpStatus.GATEWAY_TIMEOUT)
     public Result<Void> handleAsyncTimeout(AsyncRequestTimeoutException e) {
-        log.warn("Async request timeout: {}", e.getMessage());
+        log.warn("异步请求超时: {}", e.getMessage());
         return Result.fail(ResultCode.INTERNAL_ERROR, "请求处理超时，请稍后重试");
     }
     
@@ -113,7 +113,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<Void> handleUnknownException(Exception e) {
-        log.error("Unknown exception", e);
+        log.error("未知异常", e);
         return Result.fail(ResultCode.INTERNAL_ERROR);
     }
 }

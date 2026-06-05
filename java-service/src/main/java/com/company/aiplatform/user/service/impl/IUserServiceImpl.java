@@ -102,7 +102,7 @@ public class IUserServiceImpl implements IUserService {
             userRoleMapper.insert((UserRole) ur);
         }
 
-        log.info("Roles assigned for user {}: {}", req.getUserId(), req.getRoleIds());
+        log.info("用户角色已分配: userId={}, roles={}", req.getUserId(), req.getRoleIds());
     }
 
     @Override
@@ -113,7 +113,7 @@ public class IUserServiceImpl implements IUserService {
         }
         user.setStatus(status);
         userMapper.updateById(user);
-        log.info("User status changed: userId={}, status={}", userId, status);
+        log.info("用户状态已更新: userId={}, status={}", userId, status);
     }
 
     @Override
