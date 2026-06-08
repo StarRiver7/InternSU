@@ -342,7 +342,7 @@ const headerSlots = computed(() => {
     <!-- 侧边菜单区域 -->
     <template #menu>
       <LayoutMenu
-        :accordion="preferences.navigation.accordion"
+        :accordion="false"
         :collapse="preferences.sidebar.collapsed"
         :collapse-show-title="preferences.sidebar.collapsedShowTitle"
         :default-active="sidebarActive"
@@ -352,7 +352,11 @@ const headerSlots = computed(() => {
         mode="vertical"
         @open="handleMenuOpen"
         @select="handleMenuSelect"
-      />
+      >
+        <template v-if="$slots['menu-extra']" #menu-extra>
+          <slot name="menu-extra"></slot>
+        </template>
+      </LayoutMenu>
     </template>
     <template #mixed-menu>
       <LayoutMixedMenu

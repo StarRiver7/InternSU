@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.company.aiplatform.common.enums.ResultCode;
 import com.company.aiplatform.common.exception.BusinessException;
+import com.company.aiplatform.rag.dto.MyDocumentDTO;
+import com.company.aiplatform.rag.dto.PublicDocumentDTO;
 import com.company.aiplatform.rag.entity.Document;
 import com.company.aiplatform.rag.entity.DocumentPermission;
 import com.company.aiplatform.rag.mapper.DocumentMapper;
@@ -98,6 +100,49 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
 
         wrapper.orderByDesc(Document::getCreateTime);
         return this.page(page, wrapper);
+    }
+
+    @Override
+    public Page<MyDocumentDTO> listMyDocuments(Long userId, Integer pageNum, Integer pageSize) {
+        Page<MyDocumentDTO> page = new Page<>(pageNum, pageSize);
+        List<MyDocumentDTO> list = baseMapper.selectMyDocuments(userId);
+        
+        // 手动分页
+        int total = list.size();
+        int fromIndex = (pageNum - 1) * pageSize;
+        int toIndex = Math.min(fromIndex + pageSize, total);
+        
+        if (fromIndex < total) {
+            list = list.subList(fromIndex, toIndex);
+        } else {
+            list = List.of();
+        }
+        
+        page.setRecords(list);
+        page.setTotal(total);
+        return page;
+    }
+
+    @Override
+    public Page<PublicDocumentDTO> listPublicDocuments(Long userId, Long deptId,
+                                                        Integer pageNum, Integer pageSize) {
+        Page<PublicDocumentDTO> page = new Page<>(pageNum, pageSize);
+        List<PublicDocumentDTO> list = baseMapper.selectPublicDocuments(userId, deptId);
+        
+        // 手动分页
+        int total = list.size();
+        int fromIndex = (pageNum - 1) * pageSize;
+        int toIndex = Math.min(fromIndex + pageSize, total);
+        
+        if (fromIndex < total) {
+            list = list.subList(fromIndex, toIndex);
+        } else {
+            list = List.of();
+        }
+        
+        page.setRecords(list);
+        page.setTotal(total);
+        return page;
     }
 
     // ======================== 上传文档 ========================

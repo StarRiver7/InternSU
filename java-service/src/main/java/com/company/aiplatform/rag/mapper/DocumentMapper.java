@@ -1,6 +1,8 @@
 package com.company.aiplatform.rag.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.company.aiplatform.rag.dto.MyDocumentDTO;
+import com.company.aiplatform.rag.dto.PublicDocumentDTO;
 import com.company.aiplatform.rag.entity.Document;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -25,4 +27,22 @@ public interface DocumentMapper extends BaseMapper<Document> {
      */
     List<Long> selectAccessibleDocumentIds(@Param("userId") Long userId,
                                            @Param("deptId") Long deptId);
+
+    /**
+     * 分页查询用户自己创建的文档.
+     *
+     * @param userId 当前登录用户 ID
+     * @return 个人文档列表（文档名称、文件大小、状态、切片数、创建时间）
+     */
+    List<MyDocumentDTO> selectMyDocuments(@Param("userId") Long userId);
+
+    /**
+     * 分页查询公司和技术部门公开的文档.
+     *
+     * @param userId 当前登录用户 ID
+     * @param deptId 当前用户所属部门 ID
+     * @return 公开文档列表（文档名称、所属部门、创建人、创建时间）
+     */
+    List<PublicDocumentDTO> selectPublicDocuments(@Param("userId") Long userId,
+                                                   @Param("deptId") Long deptId);
 }

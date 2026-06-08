@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { AuthenticationLoginExpiredModal } from '@vben/common-ui';
@@ -8,6 +8,7 @@ import { preferences, usePreferences } from '@vben/preferences';
 import { useAccessStore, useUserStore } from '@vben/stores';
 
 import { useAuthStore } from '#/store';
+
 import LoginForm from '#/views/_core/authentication/login.vue';
 
 const router = useRouter();
@@ -27,12 +28,7 @@ const menus = computed(() => [
   {
     handler: () => router.push('/home'),
     icon: 'lucide:home',
-    text: '首页',
-  },
-  {
-    handler: () => router.push({ name: 'AiChat' }),
-    icon: 'lucide:message-square',
-    text: 'AI 对话',
+    text: '小SU',
   },
   {
     handler: () => router.push({ name: 'AiKnowledge' }),

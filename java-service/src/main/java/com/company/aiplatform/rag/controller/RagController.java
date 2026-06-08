@@ -6,6 +6,8 @@ import com.company.aiplatform.common.enums.ResultCode;
 import com.company.aiplatform.common.exception.BusinessException;
 import com.company.aiplatform.common.result.Result;
 import com.company.aiplatform.common.util.SecurityContextUtil;
+import com.company.aiplatform.rag.dto.MyDocumentDTO;
+import com.company.aiplatform.rag.dto.PublicDocumentDTO;
 import com.company.aiplatform.rag.entity.Document;
 import com.company.aiplatform.rag.service.DocumentService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -52,6 +54,29 @@ public class RagController {
 
         Long deptId = securityContextUtil.getCurrentDeptId();
         Page<Document> page = documentService.listDocuments(userId, deptId, spaceId, pageNum, pageSize);
+        return Result.success(page);
+    }
+
+    @Operation(summary = "分页查询用户自己创建的文档")
+    @GetMapping("/my")
+    public Result<Page<MyDocumentDTO>> listMyDocuments(
+            @CurrentUserId Long userId,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize) {
+
+        Page<MyDocumentDTO> page = documentService.listMyDocuments(userId, pageNum, pageSize);
+        return Result.success(page);
+    }
+
+    @Operation(summary = "分页查询公司和技术部门公开的文档")
+    @GetMapping("/public")
+    public Result<Page<PublicDocumentDTO>> listPublicDocuments(
+            @CurrentUserId Long userId,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize) {
+
+        Long deptId = securityContextUtil.getCurrentDeptId();
+        Page<PublicDocumentDTO> page = documentService.listPublicDocuments(userId, deptId, pageNum, pageSize);
         return Result.success(page);
     }
 

@@ -1,6 +1,8 @@
 package com.company.aiplatform.rag.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.company.aiplatform.rag.dto.MyDocumentDTO;
+import com.company.aiplatform.rag.dto.PublicDocumentDTO;
 import com.company.aiplatform.rag.entity.Document;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -32,6 +34,28 @@ public interface DocumentService {
      */
     Page<Document> listDocuments(Long userId, Long deptId, Long spaceId,
                                  Integer pageNum, Integer pageSize);
+
+    /**
+     * 分页查询用户自己创建的文档.
+     *
+     * @param userId   当前登录用户 ID
+     * @param pageNum  页码
+     * @param pageSize 每页数量
+     * @return 个人文档列表（文档名称、文件大小、状态、切片数、创建时间）
+     */
+    Page<MyDocumentDTO> listMyDocuments(Long userId, Integer pageNum, Integer pageSize);
+
+    /**
+     * 分页查询公司和技术部门公开的文档.
+     *
+     * @param userId   当前登录用户 ID
+     * @param deptId   用户所属部门 ID
+     * @param pageNum  页码
+     * @param pageSize 每页数量
+     * @return 公开文档列表（文档名称、所属部门、创建人、创建时间）
+     */
+    Page<PublicDocumentDTO> listPublicDocuments(Long userId, Long deptId,
+                                                 Integer pageNum, Integer pageSize);
 
     /**
      * 上传文档到指定知识空间.

@@ -40,4 +40,52 @@
         ORDER BY d.id
     </select>
 
+    <!--
+      ============================================================
+      selectMyDocuments — 查询用户自己创建的文档
+
+      返回：文档名称、文件大小、状态、切片数、创建时间
+      ============================================================
+    -->
+    <select id="selectMyDocuments" resultType="com.company.aiplatform.rag.dto.MyDocumentDTO">
+        SELECT
+            d.id AS id,
+            d.file_name AS fileName,
+            d.file_size AS fileSize,
+            d.processing_status AS status,
+            d.chunk_count AS chunkCount,
+            d.create_time AS createTime
+        FROM t_document d
+        WHERE d.is_deleted = 0
+        AND d.creator_id = #{userId}
+        ORDER BY d.create_time DESC
+    </select>
+
+    <!--
+      ============================================================
+      selectPublicDocuments — 查询公司和技术部门公开的文档
+
+      返回：文档名称、所属部门、创建人、创建时间
+      ============================================================
+    -->
+    <select id="selectPublicDocuments" resultType="com.company.aiplatform.rag.dto.PublicDocumentDTO">
+        SELECT
+            d.id AS id,
+            d.file_name AS fileName,
+            dept.name AS departmentName,
+            d.creator_id AS creatorId,
+            u.name AS creatorName,
+            d.create_time AS createTime
+        FROM t_document d
+        LEFT JOIN t_knowledge_space ks ON d.space_id = ks.id AND ks.is_deleted = 0
+        LEFT JOIN t_department dept ON ks.department_id = dept.id AND dept.is_deleted = 0
+        LEFT JOIN t_user u ON d.creator_id = u.id AND u.is_deleted = 0
+        WHERE d.is_deleted = 0
+        AND (
+            ks.visibility = 'public'
+            OR (ks.visibility = 'department' AND ks.department_id = #{deptId} AND #{deptId} IS NOT NULL)
+        )
+        ORDER BY d.create_time DESC
+    </select>
+
 </mapper>

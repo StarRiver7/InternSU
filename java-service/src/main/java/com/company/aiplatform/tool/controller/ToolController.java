@@ -14,24 +14,24 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Tool management controller — V3 with full CRUD.
+ * 工具管理控制器 — V3 完整 CRUD 版本.
  *
- * <p>Provides:
+ * <p>提供功能:
  * <ul>
- *   <li>List all enabled tools (used by Python Agent for function calling)</li>
- *   <li>List all tools including disabled (admin)</li>
- *   <li>Enable/disable tools at runtime</li>
- *   <li>Update tool configuration</li>
+ *   <li>列出所有启用的工具（供 Python Agent 进行函数调用）</li>
+ *   <li>列出所有工具（包含已禁用，管理员使用）</li>
+ *   <li>运行时启用/禁用工具</li>
+ *   <li>更新工具配置</li>
  * </ul>
  *
- * <p>Usage flow:
+ * <p>使用流程:
  * <ol>
- *   <li>Python Agent starts up, calls {@code GET /list} to discover tools</li>
- *   <li>Python Agent registers tools from DB into its ToolRegistry</li>
- *   <li>LLM selects tool based on descriptions, ToolManager executes</li>
+ *   <li>Python Agent 启动时调用 {@code GET /list} 发现可用工具</li>
+ *   <li>Python Agent 从数据库注册工具到 ToolRegistry</li>
+ *   <li>LLM 根据描述选择工具，ToolManager 执行</li>
  * </ol>
  */
-@Tag(name = "Tool Management", description = "Tool definition query and management")
+@Tag(name = "工具管理", description = "工具定义查询与管理")
 @RestController
 @RequestMapping("/api/v1/tools")
 @RequiredArgsConstructor
@@ -39,17 +39,17 @@ public class ToolController {
 
     private final ToolDefinitionService toolDefinitionService;
 
-    // ======================== Query ========================
+    // ======================== 查询 ========================
 
     /**
-     * List all enabled tools.
+     * 列出所有启用的工具.
      *
-     * <p>Called by Python Agent on startup to build its ToolRegistry.
-     * Only returns tools with is_active=1.
+     * <p>Python Agent 启动时调用此接口构建 ToolRegistry.
+     * 仅返回 is_active=1 的工具.
      *
-     * @return List of enabled tool definitions.
+     * @return 启用的工具定义列表.
      */
-    @Operation(summary = "List all enabled tools")
+    @Operation(summary = "列出所有启用的工具")
     @GetMapping("/list")
     public Result<List<ToolDefinition>> listEnabledTools() {
         List<ToolDefinition> tools = toolDefinitionService.listEnabledTools();
@@ -57,13 +57,13 @@ public class ToolController {
     }
 
     /**
-     * List all tools (including disabled).
+     * 列出所有工具（包含已禁用）.
      *
-     * <p>For admin management UI.
+     * <p>用于管理员管理界面.
      *
-     * @return List of all tool definitions.
+     * @return 所有工具定义列表.
      */
-    @Operation(summary = "List all tools (admin)")
+    @Operation(summary = "列出所有工具（管理员）")
     @GetMapping("/admin/list")
     public Result<List<ToolDefinition>> listAllTools() {
         List<ToolDefinition> tools = toolDefinitionService.listAllTools();
@@ -71,66 +71,64 @@ public class ToolController {
     }
 
     /**
-     * Get tool by name.
+     * 根据名称获取工具.
      *
-     * @param name Tool name (e.g. 'sql_query', 'feishu_summary').
-     * @return Tool definition if found.
+     * @param name 工具名称（例如 'sql_query', 'feishu_summary'）.
+     * @return 工具定义（如果找到）.
      */
-    @Operation(summary = "Get tool by name")
+    @Operation(summary = "根据名称获取工具")
     @GetMapping("/{name}")
     public Result<ToolDefinition> getTool(
-            @Parameter(description = "Tool name") @PathVariable String name) {
+            @Parameter(description = "工具名称") @PathVariable String name) {
         Optional<ToolDefinition> tool = toolDefinitionService.findByName(name);
         return tool.map(Result::success)
-                .orElse(Result.fail(404, "Tool not found: " + name));
+                .orElse(Result.fail(404, "未找到工具: " + name));
     }
 
-    // ======================== Management ========================
+    // ======================== 管理 ========================
 
     /**
-     * Enable or disable a tool at runtime.
+     * 运行时启用或禁用工具.
      *
-     * <p>Disabled tools are not returned by /list and are not available
-     * for LLM function calling. Existing ToolRegistry instances need to
-     * refresh to pick up the change.
+     * <p>禁用的工具不会由 /list 返回，也不可用于 LLM 函数调用.
+     * 现有的 ToolRegistry 实例需要刷新才能获取变更.
      *
-     * @param name Tool name.
-     * @param body Request body with "enabled": true/false.
-     * @return Success indication.
+     * @param name 工具名称.
+     * @param body 包含 "enabled": true/false 的请求体.
+     * @return 成功指示.
      */
-    @Operation(summary = "Enable or disable a tool")
+    @Operation(summary = "启用或禁用工具")
     @PutMapping("/{name}/enabled")
     public Result<Void> setEnabled(
-            @Parameter(description = "Tool name") @PathVariable String name,
+            @Parameter(description = "工具名称") @PathVariable String name,
             @RequestBody Map<String, Boolean> body) {
         Boolean enabled = body.getOrDefault("enabled", true);
         boolean ok = toolDefinitionService.setEnabled(name, enabled);
         if (ok) {
             return Result.success(null);
         }
-        return Result.fail(404, "Tool not found: " + name);
+        return Result.fail(404, "未找到工具: " + name);
     }
 
     /**
-     * Update tool configuration.
+     * 更新工具配置.
      *
-     * <p>Allows runtime config changes without restart (e.g. model name,
-     * API endpoint, threshold values).
+     * <p>允许运行时配置更改而无需重启（例如模型名称、API 端点、阈值等）.
      *
-     * @param name Tool name.
-     * @param body Request body with "config_json": "{...}".
-     * @return Success indication.
+     * @param name 工具名称.
+     * @param body 包含 "config_json": "{...}" 的请求体.
+     * @return 成功指示.
      */
-    @Operation(summary = "Update tool configuration")
+    @Operation(summary = "更新工具配置")
     @PutMapping("/{name}/config")
     public Result<Void> updateConfig(
-            @Parameter(description = "Tool name") @PathVariable String name,
+            @Parameter(description = "工具名称") @PathVariable String name,
             @RequestBody Map<String, String> body) {
         String configJson = body.getOrDefault("config_json", "{}");
         boolean ok = toolDefinitionService.updateConfig(name, configJson);
         if (ok) {
             return Result.success(null);
         }
-        return Result.fail(404, "Tool not found: " + name);
+        return Result.fail(404, "未找到工具: " + name);
     }
 }
