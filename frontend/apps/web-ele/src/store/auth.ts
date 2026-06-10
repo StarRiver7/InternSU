@@ -20,7 +20,7 @@ function mapJavaUserToVben(javaUser: JavaUserInfo, token: string): UserInfo {
   return {
     avatar: javaUser.avatarUrl ?? '',
     desc: javaUser.email ?? '',
-    homePath: '/home',
+    homePath: '/auth/login',
     realName: javaUser.nickname ?? javaUser.username,
     roles: ['admin'],
     token,
@@ -35,10 +35,6 @@ export const useAuthStore = defineStore('auth', () => {
   const router = useRouter();
   const loginLoading = ref(false);
 
-  /**
-   * 用户登录
-   * 登录成功后保存 accessToken、refreshToken 和用户信息
-   */
   async function authLogin(
     params: Recordable<any>,
     onSuccess?: () => Promise<void> | void,
@@ -49,24 +45,19 @@ export const useAuthStore = defineStore('auth', () => {
       const loginResult: LoginResult = await loginApi(params);
 
       if (loginResult.accessToken) {
-        // 保存双 Token 到 accessStore（Pinia persist 自动持久化到加密存储）
         accessStore.setAccessToken(loginResult.accessToken);
         if (loginResult.refreshToken) {
           accessStore.setRefreshToken(loginResult.refreshToken);
         }
 
-        // 构建并保存用户信息
         userInfo = mapJavaUserToVben(loginResult.userInfo, loginResult.accessToken);
         userStore.setUserInfo(userInfo);
 
-        // 用户信息缓存到 localStorage（用于页面刷新时快速恢复，无需请求后端）
         localStorage.setItem('flowmind_user', JSON.stringify(userInfo));
 
-        // 获取权限码
         const accessCodes = await getAccessCodesApi();
         accessStore.setAccessCodes(accessCodes);
 
-        // 登录过期重定向 或 正常跳转
         if (accessStore.loginExpired) {
           accessStore.setLoginExpired(false);
         } else {
@@ -89,7 +80,6 @@ export const useAuthStore = defineStore('auth', () => {
     return { userInfo };
   }
 
-  /** 用户注册 */
   async function authRegister(params: { email?: string; nickname?: string; password: string; username: string }) {
     loginLoading.value = true;
     try {
@@ -113,28 +103,18 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  /**
-   * 退出登录
-   * 清除所有 Token、用户信息和缓存，跳转到登录页
-   * @param redirect - 是否携带重定向参数（默认 true）
-   */
   async function logout(redirect: boolean = true) {
     try {
       await logoutApi();
     } catch {
-      // 即使后端登出接口失败，也要清除本地状态
     }
 
-    // 清除 Pinia 中所有 Store（包括 accessStore 的 accessToken / refreshToken）
     resetAllStores();
 
-    // 清除 localStorage 中的用户缓存
     localStorage.removeItem('flowmind_user');
 
-    // 重置登录过期标记
     accessStore.setLoginExpired(false);
 
-    // 跳转登录页
     await router.replace({
       path: LOGIN_PATH,
       query: redirect
@@ -143,10 +123,6 @@ export const useAuthStore = defineStore('auth', () => {
     });
   }
 
-  /**
-   * 获取用户信息
-   * 优先从 Store 读取，其次从 localStorage 缓存恢复
-   */
   async function fetchUserInfo(): Promise<UserInfo | null> {
     if (userStore.userInfo?.userId) return userStore.userInfo as UserInfo;
     try {
@@ -157,7 +133,6 @@ export const useAuthStore = defineStore('auth', () => {
         return userInfo;
       }
     } catch {
-      // 缓存解析失败，忽略
     }
     return null;
   }

@@ -146,22 +146,6 @@ defineExpose({
       v-if="showCodeLogin || showEmailLogin"
       class="mt-4 mb-2 flex items-center justify-between"
     >
-      <VbenButton
-        v-if="showCodeLogin"
-        class="w-1/2"
-        variant="outline"
-        @click="handleGo(codeLoginPath)"
-      >
-        {{ $t('authentication.mobileLogin') }}
-      </VbenButton>
-      <VbenButton
-        v-if="showEmailLogin"
-        class="ml-4 w-1/2"
-        variant="outline"
-        @click="handleGo(emailLoginPath)"
-      >
-        {{ $t('authentication.emailLogin') }}
-      </VbenButton>
     </div>
 
     <slot name="third-party-login">
