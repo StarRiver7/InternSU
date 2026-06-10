@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted } from 'vue';
-import { Home, UserRoundPen, Settings, MessageSquareCode, Send, Sparkles } from 'lucide-vue-next';
+import { ref, nextTick, onMounted, watch } from 'vue';
+import { Home, UserRoundPen, Settings, MessageSquareCode, Sparkles, CornerRightUp } from 'lucide-vue-next';
 import NavBar from '#/components/NavBar.vue';
 
 const navItems = [
-  { name: '首页', url: '/home', icon: Home },
-  { name: '聊天', url: '/chat', icon: MessageSquareCode },
-  { name: '个人', url: '/profile', icon: UserRoundPen },
-  { name: '设置', url: '/settings', icon: Settings },
+  { name: '首页', url: '/home'},
+  { name: '新聊天', url: '/chat'},
+  { name: '历史记录', url: '/history'}, 
+  { name: '知识库', url: '/knowledge'},
 ];
 
 interface ChatMessage {
@@ -20,7 +20,27 @@ const messages = ref<ChatMessage[]>([
 ]);
 const inputText = ref('');
 const chatRef = ref<HTMLDivElement | null>(null);
+const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const isLoading = ref(false);
+
+const MIN_HEIGHT = 56;
+const MAX_HEIGHT = 200;
+
+function adjustHeight(reset = false) {
+  const ta = textareaRef.value;
+  if (!ta) return;
+  if (reset) {
+    ta.style.height = `${MIN_HEIGHT}px`;
+    return;
+  }
+  ta.style.height = `${MIN_HEIGHT}px`;
+  const newHeight = Math.max(MIN_HEIGHT, Math.min(ta.scrollHeight, MAX_HEIGHT));
+  ta.style.height = `${newHeight}px`;
+}
+
+watch(inputText, () => {
+  nextTick(() => adjustHeight());
+});
 
 function scrollToBottom() {
   nextTick(() => {
@@ -36,11 +56,11 @@ async function sendMessage() {
 
   messages.value.push({ role: 'user', content: text });
   inputText.value = '';
+  nextTick(() => adjustHeight(true));
   scrollToBottom();
 
   isLoading.value = true;
-  // Simulate AI response
-  await new Promise((r) => setTimeout(r, 1000));
+  await new Promise((r) => setTimeout(r, 3000));
   messages.value.push({ role: 'assistant', content: '收到你的消息了！这是小SU的智能回复。' });
   isLoading.value = false;
   scrollToBottom();
@@ -63,7 +83,7 @@ onMounted(() => {
     <NavBar :items="navItems" />
 
     <div class="flex-1 flex flex-col items-center justify-center px-4 py-8">
-      <div class="w-full max-w-2xl flex flex-col items-center gap-4">
+      <div class="w-full max-w-xl flex flex-col items-center gap-6">
         <!-- Title -->
         <div class="text-center">
           <div class="inline-flex items-center gap-2 text-gray-900">
@@ -72,28 +92,38 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Input -->
-        <div class="w-full flex items-center gap-2 bg-white rounded-2xl border border-gray-200 px-4 py-3 shadow-sm">
-          <input
-            v-model="inputText"
-            type="text"
-            placeholder="输入消息，按 Enter 发送..."
-            class="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
-            :disabled="isLoading"
-            @keydown="handleKeydown"
-          />
-          <button
-            :class="[
-              'shrink-0 rounded-xl p-2 transition-colors',
-              inputText.trim() && !isLoading
-                ? 'bg-teal-500 text-white hover:bg-teal-600'
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed',
-            ]"
-            :disabled="!inputText.trim() || isLoading"
-            @click="sendMessage"
-          >
-            <Send :size="18" />
-          </button>
+
+        <!-- AIInputWithLoading -->
+        <div class="w-full">
+          <div class="relative w-full mx-auto">
+            <textarea
+              ref="textareaRef"
+              v-model="inputText"
+              :placeholder="'问我任何问题...'"
+              :disabled="isLoading"
+              :style="{ minHeight: MIN_HEIGHT + 'px' }"
+              class="w-full rounded-3xl bg-gray-100 pl-6 pr-12 py-4 placeholder:text-gray-400 border-none resize-none text-sm text-gray-800 leading-relaxed outline-none focus:ring-2 focus:ring-teal-200 disabled:opacity-60"
+              @keydown="handleKeydown"
+            />
+            <button
+              :class="[
+                'absolute right-3 top-1/2 -translate-y-1/2 rounded-xl p-1.5 transition-colors',
+                isLoading ? 'bg-transparent' : inputText.trim() ? 'bg-teal-100 text-teal-600' : 'bg-gray-200 text-gray-400',
+              ]"
+              :disabled="!inputText.trim() || isLoading"
+              @click="sendMessage"
+            >
+              <div
+                v-if="isLoading"
+                class="w-4 h-4 bg-gray-500 rounded-sm animate-spin"
+                style="animation-duration: 3s"
+              />
+              <CornerRightUp v-else :size="18" />
+            </button>
+          </div>
+          <p class="pl-4 h-4 text-xs text-gray-400 mt-1 text-center">
+            {{ isLoading ? '小SU 正在思考...' : '老师，我已经准备就绪！' }}
+          </p>
         </div>
       </div>
     </div>
