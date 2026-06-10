@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import { Send, Sparkles } from 'lucide-vue-next';
+import { useRouter } from 'vue-router';
 
 interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
 }
+
+const router = useRouter();
 
 const carouselQuestions = [
   '小SU，帮我查一下我们公司有多少同事？',
@@ -114,7 +117,10 @@ function startConversation(text: string) {
 }
 
 function handleHeroSubmit() {
-  startConversation(searchQuery.value);
+  const content = searchQuery.value.trim();
+  if (!content) return;
+  // 跳转到聊天页面
+  router.push('/ai-assistant/chat');
 }
 
 function handleChatSubmit() {

@@ -6,6 +6,7 @@ import com.company.aiplatform.auth.security.JwtTokenProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -24,16 +25,33 @@ public class SecurityContextUtil {
 
     /**
      * 从 SecurityContext 获取当前登录用户 ID.
+     *
+     * <p>支持两种 principal 类型：
+     * <ul>
+     *   <li>{@link UserDetails} — JwtAuthenticationFilter 设置的默认类型</li>
+     *   <li>{@link String} — 兜底（如手动设置 username 的场景）</li>
+     * </ul>
      */
     public Long getCurrentUserId() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof String username) {
-            User user = userMapper.findByUsername(username).orElse(null);
-            if (user != null) {
-                return user.getId();
-            }
+        if (auth == null || !auth.isAuthenticated()) {
+            return null;
         }
-        return null;
+
+        String username = null;
+        Object principal = auth.getPrincipal();
+        if (principal instanceof UserDetails userDetails) {
+            username = userDetails.getUsername();
+        } else if (principal instanceof String s) {
+            username = s;
+        }
+
+        if (username == null || username.isBlank()) {
+            return null;
+        }
+
+        User user = userMapper.findByUsername(username).orElse(null);
+        return user != null ? user.getId() : null;
     }
 
     /**
@@ -43,7 +61,9 @@ public class SecurityContextUtil {
      */
     public Long getCurrentDeptId() {
         Long userId = getCurrentUserId();
-        if (userId == null) return null;
+        if (userId == null) {
+            return null;
+        }
         User user = userMapper.selectById(userId);
         return user != null ? user.getDepartmentId() : null;
     }

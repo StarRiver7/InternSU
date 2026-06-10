@@ -259,7 +259,11 @@ class SqlTool(BaseTool):
                 break
         sql = text.strip()
         if "LIMIT" not in sql.upper():
-            sql = sql.rstrip(";").strip() + " LIMIT 100"
+            # 对于聚合查询（SELECT COUNT/SUM/AVG/MAX/MIN），不需要添加 LIMIT
+            import re
+            is_aggregate = re.match(r"SELECT\s+(COUNT|SUM|AVG|MAX|MIN)\s*\(", sql.upper())
+            if not is_aggregate:
+                sql = sql.rstrip(";").strip() + " LIMIT 100"
         return sql
 
 

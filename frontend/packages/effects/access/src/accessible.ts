@@ -61,9 +61,26 @@ async function generateAccessible(
 
   if (root) {
     if (root.name) {
-      router.removeRoute(root.name);
+      try {
+        router.removeRoute(root.name);
+        router.addRoute(root);
+      } catch (error) {
+        console.error('Failed to update root route:', error);
+        // 如果添加失败，尝试重新添加原始根路由
+        try {
+          router.addRoute({
+            path: '/',
+            name: 'Root',
+            component: root.component,
+            redirect: root.redirect,
+            children: root.children,
+            meta: root.meta,
+          });
+        } catch (addError) {
+          console.error('Failed to restore root route:', addError);
+        }
+      }
     }
-    router.addRoute(root);
   }
 
   // 生成菜单

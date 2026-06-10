@@ -157,13 +157,13 @@ class Settings(BaseSettings):
 
     @property
     def business_db_url(self) -> str:
-        """构建业务数据库（intersu_business）只读连接 URL。
+        """构建业务数据库（internsu_business）只读连接 URL。
 
         SQL Agent 使用该数据库进行查询，与 internsu 应用库物理隔离。
         """
         return (
             f"mysql+pymysql://{self.mysql_user}:{self.mysql_password}"
-            f"@{self.mysql_host}:{self.mysql_port}/intersu_business"
+            f"@{self.mysql_host}:{self.mysql_port}/internsu_business"
             "?charset=utf8mb4"
         )
 

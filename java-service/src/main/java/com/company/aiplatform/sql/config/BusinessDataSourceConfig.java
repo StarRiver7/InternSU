@@ -9,9 +9,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import javax.sql.DataSource;
 
 /**
- * 业务数据库（intersu_business）JdbcTemplate 配置。
+ * 业务数据库（internsu_business）JdbcTemplate 配置。
  *
- * <p>SQL Agent 在 intersu_business 库上执行只读查询。
+ * <p>SQL Agent 在 internsu_business 库上执行只读查询。
  * 该配置不对外暴露 DataSource Bean（避免干扰 Spring Boot 主数据源自动配置），
  * 只在内部创建私有 DataSource 供 businessJdbcTemplate 使用。</p>
  */
@@ -27,7 +27,7 @@ public class BusinessDataSourceConfig {
     private DataSource buildDataSource() {
         return DataSourceBuilder.create()
                 .driverClassName("com.mysql.cj.jdbc.Driver")
-                .url("jdbc:mysql://localhost:3306/intersu_business"
+                .url("jdbc:mysql://localhost:3306/internsu_business"
                         + "?useUnicode=true&characterEncoding=UTF-8"
                         + "&serverTimezone=Asia/Shanghai")
                 .username(username)

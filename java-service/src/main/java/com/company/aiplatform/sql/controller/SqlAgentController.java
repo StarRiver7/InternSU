@@ -23,7 +23,7 @@ import java.util.*;
  * SQL Agent 控制器 —— 数据库 Schema、表信息查询与 SQL 执行（全部直连 MySQL）。
  *
  * <h2>v4 变更（全面直连）</h2>
- * Schema / Tables 接口不再代理到 Python，改为 Java 直接查询 intersu_business。
+ * Schema / Tables 接口不再代理到 Python，改为 Java 直接查询 internsu_business。
  *
  * <h2>端点清单</h2>
  * <ul>
@@ -46,7 +46,7 @@ public class SqlAgentController {
     private String apiKey;
 
     private static final int MAX_ROWS = 1000;
-    private static final String BUSINESS_DB = "intersu_business";
+    private static final String BUSINESS_DB = "internsu_business";
 
     // ═══════════════════════════════════════════════════════════
     // Schema —— 获取数据库 Schema 信息
@@ -141,8 +141,14 @@ public class SqlAgentController {
             throw new BusinessException(ResultCode.BAD_REQUEST, "仅允许只读查询（SELECT/SHOW/DESCRIBE/EXPLAIN）");
         }
 
+        // 对于聚合查询（SELECT COUNT/SUM/AVG/MAX/MIN），不需要添加 LIMIT
+        // 聚合函数只返回一行结果，加 LIMIT 没有意义
         if (!upper.contains("LIMIT")) {
-            sql = sql.replaceAll(";+$", "").trim() + " LIMIT " + MAX_ROWS;
+            // 检查是否是聚合查询（SELECT 后紧跟 COUNT/SUM/AVG/MAX/MIN）
+            boolean isAggregateQuery = upper.matches("SELECT\\s+(COUNT|SUM|AVG|MAX|MIN)\\s*\\(");
+            if (!isAggregateQuery) {
+                sql = sql.replaceAll(";+$", "").trim() + " LIMIT " + MAX_ROWS;
+            }
         }
 
         try {

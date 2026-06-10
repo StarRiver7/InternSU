@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { RouteLocationNormalizedLoadedGeneric } from 'vue-router';
 
-import { unref } from 'vue';
+import { onErrorCaptured, unref } from 'vue';
 import { RouterView } from 'vue-router';
 
 import { usePreferences } from '@vben/preferences';
@@ -28,6 +28,19 @@ const { getEnabledTransition, getTransitionName } = useLayoutHook();
 const showComponent = (route: RouteLocationNormalizedLoadedGeneric) => {
   return !route.meta.domCached && unref(renderRouteView);
 };
+
+/**
+ * 捕获子组件的错误，防止未捕获异常导致整个页面崩溃
+ */
+onErrorCaptured((error, instance, info) => {
+  console.error('LayoutContent caught an error:', error, instance, info);
+  // 打印错误堆栈
+  if (error instanceof Error) {
+    console.error('Error stack:', error.stack);
+  }
+  // 返回 true 阻止错误继续向上传播，防止影响其他页面
+  return true;
+});
 </script>
 
 <template>

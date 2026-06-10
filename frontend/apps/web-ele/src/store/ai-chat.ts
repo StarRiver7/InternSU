@@ -1,11 +1,15 @@
-import { ref, computed } from 'vue';
-import { defineStore } from 'pinia';
-import { listConversations, createConversation, getMessages } from '#/api/core/chat';
-import type { CitationSource, AgentTrace } from '#/api/core/types';
+import { ref, computed } from "vue";
+import { defineStore } from "pinia";
+import {
+  listConversations,
+  createConversation,
+  getMessages,
+} from "#/api/core/chat";
+import type { CitationSource, AgentTrace } from "#/api/core/types";
 
 export interface ChatMessageUI {
   id: string;
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant" | "system";
   content: string;
   sources?: CitationSource[];
   trace?: AgentTrace[];
@@ -19,32 +23,42 @@ export interface ConversationItem {
   updatedAt: string;
 }
 
-export const useChatStore = defineStore('internsu-chat', () => {
+export const useChatStore = defineStore("internsu-chat", () => {
   // ── State ──
   const conversations = ref<ConversationItem[]>([]);
   const currentConvId = ref<string | null>(null);
   const messages = ref<ChatMessageUI[]>([]);
   const isStreaming = ref(false);
-  const streamingContent = ref('');
+  const streamingContent = ref("");
   const traceSteps = ref<AgentTrace[]>([]);
   const sources = ref<CitationSource[]>([]);
   const loading = ref(false);
 
   // ── Computed ──
-  const currentConv = computed(() =>
-    conversations.value.find(c => c.id === currentConvId.value) ?? null
+  const currentConv = computed(
+    () =>
+      conversations.value.find((c) => c.id === currentConvId.value) ?? null,
   );
 
   // ── Actions ──
-  async function loadConversations(userId: string = '1') {
+  async function loadConversations(userId: string = "0") {
+    loading.value = true;
     try {
       const res = await listConversations(userId);
       conversations.value = (res.conversations || []).map((c: any) => ({
         id: c.conversation_id || c.id,
-        title: c.title || '新对话',
-        updatedAt: c.updated_at || c.create_time || '',
+        title: c.title || "新对话",
+        updatedAt: c.updated_at || c.create_time || "",
       }));
-    } catch { /* graceful */ }
+      // 按更新时间倒序排列
+      conversations.value.sort((a, b) => 
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      );
+    } catch {
+      // graceful
+    } finally {
+      loading.value = false;
+    }
   }
 
   async function loadMessages(convId: string) {
@@ -58,7 +72,9 @@ export const useChatStore = defineStore('internsu-chat', () => {
         trace: m.trace || [],
         timestamp: m.timestamp || Date.now(),
       }));
-    } catch { /* graceful */ }
+    } catch {
+      // graceful
+    }
   }
 
   async function selectConversation(convId: string) {
@@ -68,23 +84,38 @@ export const useChatStore = defineStore('internsu-chat', () => {
     await loadMessages(convId);
   }
 
-  async function newConversation() {
+  async function newConversation(userId: string) {
     messages.value = [];
-    currentConvId.value = null;
     sources.value = [];
     traceSteps.value = [];
-    streamingContent.value = '';
+    streamingContent.value = "";
+    try {
+      const res = await createConversation(userId, "新对话");
+      currentConvId.value = res.conversation_id;
+      await loadConversations(userId);
+    } catch {
+      // 降级到临时会话
+      currentConvId.value = "temp-" + Date.now();
+    }
   }
 
-  async function ensureConversation(userId: string, title: string): Promise<string> {
+  /**
+   * 确保当前有会话：已有则返回其 ID，否则创建新会话
+   * @param userId 用户 ID
+   * @param title 会话标题（仅新建时生效）
+   */
+  async function ensureConversation(
+    userId: string,
+    title: string = "新对话",
+  ): Promise<string> {
     if (currentConvId.value) return currentConvId.value;
     try {
-      const res = await createConversation(userId, '', title);
+      const res = await createConversation(userId, title);
       currentConvId.value = res.conversation_id;
       await loadConversations(userId);
       return res.conversation_id;
     } catch {
-      const fallback = 'temp-' + Date.now();
+      const fallback = "temp-" + Date.now();
       currentConvId.value = fallback;
       return fallback;
     }
@@ -96,7 +127,7 @@ export const useChatStore = defineStore('internsu-chat', () => {
 
   function startStreaming() {
     isStreaming.value = true;
-    streamingContent.value = '';
+    streamingContent.value = "";
     sources.value = [];
     traceSteps.value = [];
   }
@@ -106,11 +137,11 @@ export const useChatStore = defineStore('internsu-chat', () => {
   }
 
   function addTrace(trace: AgentTrace) {
-    // 更新相同节点名的已有 trace 或添加新 trace
-    const existing = traceSteps.value.find(t => t.node === trace.node);
+    const existing = traceSteps.value.find((t) => t.node === trace.node);
     if (existing) {
       existing.status = trace.status;
       existing.message = trace.message;
+      if (trace.duration_ms != null) existing.duration_ms = trace.duration_ms;
     } else {
       traceSteps.value.push(trace);
     }
@@ -125,14 +156,14 @@ export const useChatStore = defineStore('internsu-chat', () => {
     if (streamingContent.value) {
       messages.value.push({
         id: crypto.randomUUID(),
-        role: 'assistant',
+        role: "assistant",
         content: streamingContent.value,
         sources: [...sources.value],
         trace: [...traceSteps.value],
         timestamp: Date.now(),
       });
     }
-    streamingContent.value = '';
+    streamingContent.value = "";
   }
 
   function $reset() {
@@ -140,16 +171,33 @@ export const useChatStore = defineStore('internsu-chat', () => {
     currentConvId.value = null;
     messages.value = [];
     isStreaming.value = false;
-    streamingContent.value = '';
+    streamingContent.value = "";
     traceSteps.value = [];
     sources.value = [];
+    loading.value = false;
   }
 
   return {
-    conversations, currentConvId, messages, isStreaming, streamingContent,
-    traceSteps, sources, loading, currentConv,
-    loadConversations, loadMessages, selectConversation, newConversation,
-    ensureConversation, addMessage, startStreaming, appendToken,
-    addTrace, setSources, finishStreaming, $reset,
+    conversations,
+    currentConvId,
+    messages,
+    isStreaming,
+    streamingContent,
+    traceSteps,
+    sources,
+    loading,
+    currentConv,
+    loadConversations,
+    loadMessages,
+    selectConversation,
+    newConversation,
+    ensureConversation,
+    addMessage,
+    startStreaming,
+    appendToken,
+    addTrace,
+    setSources,
+    finishStreaming,
+    $reset,
   };
 });

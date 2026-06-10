@@ -6,20 +6,42 @@
  *   - 新增 space_ids / doc_ids（知识库/文档范围选择器）
  *   - 移除所有直接 Python 调用（chatNonStream 等）
  */
+import { useAccessStore } from '@vben/stores';
 import { requestClient } from '#/api/request';
 import type { ChatRequest } from './types';
 
 const AI_GATEWAY = '/api/ai';
 
 export async function chatStreamSSE(body: ChatRequest): Promise<Response> {
-  const response = await fetch(AI_GATEWAY + '/chat', {
-    method: 'POST',
+  const accessStore = useAccessStore();
+  const token = accessStore.accessToken;
+  
+  console.debug('chatStreamSSE called with:', { body, hasToken: !!token });
+  
+  // 使用 requestClient 的配置来确保正确携带 token
+  const config = {
+    method: 'POST' as const,
     headers: {
       'Content-Type': 'application/json',
-      ...getAuthHeaders(),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({ ...body, stream: true }),
+  };
+  
+  console.debug('chatStreamSSE sending request:', { url: AI_GATEWAY + '/chat', headers: config.headers });
+  
+  const response = await fetch(AI_GATEWAY + '/chat', config);
+  
+  console.debug('chatStreamSSE response:', { 
+    status: response.status, 
+    ok: response.ok,
+    url: response.url 
   });
+  
+  if (!response.ok) {
+    console.error('chatStreamSSE error:', await response.text());
+  }
+  
   await assertResponseOk(response);
   return response;
 }
@@ -30,19 +52,19 @@ export async function chatStream(body: ChatRequest): Promise<Response> {
 
 export async function listConversations(userId: string) {
   return requestClient.get<{ conversations: any[]; total: number }>(
-    "/api/ai/conversations?user_id=" + userId,
+    "/ai/conversations?user_id=" + userId,
   );
 }
 
 export async function createConversation(userId: string, title: string = '') {
   return requestClient.post<{ conversation_id: string }>(
-    "/api/ai/conversations?user_id=" + userId + "&title=" + encodeURIComponent(title),
+    "/ai/conversations?user_id=" + userId + "&title=" + encodeURIComponent(title),
   );
 }
 
 export async function getMessages(conversationId: string, limit: number = 50) {
   return requestClient.get<{ messages: any[]; total: number }>(
-    "/api/ai/conversations/" + conversationId + "/messages?limit=" + limit,
+    "/ai/conversations/" + conversationId + "/messages?limit=" + limit,
   );
 }
 
@@ -53,15 +75,6 @@ export class HttpError extends Error {
   ) {
     super(message);
     this.name = 'HttpError';
-  }
-}
-
-function getAuthHeaders(): Record<string, string> {
-  try {
-    const token = localStorage.getItem('accessToken');
-    return token ? { Authorization: "Bearer " + token } : {};
-  } catch {
-    return {};
   }
 }
 

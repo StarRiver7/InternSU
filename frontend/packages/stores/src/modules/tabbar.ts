@@ -415,11 +415,13 @@ export const useTabbarStore = defineStore('core-tabbar', {
       this.renderRouteView = false;
       startProgress();
 
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      this.excludeCachedTabs.delete(name as string);
-      this.renderRouteView = true;
-      stopProgress();
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      } finally {
+        this.excludeCachedTabs.delete(name as string);
+        this.renderRouteView = true;
+        stopProgress();
+      }
     },
 
     /**

@@ -1,4 +1,5 @@
 import { baseRequestClient, requestClient } from '#/api/request';
+import { useAccessStore } from '@vben/stores';
 import type { JavaUserInfo, LoginResult } from './types';
 
 export namespace AuthApi {
@@ -24,7 +25,10 @@ export async function registerApi(data: AuthApi.RegisterParams) {
 }
 
 export async function refreshTokenApi() {
-  return baseRequestClient.post<LoginResult>('/v1/auth/refresh');
+  const accessStore = useAccessStore();
+  return baseRequestClient.post<LoginResult>('/v1/auth/refresh', {
+    refreshToken: accessStore.refreshToken,
+  });
 }
 
 export async function logoutApi() {

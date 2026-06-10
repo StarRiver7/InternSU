@@ -44,19 +44,6 @@ public class RagController {
 
     // ======================== 查询 ========================
 
-    @Operation(summary = "分页查询用户有权访问的文档列表")
-    @GetMapping
-    public Result<Page<Document>> listDocuments(
-            @CurrentUserId Long userId,
-            @RequestParam(required = false) Long spaceId,
-            @RequestParam(defaultValue = "1") Integer pageNum,
-            @RequestParam(defaultValue = "10") Integer pageSize) {
-
-        Long deptId = securityContextUtil.getCurrentDeptId();
-        Page<Document> page = documentService.listDocuments(userId, deptId, spaceId, pageNum, pageSize);
-        return Result.success(page);
-    }
-
     @Operation(summary = "分页查询用户自己创建的文档")
     @GetMapping("/my")
     public Result<Page<MyDocumentDTO>> listMyDocuments(
@@ -74,7 +61,6 @@ public class RagController {
             @CurrentUserId Long userId,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize) {
-
         Long deptId = securityContextUtil.getCurrentDeptId();
         Page<PublicDocumentDTO> page = documentService.listPublicDocuments(userId, deptId, pageNum, pageSize);
         return Result.success(page);
@@ -90,6 +76,15 @@ public class RagController {
             @RequestParam("file") MultipartFile file) {
 
         try {
+            // space_id 约定：1=公司公共、0=本部门（需替换为实际部门ID）、4=私人
+            if (spaceId != null && spaceId == 0L) {
+                Long deptId = securityContextUtil.getCurrentDeptId();
+                if (deptId == null) {
+                    return Result.fail(ResultCode.BAD_REQUEST, "无法获取您的部门信息，不能上传部门文档");
+                }
+                spaceId = deptId;
+            }
+
             Document document = documentService.uploadDocument(userId, spaceId, file);
             return Result.success(document);
         } catch (BusinessException e) {

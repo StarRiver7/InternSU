@@ -11,17 +11,27 @@ export async function getDocuments(pageNum: number = 1, pageSize: number = 10) {
   );
 }
 
-/** POST /api/v1/documents/upload — 上传文档 */
+/** GET /api/v1/documents/my — 获取当前用户自己创建的文档 */
+export async function getMyDocuments(pageNum: number = 1, pageSize: number = 10, signal?: AbortSignal) {
+  return requestClient.get<{ records: MyDocument[]; total: number; size: number; current: number; pages: number }>(
+    `/v1/documents/my?pageNum=${pageNum}&pageSize=${pageSize}`,
+    { signal },
+  );
+}
+
+/** POST /v1/documents/upload — 上传文档 */
 export function uploadDocument(spaceId: number, file: File): Promise<any> {
-  const formData = new FormData();
-  formData.append('space_id', String(spaceId));
-  formData.append('file', file);
-  return requestClient.post('/v1/documents/upload', formData);
+  return requestClient.upload('/v1/documents/upload', {
+    space_id: String(spaceId),
+    file,
+  });
 }
 
 /** DELETE /api/v1/documents/:id — 删除文档 */
-export async function deleteDocument(id: number) {
-  return requestClient.delete(`/v1/documents/${id}`);
+export async function deleteDocument(id: number, userId: number) {
+  return requestClient.delete(`/v1/documents/${id}`, {
+    params: { userId },
+  });
 }
 
 /** POST /ai/rag/search — RAG 搜索 */
@@ -46,4 +56,32 @@ export async function ragDeleteDocument(docId: string) {
 /** GET /ai/rag/stats — RAG 统计 */
 export async function ragStats() {
   return aiRequestClient.get('/rag/stats');
+}
+
+/** 用户自己创建的文档类型 */
+export interface MyDocument {
+  id: number;
+  fileName: string;
+  fileSize: number;
+  status: number;
+  chunkCount: number;
+  createTime: string;
+}
+
+/** GET /api/v1/documents/public — 获取公开文档列表 */
+export async function getPublicDocuments(pageNum: number = 1, pageSize: number = 10, signal?: AbortSignal) {
+  return requestClient.get<{ records: PublicDocument[]; total: number; size: number; current: number; pages: number }>(
+    `/v1/documents/public?pageNum=${pageNum}&pageSize=${pageSize}`,
+    { signal },
+  );
+}
+
+/** 公开文档类型 */
+export interface PublicDocument {
+  id: number;
+  fileName: string;
+  departmentName: string | null;
+  creatorId: number;
+  creatorName: string;
+  createTime: string;
 }

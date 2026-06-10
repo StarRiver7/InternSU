@@ -5,7 +5,7 @@ from app.sql_agent.schema_cache import schema_cache
 from app.core.logger import get_logger
 logger = get_logger(__name__)
 
-BUSINESS_DB = "intersu_business"
+BUSINESS_DB = "internsu_business"
 
 EXPOSED_TABLES = [
     "hr_candidate", "hr_department", "hr_interview", "hr_position",
@@ -221,7 +221,7 @@ class SchemaLoader:
     def build_context(self, tables: dict | None = None, target_tables: list | None = None) -> str:
         tables = tables or {}
         src = target_tables or EXPOSED_TABLES
-        lines_list = ["## 业务数据库结构 (intersu_business)"]
+        lines_list = ["## 业务数据库结构 (internsu_business)"]
         for tbl_name in src:
             info = tables.get(tbl_name)
             if not info:

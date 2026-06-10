@@ -5,7 +5,7 @@ const AI_ROUTES: RouteRecordRaw[] = [
     meta: {
       icon: 'lucide:home',
       order: 1,
-      title: '小SU',
+      title: '小 SU',
     },
     name: 'Home',
     path: '/home',
@@ -13,23 +13,23 @@ const AI_ROUTES: RouteRecordRaw[] = [
   },
   {
     meta: {
-      icon: 'lucide:upload',
+      icon: 'lucide:message-circle',
       order: 2,
+      title: '聊天',
+    },
+    name: 'AiChat',
+    path: '/ai-assistant/chat',
+    component: () => import('#/views/ai-workspace/chat/index.vue'),
+  },
+  {
+    meta: {
+      icon: 'lucide:upload',
+      order: 3,
       title: '知识库',
     },
     name: 'KnowledgeStatus',
     path: '/knowledge/status',
     component: () => import('#/views/ai/knowledge/index.vue'),
-  },
-  {
-    meta: {
-      icon: 'lucide:settings',
-      order: 30,
-      title: '系统设置',
-    },
-    name: 'SystemSettings',
-    path: '/system-settings',
-    component: () => import('#/views/ai-workspace/settings/index.vue'),
   },
 ];
 

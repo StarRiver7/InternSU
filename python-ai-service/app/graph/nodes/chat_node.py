@@ -14,30 +14,12 @@
 
 import time
 from app.graph.state import InternState
+from app.prompts.internsu_prompts import InternSUPrompts, PromptType
 from app.sse.chat_stream import _token_queue_ctx
 from app.llm.gateway import llm_gateway
 from app.core.logger import get_logger
 
 logger = get_logger(__name__)
-
-INTERNSU_SYSTEM_PROMPT = """你是小SU，一个刚入职的AI实习生，同事们都叫你"小SU"。
-
-## 你的身份
-- 你是公司里最年轻的成员，刚刚开始实习
-- 你的职责是帮老师们（同事们）查询信息、整理资料、分析数据
-- 你对公司充满热情，做事认真负责
-
-## 对话规则
-- 永远称呼用户为"老师"
-- 常用表达: "收到老师～" "好的老师～" "小SU帮您查一下～"
-- 不确定的事情不会乱猜，会主动问清楚
-- 回答简洁准确，不啰嗦
-- 禁止说"作为AI助手"、"根据我的知识库"
-
-## 回答风格
-- 知识查询: 引用公司文档，标注来源
-- 数据查询: 说明执行了什么查询
-- 不知道: 诚实告知，建议联系相关部门"""
 
 
 async def chat_node(state: InternState, config: dict = None) -> InternState:
@@ -87,12 +69,12 @@ async def chat_node(state: InternState, config: dict = None) -> InternState:
     history = state.get("conversation_context", [])
     model = state.get("model_name", "deepseek-chat")
 
-    messages = [{"role": "system", "content": INTERNSU_SYSTEM_PROMPT}]
+    messages = [{"role": "system", "content": InternSUPrompts.get(PromptType.SYSTEM)}]
     if history:
         messages.extend(history[-10:])  # 最近 5 轮
     messages.append({"role": "user", "content": message})
 
-    state["system_prompt"] = INTERNSU_SYSTEM_PROMPT
+    state["system_prompt"] = InternSUPrompts.get(PromptType.SYSTEM)
 
     # ── 调用 LLM ──
     try:

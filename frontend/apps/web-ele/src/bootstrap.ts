@@ -25,22 +25,26 @@ async function bootstrap(namespace: string) {
   // 初始化表单组件
   await initSetupVbenForm();
 
-  // // 设置弹窗的默认配置
-  // setDefaultModalProps({
-  //   fullscreenButton: false,
-  // });
-  // // 设置抽屉的默认配置
-  // setDefaultDrawerProps({
-  //   zIndex: 2000,
-  // });
   const app = createApp(App);
+
+  // 全局 Vue 错误处理器 — 防止未捕获异常导致整个 SPA 崩溃
+  app.config.errorHandler = (err, instance, info) => {
+    console.error('[Vue Error]', err, '\nComponent:', instance, '\nInfo:', info);
+    // 不重新抛出 — 防止连锁崩溃
+  };
+
+  // 全局 Promise 未处理拒绝处理器
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('[Unhandled Promise Rejection]', event.reason);
+    event.preventDefault(); // 阻止默认的控制台错误
+  });
 
   // 注册Element Plus提供的v-loading指令
   app.directive('loading', ElLoading.directive);
 
   // 注册Vben提供的v-loading和v-spinning指令
   registerLoadingDirective(app, {
-    loading: false, // Vben提供的v-loading指令和Element Plus提供的v-loading指令二选一即可，此处false表示不注册Vben提供的v-loading指令
+    loading: false,
     spinning: 'spinning',
   });
 

@@ -78,30 +78,6 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     }
 
     // ======================== 查询 ========================
-
-    @Override
-    public Page<Document> listDocuments(Long userId, Long deptId, Long spaceId,
-                                        Integer pageNum, Integer pageSize) {
-        // ★ 纵深防御第一步：仅返回用户有权访问的文档 ID
-        List<Long> accessibleIds = baseMapper.selectAccessibleDocumentIds(userId, deptId);
-
-        Page<Document> page = new Page<>(pageNum, pageSize);
-        if (accessibleIds.isEmpty()) {
-            return page; // 空页，总数为 0
-        }
-
-        LambdaQueryWrapper<Document> wrapper = new LambdaQueryWrapper<Document>()
-                .in(Document::getId, accessibleIds);
-
-        // 可选：按知识空间过滤
-        if (spaceId != null) {
-            wrapper.eq(Document::getSpaceId, spaceId);
-        }
-
-        wrapper.orderByDesc(Document::getCreateTime);
-        return this.page(page, wrapper);
-    }
-
     @Override
     public Page<MyDocumentDTO> listMyDocuments(Long userId, Integer pageNum, Integer pageSize) {
         Page<MyDocumentDTO> page = new Page<>(pageNum, pageSize);

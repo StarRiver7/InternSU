@@ -3,7 +3,7 @@ SQL 执行器 —— 通过 HTTP 调用 Java 端执行业务库 SQL。
 
 架构变更 (v3):
   - 不再直连 MySQL。Python 生成 SQL 后通过 HTTP POST 发送到 Java 的
-    /api/sql/execute 端点，由 Java 在 intersu_business 上执行。
+    /api/sql/execute 端点，由 Java 在 internsu_business 上执行。
   - Python 端仅保留安全校验（sql_guard），数据面完全由 Java 管控。
 """
 

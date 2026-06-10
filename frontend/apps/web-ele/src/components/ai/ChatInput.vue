@@ -11,6 +11,7 @@ interface DocumentItem {
 
 const props = defineProps<{
   disabled?: boolean;
+  toolStatus?: string;
 }>();
 
 const emit = defineEmits<{
@@ -209,6 +210,7 @@ watch(() => message.value, handleInput);
 
     <div class="flex items-center justify-between mt-2 text-xs text-gray-400">
       <span v-if="selectedDocuments.length > 0">已选择 {{ selectedDocuments.length }} 个文档</span>
+      <span v-if="props.toolStatus" class="text-blue-500">{{ props.toolStatus }}</span>
       <span v-else></span>
     </div>
   </div>

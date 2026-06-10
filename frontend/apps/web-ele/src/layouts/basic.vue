@@ -31,7 +31,7 @@ const menus = computed(() => [
     text: '小SU',
   },
   {
-    handler: () => router.push({ name: 'AiKnowledge' }),
+    handler: () => router.push({ name: 'KnowledgeStatus' }),
     icon: 'lucide:database',
     text: '知识库',
   },

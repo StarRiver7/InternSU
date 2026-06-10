@@ -277,7 +277,11 @@ async def _generate_sql(user_message, schema_context, context_hint, collected_sl
     # 【安全增强】自动添加 LIMIT 100
     sql_upper = sql.upper().strip()
     if "LIMIT" not in sql_upper and not sql_upper.endswith(";"):
-        sql = sql.rstrip(";").strip() + " LIMIT 100"
+        # 对于聚合查询（SELECT COUNT/SUM/AVG/MAX/MIN），不需要添加 LIMIT
+        import re
+        is_aggregate = re.match(r"SELECT\s+(COUNT|SUM|AVG|MAX|MIN)\s*\(", sql_upper)
+        if not is_aggregate:
+            sql = sql.rstrip(";").strip() + " LIMIT 100"
 
     logger.debug(f"已生成 SQL: {sql[:200]}")
     return sql

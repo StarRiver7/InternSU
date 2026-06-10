@@ -63,7 +63,7 @@
 
     <!--
       ============================================================
-      selectPublicDocuments — 查询公司和技术部门公开的文档
+      selectPublicDocuments — 查询公司和用户本部门公开的文档
 
       返回：文档名称、所属部门、创建人、创建时间
       ============================================================
@@ -72,19 +72,15 @@
         SELECT
             d.id AS id,
             d.file_name AS fileName,
-            dept.name AS departmentName,
+            IFNULL(dept.name, '公司文档') AS departmentName,
             d.creator_id AS creatorId,
-            u.name AS creatorName,
+            u.nickname AS creatorName,
             d.create_time AS createTime
         FROM t_document d
         LEFT JOIN t_knowledge_space ks ON d.space_id = ks.id AND ks.is_deleted = 0
         LEFT JOIN t_department dept ON ks.department_id = dept.id AND dept.is_deleted = 0
         LEFT JOIN t_user u ON d.creator_id = u.id AND u.is_deleted = 0
-        WHERE d.is_deleted = 0
-        AND (
-            ks.visibility = 'public'
-            OR (ks.visibility = 'department' AND ks.department_id = #{deptId} AND #{deptId} IS NOT NULL)
-        )
+        WHERE d.is_deleted = 0 AND (d.space_id = 1 OR d.space_id = #{deptId})
         ORDER BY d.create_time DESC
     </select>
 

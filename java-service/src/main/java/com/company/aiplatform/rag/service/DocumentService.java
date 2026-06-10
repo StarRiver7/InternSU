@@ -24,18 +24,6 @@ public interface DocumentService {
     Path getUploadDir() throws IOException;
 
     /**
-     * 分页查询用户有权访问的文档.
-     *
-     * @param userId   当前登录用户 ID（从 JWT 提取）
-     * @param deptId   用户所属部门 ID（可为 null）
-     * @param spaceId  知识空间 ID（可选过滤，null = 全部）
-     * @param pageNum  页码
-     * @param pageSize 每页数量
-     */
-    Page<Document> listDocuments(Long userId, Long deptId, Long spaceId,
-                                 Integer pageNum, Integer pageSize);
-
-    /**
      * 分页查询用户自己创建的文档.
      *
      * @param userId   当前登录用户 ID

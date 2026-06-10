@@ -26,25 +26,29 @@ export function transformComponent(
   }
 
   const routeName = route.name as string;
-  // 如果组件没有 name，则直接返回
+  // 如果路由没有 name，则直接返回
   if (!routeName) {
     return component;
   }
-  const componentName = (component?.type as any)?.name;
+
+  // 安全获取组件类型
+  const componentType = component?.type as any;
+  if (!componentType) {
+    console.error(
+      'Component type is undefined，please check the route configuration',
+    );
+    return component;
+  }
+
+  const componentName = componentType?.name;
 
   // 已经设置过 name，则直接返回
   if (componentName) {
     return component;
   }
 
-  // componentName 与 routeName 一致，则直接返回
-  if (componentName === routeName) {
-    return component;
-  }
-
   // 设置 name
-  component.type ||= {};
-  (component.type as any).name = routeName;
+  componentType.name = routeName;
 
   return component;
 }
