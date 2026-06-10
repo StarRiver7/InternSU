@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import NotifyProvider from '#/components/NotifyProvider.vue'
 // internSU — Enterprise AI Workbench
 // Layout is handled by route components (BasicLayout via core routes)
 </script>
 
 <template>
-  <router-view />
+  <NotifyProvider />
+<router-view />
 </template>
 
 <style>

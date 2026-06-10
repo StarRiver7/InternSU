@@ -43,13 +43,17 @@
     "@vueuse/core": "catalog:",
     "dayjs": "catalog:",
     "element-plus": "catalog:",
+    "gsap": "^3.15.0",
     "highlight.js": "^11.11.1",
     "marked": "^18.0.4",
+    "ogl": "^1.0.11",
     "pinia": "catalog:",
+    "three": "^0.184.0",
     "vue": "catalog:",
     "vue-router": "catalog:"
   },
   "devDependencies": {
+    "@types/three": "^0.184.1",
     "unplugin-element-plus": "catalog:"
   }
 }

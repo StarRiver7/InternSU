@@ -139,6 +139,11 @@ class PreferenceManager {
       this.initialPreferences, // 初始设置仅补齐缺失字段
     );
 
+    // 确保 overrides 中显式指定的字段始终优先于缓存
+    if (overrides) {
+      Object.assign(mergedPreference, merge({}, overrides, mergedPreference));
+    }
+
     // 更新偏好设置
     this.updatePreferences(mergedPreference);
 

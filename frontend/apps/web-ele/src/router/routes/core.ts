@@ -21,7 +21,23 @@ const fallbackNotFoundRoute: RouteRecordRaw = {
 const coreRoutes: RouteRecordRaw[] = [
   {
     path: '/',
-    redirect: LOGIN_PATH,
+    redirect: '/home',
+  },
+  {
+    name: 'Chat',
+    path: '/chat',
+    component: () => import('#/views/chat/index.vue'),
+    meta: {
+      title: 'AI 聊天',
+    },
+  },
+  {
+    name: 'Home',
+    path: '/home',
+    component: () => import('#/views/home/index.vue'),
+    meta: {
+      title: '首页',
+    },
   },
   {
     component: AuthPageLayout,

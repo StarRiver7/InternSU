@@ -115,9 +115,9 @@ const defaultPreferences: Preferences = {
     wheelable: true,
   },
   theme: {
-    builtinType: 'violet',
+    builtinType: 'green',
     colorDestructive: 'hsl(348 100% 61%)',
-    colorPrimary: 'hsl(174 96% 40%)',
+    colorPrimary: 'hsl(161 90% 43%)',
     colorSuccess: 'hsl(144 57% 58%)',
     colorWarning: 'hsl(42 84% 61%)',
     mode: 'dark',

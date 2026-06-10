@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router';
 import { LOGIN_PATH } from '@vben/constants';
 import { preferences } from '@vben/preferences';
 import { resetAllStores, useAccessStore, useUserStore } from '@vben/stores';
-import { ElNotification } from 'element-plus';
 import { defineStore } from 'pinia';
 import {
   getAccessCodesApi,
@@ -15,6 +14,7 @@ import {
   type JavaUserInfo,
 } from '#/api';
 import { $t } from '#/locales';
+import { showNotify, showCenterNotify } from '#/composables/useNotify';
 
 function mapJavaUserToVben(javaUser: JavaUserInfo, token: string): UserInfo {
   return {
@@ -67,11 +67,10 @@ export const useAuthStore = defineStore('auth', () => {
         }
 
         if (userInfo?.realName) {
-          ElNotification({
-            message: `${$t('authentication.loginSuccessDesc')}:${userInfo?.realName}`,
-            title: $t('authentication.loginSuccess'),
-            type: 'success',
-          });
+          showNotify(
+            $t('authentication.loginSuccess'),
+            `${$t('authentication.loginSuccessDesc')}:${userInfo?.realName}`,
+          );
         }
       }
     } finally {
@@ -84,19 +83,17 @@ export const useAuthStore = defineStore('auth', () => {
     loginLoading.value = true;
     try {
       await registerApi({ email: params.email, nickname: params.nickname, username: params.username, password: params.password });
-      ElNotification({
-        message: $t('authentication.registerSuccess'),
-        title: $t('authentication.registerSuccess'),
-        type: 'success',
-      });
+      showNotify(
+        $t('authentication.registerSuccess'),
+        $t('authentication.registerSuccess'),
+      );
       await router.push(LOGIN_PATH);
     } catch (error: any) {
       const msg = error?.response?.data?.message ?? error?.message ?? '注册失败';
-      ElNotification({
-        message: msg,
-        title: $t('common.error'),
-        type: 'error',
-      });
+      showNotify(
+        $t('common.error'),
+        msg,
+      );
       throw error;
     } finally {
       loginLoading.value = false;
