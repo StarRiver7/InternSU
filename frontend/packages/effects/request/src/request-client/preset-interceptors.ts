@@ -154,6 +154,22 @@ export const errorMessageResponseInterceptor = (
           errorMessage = $t('ui.fallback.http.requestTimeout');
           break;
         }
+        case 500: {
+          errorMessage = $t('ui.fallback.http.internalServerError');
+          break;
+        }
+        case 502: {
+          errorMessage = $t('ui.fallback.http.badGateway');
+          break;
+        }
+        case 503: {
+          errorMessage = $t('ui.fallback.http.serviceUnavailable');
+          break;
+        }
+        case 504: {
+          errorMessage = $t('ui.fallback.http.gatewayTimeout');
+          break;
+        }
         default: {
           errorMessage = $t('ui.fallback.http.internalServerError');
         }
