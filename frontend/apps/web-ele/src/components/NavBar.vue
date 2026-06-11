@@ -3,11 +3,13 @@ import { nextTick, onMounted, onUnmounted, ref, watch, computed } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { cn } from '@vben/utils';
 import type { Component } from 'vue';
+import UserMenu from './UserMenu.vue';
 
 interface NavItem {
   name: string;
   url: string;
   icon: Component;
+  isUserMenu?: boolean;
 }
 
 const props = withDefaults(
@@ -146,6 +148,11 @@ onUnmounted(() => {
           <component :is="item.icon" :size="18" :stroke-width="2.5" />
         </span>
       </RouterLink>
+
+      <!-- User Menu -->
+      <div class="ml-1 pl-3 border-l border-border/50">
+        <UserMenu />
+      </div>
     </div>
   </div>
 </template>

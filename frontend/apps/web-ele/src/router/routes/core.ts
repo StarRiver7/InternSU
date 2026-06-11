@@ -40,6 +40,22 @@ const coreRoutes: RouteRecordRaw[] = [
     },
   },
   {
+    name: 'History',
+    path: '/history',
+    component: () => import('#/views/history/index.vue'),
+    meta: {
+      title: '历史记录',
+    },
+  },
+  {
+    name: 'Knowledge',
+    path: '/knowledge',
+    component: () => import('#/views/knowledge/index.vue'),
+    meta: {
+      title: '知识库',
+    },
+  },
+  {
     component: AuthPageLayout,
     meta: {
       hideInTab: true,

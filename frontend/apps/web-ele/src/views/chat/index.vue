@@ -79,7 +79,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="w-full h-screen flex flex-col bg-[#f8f9fb]">
+  <div class="w-full h-screen flex flex-col bg-white">
     <NavBar :items="navItems" />
 
     <div class="flex-1 flex flex-col items-center justify-center px-4 py-8">
