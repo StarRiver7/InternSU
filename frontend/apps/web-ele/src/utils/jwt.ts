@@ -1,9 +1,11 @@
 /**
  * JWT Token 工具模块
  *
- * 提供 JWT 解码、过期检测等企业级 Token 管理能力。
+ * 提供 JWT 解码、过期检测、Token 清理等企业级 Token 管理能力。
  * 仅解析 payload，不验证签名（签名验证由后端完成）。
  */
+
+import { useAccessStore } from "@vben/stores";
 
 /** 解码后的 JWT payload 结构 */
 interface JwtPayload {
@@ -26,11 +28,11 @@ interface JwtPayload {
  * @returns 解码后的 payload 对象，解码失败返回 null
  */
 export function decodeJwt(token: string | null | undefined): JwtPayload | null {
-  if (!token || typeof token !== 'string') {
+  if (!token || typeof token !== "string") {
     return null;
   }
   try {
-    const parts = token.split('.');
+    const parts = token.split(".");
     if (parts.length !== 3) {
       return null;
     }
@@ -39,12 +41,12 @@ export function decodeJwt(token: string | null | undefined): JwtPayload | null {
     if (!payload) {
       return null;
     }
-    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
     const jsonStr = decodeURIComponent(
       atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join(''),
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join(""),
     );
     return JSON.parse(jsonStr) as JwtPayload;
   } catch {
@@ -87,4 +89,16 @@ export function isTokenExpiring(
  */
 export function isTokenExpired(token: string | null | undefined): boolean {
   return isTokenExpiring(token, 0);
+}
+
+/**
+ * 统一清除双 Token（accessToken + refreshToken）
+ *
+ * 退出登录、Token 过期强制重新认证时调用。
+ * 将 accessToken 和 refreshToken 同时置空，确保两个 Token 同步失效。
+ */
+export function clearToken(): void {
+  const accessStore = useAccessStore();
+  accessStore.setAccessToken(null);
+  accessStore.setRefreshToken(null);
 }

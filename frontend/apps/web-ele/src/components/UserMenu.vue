@@ -1,7 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { ChevronDown, Settings, LogOut, User } from 'lucide-vue-next';
-import { cn } from '@vben/utils';
+import { ref } from "vue";
+import { ChevronDown, Settings, LogOut, User } from "lucide-vue-next";
+import { cn } from "@vben/utils";
+import { ElMessageBox } from "element-plus";
+
+import { useAuthStore } from "#/store";
+
+const authStore = useAuthStore();
 
 const isOpen = ref(false);
 
@@ -9,27 +14,46 @@ function toggleMenu() {
   isOpen.value = !isOpen.value;
 }
 
-function handleLogout() {
+/**
+ * 退出登录 —— 弹出确认框，确认后执行退出流程
+ * 退出流程（authStore.logout）：
+ *   1. 调用 POST /api/v1/auth/logout（传 refreshToken）
+ *   2. 清除双 Token + 用户信息 + Pinia 状态 + 本地缓存
+ *   3. 跳转登录页
+ *   4. 显示退出成功提示
+ */
+async function handleLogout() {
   isOpen.value = false;
-  // 这里可以添加退出登录逻辑
-  console.log('Logout clicked');
+
+  try {
+    await ElMessageBox.confirm("确定要退出登录吗？", "退出确认", {
+      confirmButtonText: "确定退出",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
+  } catch {
+    // 用户点击取消，不做任何操作
+    return;
+  }
+
+  await authStore.logout();
 }
 
 function handleSettings() {
   isOpen.value = false;
-  // 这里可以添加跳转到设置页面的逻辑
-  console.log('Settings clicked');
+  // 设置页面跳转逻辑
+  console.log("Settings clicked");
 }
 
 function handleClickOutside(event: MouseEvent) {
   const target = event.target as HTMLElement;
-  if (!target.closest('[data-user-menu]')) {
+  if (!target.closest("[data-user-menu]")) {
     isOpen.value = false;
   }
 }
 
-if (typeof window !== 'undefined') {
-  window.addEventListener('click', handleClickOutside);
+if (typeof window !== "undefined") {
+  window.addEventListener("click", handleClickOutside);
 }
 </script>
 
@@ -37,19 +61,23 @@ if (typeof window !== 'undefined') {
   <div data-user-menu class="relative">
     <!-- User Button -->
     <button
-      :class="cn(
-        'flex items-center gap-2 p-1 rounded-full transition-colors',
-        'hover:bg-accent/50',
-        isOpen && 'bg-accent/50',
-      )"
+      :class="
+        cn(
+          'flex items-center gap-2 p-1 rounded-full transition-colors',
+          'hover:bg-accent/50',
+          isOpen && 'bg-accent/50',
+        )
+      "
       @click.stop="toggleMenu"
     >
-      <div class="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center">
+      <div
+        class="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center"
+      >
         <User class="text-gray-800" :size="16" />
       </div>
-      <ChevronDown 
-        :size="14" 
-        class="text-gray-500 transition-transform" 
+      <ChevronDown
+        :size="14"
+        class="text-gray-500 transition-transform"
         :class="{ 'rotate-180': isOpen }"
       />
     </button>

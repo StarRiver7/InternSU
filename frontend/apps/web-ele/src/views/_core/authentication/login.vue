@@ -1,15 +1,14 @@
 <script lang="ts" setup>
-import type { VbenFormSchema } from '@vben/common-ui';
-import type { BasicOption } from '@vben/types';
+import type { VbenFormSchema } from "@vben/common-ui";
 
-import { computed, markRaw } from 'vue';
+import { computed, markRaw } from "vue";
 
-import { AuthenticationLogin, SliderCaptcha, z } from '@vben/common-ui';
-import { $t } from '@vben/locales';
+import { AuthenticationLogin, SliderCaptcha, z } from "@vben/common-ui";
+import { $t } from "@vben/locales";
 
-import { useAuthStore } from '#/store';
+import { useAuthStore } from "#/store";
 
-defineOptions({ name: 'Login' });
+defineOptions({ name: "Login" });
 
 const authStore = useAuthStore();
 
@@ -24,61 +23,47 @@ const MOCK_USER_OPTIONS: BasicOption[] = [
   },
 ];
 
+/**
+ * 登录表单字段定义
+ * - username: 用户名（必填）
+ * - password: 密码（必填）
+ * - captcha: 滑块验证码（必填，用于防止机器人提交）
+ * 
+ * 注意：后端 POST /api/v1/auth/login 期望 { username, email, password }
+ * 其中 email 可为空字符串，在 authStore.authLogin 中自动补充。
+ * 此处表单不暴露 email 字段，保持登录页简洁。
+ */
 const formSchema = computed((): VbenFormSchema[] => {
   return [
     {
-      component: 'VbenSelect',
+      component: "VbenInput",
       componentProps: {
-        options: MOCK_USER_OPTIONS,
-        placeholder: $t('authentication.selectAccount'),
+        placeholder: $t("authentication.usernameTip"),
+        autocomplete: "username",
       },
-      fieldName: 'selectAccount',
-      label: $t('authentication.selectAccount'),
+      fieldName: "username",
+      label: $t("authentication.username"),
       rules: z
         .string()
-        .min(1, { message: $t('authentication.selectAccount') })
-        .optional()
-        .default('vben'),
+        .min(1, { message: $t("authentication.usernameTip") }),
     },
     {
-      component: 'VbenInput',
+      component: "VbenInputPassword",
       componentProps: {
-        placeholder: $t('authentication.usernameTip'),
+        placeholder: $t("authentication.password"),
+        autocomplete: "current-password",
       },
-      dependencies: {
-        trigger(values, form) {
-          if (values.selectAccount) {
-            const findUser = MOCK_USER_OPTIONS.find(
-              (item) => item.value === values.selectAccount,
-            );
-            if (findUser) {
-              form.setValues({
-                password: '123456',
-                username: findUser.value,
-              });
-            }
-          }
-        },
-        triggerFields: ['selectAccount'],
-      },
-      fieldName: 'username',
-      label: $t('authentication.username'),
-      rules: z.string().min(1, { message: $t('authentication.usernameTip') }),
-    },
-    {
-      component: 'VbenInputPassword',
-      componentProps: {
-        placeholder: $t('authentication.password'),
-      },
-      fieldName: 'password',
-      label: $t('authentication.password'),
-      rules: z.string().min(1, { message: $t('authentication.passwordTip') }),
+      fieldName: "password",
+      label: $t("authentication.password"),
+      rules: z
+        .string()
+        .min(1, { message: $t("authentication.passwordTip") }),
     },
     {
       component: markRaw(SliderCaptcha),
-      fieldName: 'captcha',
+      fieldName: "captcha",
       rules: z.boolean().refine((value) => value, {
-        message: $t('authentication.verifyRequiredTip'),
+        message: $t("authentication.verifyRequiredTip"),
       }),
     },
   ];

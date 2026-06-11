@@ -168,7 +168,7 @@ const personalDocs = ref<PersonalDoc[]>([
     createdAt: "2026-06-03 17:00",
   },
   {
-    id: 11, 
+    id: 11,
     fileName: "API接口规范.pdf",
     fileSize: "1.6 MB",
     status: "splitting",
@@ -200,7 +200,7 @@ const personalDocs = ref<PersonalDoc[]>([
     createdAt: "2026-06-03 17:00",
   },
   {
-    id: 15,  
+    id: 15,
     fileName: "API接口规范.pdf",
     fileSize: "1.6 MB",
     status: "splitting",
@@ -435,8 +435,7 @@ function onKeydown(e: KeyboardEvent) {
           <div class="mb-3">
             <button
               class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-500 text-white text-sm font-medium hover:bg-teal-600 transition-colors"
-              @click="openUploadDialog"
-            >
+              @click="openUploadDialog">
               <Upload :size="16" />
               <span>上传文件</span>
             </button>
@@ -456,11 +455,8 @@ function onKeydown(e: KeyboardEvent) {
                 </tr>
               </thead>
               <tbody>
-                <tr
-                  v-for="doc in personalDocs"
-                  :key="doc.id"
-                  class="border-b border-gray-100 hover:bg-gray-100/30 transition-colors"
-                >
+                <tr v-for="doc in personalDocs" :key="doc.id"
+                  class="border-b border-gray-100 hover:bg-gray-100/30 transition-colors">
                   <!-- 文件名 -->
                   <td class="px-4 py-3">
                     <span class="text-gray-900">{{ doc.fileName }}</span>
@@ -474,59 +470,18 @@ function onKeydown(e: KeyboardEvent) {
                     <div class="flex items-center gap-1.5">
                       <template v-for="(stage, si) in statusStages" :key="stage.key">
                         <!-- Connector line -->
-                        <div
-                          v-if="si > 0"
-                          class="h-px w-4 rounded"
-                          :class="si <= stageIndexMap[doc.status] ? 'bg-teal-400' : 'bg-gray-200'"
-                        />
+                        <div v-if="si > 0" class="h-px w-4 rounded"
+                          :class="si <= stageIndexMap[doc.status] ? 'bg-teal-400' : 'bg-gray-200'" />
                         <!-- Dot -->
-                        <div
-                          class="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                          :class="{
-                            'bg-teal-500': si < stageIndexMap[doc.status],
-                            'bg-teal-500 ring-2 ring-teal-200': si === stageIndexMap[doc.status],
-                            'bg-gray-200': si > stageIndexMap[doc.status],
-                          }"
-                          :title="stage.label"
-                        />
+                        <div class="w-2.5 h-2.5 rounded-full flex-shrink-0" :class="{
+                          'bg-teal-500': si < stageIndexMap[doc.status],
+                          'bg-teal-500 ring-2 ring-teal-200': si === stageIndexMap[doc.status],
+                          'bg-gray-200': si > stageIndexMap[doc.status],
+                        }" :title="stage.label" />
+
+
+                      </template>
                       
-<style scoped>
-.dialog-fade-enter-active,
-.dialog-fade-leave-active {
-  transition: opacity 0.25s ease;
-}
-.dialog-fade-enter-from,
-.dialog-fade-leave-to {
-  opacity: 0;
-}
-
-.card-slide-left-enter-active,
-.card-slide-left-leave-active {
-  transition: all 0.3s ease;
-}
-.card-slide-left-enter-from {
-  transform: translateX(40px);
-  opacity: 0;
-}
-.card-slide-left-leave-to {
-  transform: translateX(-40px);
-  opacity: 0;
-}
-
-.card-slide-right-enter-active,
-.card-slide-right-leave-active {
-  transition: all 0.3s ease;
-}
-.card-slide-right-enter-from {
-  transform: translateX(-40px);
-  opacity: 0;
-}
-.card-slide-right-leave-to {
-  transform: translateX(40px);
-  opacity: 0;
-}
-</style>
-</template>
                       <span class="ml-2 text-xs text-gray-500">
                         {{ getStatusLabel(doc.status) }}
                       </span>
@@ -545,16 +500,12 @@ function onKeydown(e: KeyboardEvent) {
                     <div class="flex items-center justify-end gap-1">
                       <button
                         class="p-1.5 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
-                        title="编辑"
-                        @click="handlePersonalEdit(doc)"
-                      >
+                        title="编辑" @click="handlePersonalEdit(doc)">
                         <Pencil :size="15" />
                       </button>
                       <button
                         class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                        title="删除"
-                        @click="handlePersonalDelete(doc)"
-                      >
+                        title="删除" @click="handlePersonalDelete(doc)">
                         <Trash2 :size="15" />
                       </button>
                     </div>
@@ -586,11 +537,8 @@ function onKeydown(e: KeyboardEvent) {
                 </tr>
               </thead>
               <tbody>
-                <tr
-                  v-for="doc in enterpriseDocs"
-                  :key="doc.id"
-                  class="border-b border-gray-50 hover:bg-gray-50/30 transition-colors"
-                >
+                <tr v-for="doc in enterpriseDocs" :key="doc.id"
+                  class="border-b border-gray-50 hover:bg-gray-50/30 transition-colors">
                   <td class="px-4 py-3">
                     <span class="text-gray-900">{{ doc.fileName }}</span>
                   </td>
@@ -598,7 +546,8 @@ function onKeydown(e: KeyboardEvent) {
                     <span class="text-gray-500">{{ doc.fileSize }}</span>
                   </td>
                   <td class="px-4 py-3">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-teal-50 text-teal-700">
+                    <span
+                      class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-teal-50 text-teal-700">
                       {{ doc.department }}
                     </span>
                   </td>
@@ -625,17 +574,11 @@ function onKeydown(e: KeyboardEvent) {
     <!-- Upload Dialog -->
     <Teleport to="body">
       <Transition name="dialog-fade">
-        <div
-          v-if="showUploadDialog"
-          class="dialog-overlay fixed inset-0 z-50 flex items-center justify-center p-4"
-          style="background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(4px);"
-          @click="onOverlayClick"
-          @keydown="onKeydown"
-        >
-          <div
-            class="relative w-full max-w-lg rounded-2xl overflow-hidden"
-            style="background: rgba(255, 255, 255, 0.72); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.5); box-shadow: 0 8px 40px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.06);"
-          >
+        <div v-if="showUploadDialog" class="dialog-overlay fixed inset-0 z-50 flex items-center justify-center p-4"
+          style="background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(4px);" @click="onOverlayClick"
+          @keydown="onKeydown">
+          <div class="relative w-full max-w-lg rounded-2xl overflow-hidden"
+            style="background: rgba(255, 255, 255, 0.72); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.5); box-shadow: 0 8px 40px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.06);">
             <div class="flex items-center justify-between px-6 pt-5 pb-3">
               <div>
                 <h2 class="text-lg font-semibold text-gray-900">上传文档</h2>
@@ -644,36 +587,39 @@ function onKeydown(e: KeyboardEvent) {
                   {{ uploadStep === 1 ? '选择可见范围' : '选择文件' }}
                 </p>
               </div>
-              <button class="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors" @click="closeDialog">
+              <button class="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                @click="closeDialog">
                 <X :size="18" />
               </button>
             </div>
 
             <div class="flex items-center justify-center gap-2 px-6 pb-4">
-              <div class="w-2 h-2 rounded-full transition-all duration-300" :class="uploadStep === 1 ? 'bg-teal-500 w-5' : 'bg-gray-300'" />
+              <div class="w-2 h-2 rounded-full transition-all duration-300"
+                :class="uploadStep === 1 ? 'bg-teal-500 w-5' : 'bg-gray-300'" />
               <div class="w-6 h-px bg-gray-300" />
-              <div class="w-2 h-2 rounded-full transition-all duration-300" :class="uploadStep === 2 ? 'bg-teal-500 w-5' : 'bg-gray-300'" />
+              <div class="w-2 h-2 rounded-full transition-all duration-300"
+                :class="uploadStep === 2 ? 'bg-teal-500 w-5' : 'bg-gray-300'" />
             </div>
 
             <div class="relative overflow-hidden px-6" style="min-height: 220px;">
               <Transition :name="direction === 'forward' ? 'card-slide-left' : 'card-slide-right'" mode="out-in">
                 <div v-if="uploadStep === 1" key="step1" class="space-y-3">
-                  <div
-                    v-for="opt in scopeOptions"
-                    :key="opt.key"
+                  <div v-for="opt in scopeOptions" :key="opt.key"
                     class="flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200"
                     :class="docScope === opt.key ? 'border-2 border-teal-400 shadow-md shadow-teal-500/10' : 'border-2 border-white/40 hover:border-teal-300 hover:shadow-sm'"
                     :style="docScope === opt.key ? 'background: rgba(13, 148, 136, 0.08);' : 'background: rgba(255, 255, 255, 0.6);'"
-                    @click="selectScope(opt.key)"
-                  >
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors duration-200" :class="docScope === opt.key ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-500'">
+                    @click="selectScope(opt.key)">
+                    <div
+                      class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors duration-200"
+                      :class="docScope === opt.key ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-500'">
                       <component :is="opt.icon" :size="20" />
                     </div>
                     <div class="flex-1">
                       <div class="text-sm font-medium text-gray-900">{{ opt.label }}</div>
                       <div class="text-xs text-gray-400">{{ opt.desc }}</div>
                     </div>
-                    <div v-if="docScope === opt.key" class="w-5 h-5 rounded-full bg-teal-500 flex items-center justify-center flex-shrink-0">
+                    <div v-if="docScope === opt.key"
+                      class="w-5 h-5 rounded-full bg-teal-500 flex items-center justify-center flex-shrink-0">
                       <Check :size="12" class="text-white" />
                     </div>
                   </div>
@@ -683,20 +629,25 @@ function onKeydown(e: KeyboardEvent) {
                   <div
                     class="relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200"
                     :class="uploadedFiles.length > 0 ? 'border-teal-300 bg-teal-50/30' : 'border-gray-300 hover:border-teal-400 hover:bg-teal-50/20'"
-                    @click="triggerFileInput"
-                  >
-                    <input ref="fileInputRef" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.md,.txt,.csv" class="hidden" @change="onFilesSelected" />
+                    @click="triggerFileInput">
+                    <input ref="fileInputRef" type="file" multiple
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.md,.txt,.csv" class="hidden"
+                      @change="onFilesSelected" />
                     <Upload :size="28" class="mx-auto text-gray-400 mb-2" />
                     <p class="text-sm text-gray-500">点击选择文件，或拖拽到此处</p>
                     <p class="text-xs text-gray-400 mt-1">支持 PDF、Word、Excel、PPT、MD、TXT、CSV</p>
                   </div>
 
                   <div v-if="uploadedFiles.length > 0" class="space-y-1.5 max-h-36 overflow-y-auto">
-                    <div v-for="(f, idx) in uploadedFiles" :key="idx" class="flex items-center gap-3 px-3 py-2 rounded-lg" style="background: rgba(255, 255, 255, 0.7);">
+                    <div v-for="(f, idx) in uploadedFiles" :key="idx"
+                      class="flex items-center gap-3 px-3 py-2 rounded-lg"
+                      style="background: rgba(255, 255, 255, 0.7);">
                       <FileText :size="16" class="text-teal-500 flex-shrink-0" />
                       <span class="flex-1 text-sm text-gray-700 truncate">{{ f.name }}</span>
                       <span class="text-xs text-gray-400 flex-shrink-0">{{ formatFileSize(f.size) }}</span>
-                      <button class="p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0" @click.stop="removeFile(idx)">
+                      <button
+                        class="p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+                        @click.stop="removeFile(idx)">
                         <X :size="14" />
                       </button>
                     </div>
@@ -706,33 +657,31 @@ function onKeydown(e: KeyboardEvent) {
             </div>
 
             <div class="flex items-center justify-between px-6 py-4">
-              <button v-if="uploadStep === 2" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100/70 transition-colors" @click="goBack">
+              <button v-if="uploadStep === 2"
+                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100/70 transition-colors"
+                @click="goBack">
                 <ArrowLeft :size="16" />
                 <span>上一页</span>
               </button>
               <div v-else />
 
               <div class="flex gap-2">
-                <button class="px-4 py-2 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-100/70 transition-colors" @click="closeDialog">
+                <button
+                  class="px-4 py-2 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-100/70 transition-colors"
+                  @click="closeDialog">
                   取消
                 </button>
-                <button
-                  v-if="uploadStep === 1"
-                  :disabled="!docScope"
+                <button v-if="uploadStep === 1" :disabled="!docScope"
                   class="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-sm font-medium text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
                   style="background: linear-gradient(135deg, #14b8a6, #0d9488); box-shadow: 0 2px 8px rgba(13,148,136,0.3);"
-                  @click="goNext"
-                >
+                  @click="goNext">
                   <span>下一页</span>
                   <ArrowRight :size="16" />
                 </button>
-                <button
-                  v-if="uploadStep === 2"
-                  :disabled="uploadedFiles.length === 0"
+                <button v-if="uploadStep === 2" :disabled="uploadedFiles.length === 0"
                   class="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-sm font-medium text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
                   style="background: linear-gradient(135deg, #14b8a6, #0d9488); box-shadow: 0 2px 8px rgba(13,148,136,0.3);"
-                  @click="submitUpload"
-                >
+                  @click="submitUpload">
                   <Check :size="16" />
                   <span>提交</span>
                 </button>
@@ -744,19 +693,16 @@ function onKeydown(e: KeyboardEvent) {
     </Teleport>
 
     <!-- Dock -->
-    <Dock
-      :items="dockItems"
-      :panel-height="68"
-      :base-item-size="50"
-      :magnification="70"
-    />
+    <Dock :items="dockItems" :panel-height="68" :base-item-size="50" :magnification="70" />
   </div>
 
+</template>
 <style scoped>
 .dialog-fade-enter-active,
 .dialog-fade-leave-active {
   transition: opacity 0.25s ease;
 }
+
 .dialog-fade-enter-from,
 .dialog-fade-leave-to {
   opacity: 0;
@@ -766,10 +712,12 @@ function onKeydown(e: KeyboardEvent) {
 .card-slide-left-leave-active {
   transition: all 0.3s ease;
 }
+
 .card-slide-left-enter-from {
   transform: translateX(40px);
   opacity: 0;
 }
+
 .card-slide-left-leave-to {
   transform: translateX(-40px);
   opacity: 0;
@@ -779,13 +727,14 @@ function onKeydown(e: KeyboardEvent) {
 .card-slide-right-leave-active {
   transition: all 0.3s ease;
 }
+
 .card-slide-right-enter-from {
   transform: translateX(-40px);
   opacity: 0;
 }
+
 .card-slide-right-leave-to {
   transform: translateX(40px);
   opacity: 0;
 }
 </style>
-</template>

@@ -1,14 +1,15 @@
-import { defineOverridesPreferences } from '@vben/preferences';
+import { defineOverridesPreferences } from "@vben/preferences";
 
 export const overridesPreferences = defineOverridesPreferences({
   theme: {
-    builtinType: 'green',
-    colorPrimary: 'hsl(161 90% 43%)',
+    builtinType: "green",
+    colorPrimary: "hsl(161 90% 43%)",
   },
   app: {
-    defaultHomePath: '/auth/login',
+    /** 登录成功后默认跳转首页 */
+    defaultHomePath: "/home",
     enableRefreshToken: true,
-    name: 'InternSU',
+    name: "InternSU",
   },
   sidebar: {
     collapsed: true,
