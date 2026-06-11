@@ -99,50 +99,38 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div
-    :class="cn(
-      'fixed bottom-0 sm:top-0 left-1/2 -translate-x-1/2 z-50 mb-4 sm:mb-6 sm:pt-6 pointer-events-none',
-      visible ? 'opacity-100' : 'opacity-0',
-      props.class,
-    )"
-    style="transition: opacity 0.4s ease"
-  >
-    <div
-      ref="navRef"
-      data-nav-bar
-      class="relative flex items-center gap-1 sm:gap-3 bg-background/5 border border-border backdrop-blur-lg py-1 px-1 rounded-full shadow-lg pointer-events-auto"
-    >
+  <div :class="cn(
+    'fixed bottom-0 sm:top-0 left-1/2 -translate-x-1/2 z-50 mb-4 sm:mb-6 sm:pt-6 pointer-events-none',
+    visible ? 'opacity-100' : 'opacity-0',
+    props.class,
+  )" style="transition: opacity 0.4s ease">
+    <div ref="navRef" data-nav-bar
+      class="relative flex items-center gap-1 sm:gap-3 bg-background/5 border border-border backdrop-blur-lg py-1 px-1 rounded-full shadow-lg pointer-events-auto">
       <!-- Floating lamp indicator — position snaps instantly, animation goes upward from center -->
-      <div
-        :key="animKey"
-        class="absolute top-0 h-full animate-lamp-rise"
-        :style="{
-          left: indicatorStyle.left,
-          width: indicatorStyle.width,
-          opacity: indicatorStyle.opacity,
-        }"
-      >
+      <div :key="animKey" class="absolute top-0 h-full animate-lamp-rise" :style="{
+        left: indicatorStyle.left,
+        width: indicatorStyle.width,
+        opacity: indicatorStyle.opacity,
+      }">
         <div class="relative h-full w-full">
           <div class="absolute inset-0 w-full bg-primary/5 rounded-full -z-10" />
           <div class="absolute -top-1.5 left-1/2 -translate-x-1/2 w-6 sm:w-8 h-1 bg-primary rounded-t-full">
-            <div class="absolute w-10 sm:w-12 h-5 sm:h-6 bg-primary/20 rounded-full blur-md -top-1.5 sm:-top-2 -left-1.5 sm:-left-2" />
+            <div
+              class="absolute w-10 sm:w-12 h-5 sm:h-6 bg-primary/20 rounded-full blur-md -top-1.5 sm:-top-2 -left-1.5 sm:-left-2" />
             <div class="absolute w-6 sm:w-8 h-5 sm:h-6 bg-primary/20 rounded-full blur-md -top-0.5 sm:-top-1" />
             <div class="absolute w-3 sm:w-4 h-3 sm:h-4 bg-primary/20 rounded-full blur-sm top-0 left-1.5 sm:left-2" />
           </div>
         </div>
       </div>
 
-      <RouterLink
-        v-for="item in items"
-        :key="item.name"
-        :to="item.url"
-        :data-nav-item="item.name"
-        :class="cn(
-          'relative cursor-pointer text-sm font-semibold px-4 sm:px-6 py-2 rounded-full transition-colors',
-          'text-foreground/80 hover:text-primary',
-          activeTab === item.name && 'active bg-muted text-primary',
-        )"
-      >
+      <RouterLink v-for="item in items" :key="item.name" :to="item.url" :data-nav-item="item.name" :class="cn(
+        'relative cursor-pointer text-sm font-semibold px-4 sm:px-6 py-2 rounded-full transition-all duration-300',
+        'text-foreground/80 hover:text-primary',
+        'bg-white/20 dark:bg-white/10 backdrop-blur-md',
+        'border border-white/30 dark:border-white/20',
+        'hover:bg-white/30 dark:hover:bg-white/20',
+        activeTab === item.name && 'active bg-white/30 dark:bg-white/20 text-primary shadow-md backdrop-blur-md border-white/40'
+      )">
         <span class="hidden md:inline">{{ item.name }}</span>
         <span class="md:hidden">
           <component :is="item.icon" :size="18" :stroke-width="2.5" />
@@ -164,14 +152,17 @@ onUnmounted(() => {
     opacity: 0;
     transform-origin: center bottom;
   }
+
   40% {
     transform: scaleY(1.15);
     opacity: 0.7;
   }
+
   70% {
     transform: scaleY(0.95);
     opacity: 1;
   }
+
   100% {
     transform: scaleY(1);
     opacity: 1;
