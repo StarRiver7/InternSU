@@ -140,6 +140,12 @@ export const useAuthStore = defineStore("auth", () => {
     return { userInfo };
   }
 
+  /**
+   * 注册流程：
+   * 1. 调用 POST /api/v1/auth/register
+   * 2. 成功后显示提示
+   * 3. 跳转登录页，携带刚注册的 username 以便自动填充
+   */
   async function authRegister(params: {
     email?: string;
     nickname?: string;
@@ -155,11 +161,16 @@ export const useAuthStore = defineStore("auth", () => {
         password: params.password,
       });
       showNotify(
-        $t("authentication.registerSuccess"),
-        $t("authentication.registerSuccess"),
+        $t("authentication.registerSuccess") || "注册成功",
+        $t("authentication.registerSuccessDesc") || "请使用刚注册的账号登录",
       );
-      await router.push(LOGIN_PATH);
+      // 跳转登录页，通过 query 参数将用户名传递给登录页以自动填充
+      await router.push({
+        path: LOGIN_PATH,
+        query: { username: params.username },
+      });
     } catch (error: any) {
+      // 优先使用后端返回的错误消息
       const msg =
         error?.response?.data?.message ?? error?.message ?? "注册失败";
       showNotify($t("common.error"), msg);

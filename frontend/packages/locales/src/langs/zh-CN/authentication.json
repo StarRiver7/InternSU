@@ -53,5 +53,7 @@
   "registerEmailValidErrorTip": "邮箱格式不正确",
   "emailPasswordLogin": "邮箱密码登录",
   "page.auth.emailLogin": "邮箱登录",
-  "thirdPartyLogin": "其他登录方式"
+  "thirdPartyLogin": "其他登录方式",
+  "logoutSuccess": "退出成功",
+  "logoutSuccessDesc": "您已成功退出登录"
 }
