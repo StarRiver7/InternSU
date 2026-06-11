@@ -94,7 +94,7 @@ onMounted(() => {
 
 
         <!-- AIInputWithLoading -->
-        <div class="w-full">
+        <div class="w-full relative z-51">
           <div class="relative w-full mx-auto">
             <textarea
               ref="textareaRef"

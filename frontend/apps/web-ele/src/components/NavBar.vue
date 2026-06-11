@@ -99,7 +99,7 @@ onUnmounted(() => {
 <template>
   <div
     :class="cn(
-      'fixed bottom-0 sm:top-0 left-1/2 -translate-x-1/2 z-50 mb-4 sm:mb-6 sm:pt-6',
+      'fixed bottom-0 sm:top-0 left-1/2 -translate-x-1/2 z-50 mb-4 sm:mb-6 sm:pt-6 pointer-events-none',
       visible ? 'opacity-100' : 'opacity-0',
       props.class,
     )"
@@ -108,7 +108,7 @@ onUnmounted(() => {
     <div
       ref="navRef"
       data-nav-bar
-      class="relative flex items-center gap-1 sm:gap-3 bg-background/5 border border-border backdrop-blur-lg py-1 px-1 rounded-full shadow-lg"
+      class="relative flex items-center gap-1 sm:gap-3 bg-background/5 border border-border backdrop-blur-lg py-1 px-1 rounded-full shadow-lg pointer-events-auto"
     >
       <!-- Floating lamp indicator — position snaps instantly, animation goes upward from center -->
       <div

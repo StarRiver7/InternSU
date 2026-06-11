@@ -77,7 +77,7 @@ const sparkleStyle = computed(() => ({
 </script>
 
 <template>
-  <span :class="props.class" :style="sparkleStyle" class="relative inline-block pointer-events-none">
+  <span :class="props.class" :style="sparkleStyle" class="relative inline-block">
     <svg
       v-for="sparkle in sparkles"
       :key="sparkle.id"
@@ -97,7 +97,7 @@ const sparkleStyle = computed(() => ({
         :fill="sparkle.color"
       />
     </svg>
-    <span class="relative pointer-events-auto">{{ text }}</span>
+    <span class="relative">{{ text }}</span>
   </span>
 </template>
 

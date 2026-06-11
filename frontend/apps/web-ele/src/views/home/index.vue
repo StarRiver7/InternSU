@@ -24,7 +24,7 @@ const welcomeMessages = [
 ];
 </script>
 
-<template>
+<template >
   <div class="w-full h-screen relative bg-white">
     <DottedSurface
       dot-color="#1a1a1a"

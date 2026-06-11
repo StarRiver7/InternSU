@@ -1210,34 +1210,6 @@ importers:
         specifier: ^3.5.34
         version: 3.5.34(typescript@6.0.3)
 
-  packages/@core/ui-kit/tabs-ui:
-    dependencies:
-      '@vben-core/composables':
-        specifier: workspace:*
-        version: link:../../composables
-      '@vben-core/design':
-        specifier: workspace:*
-        version: link:../../base/design
-      '@vben-core/icons':
-        specifier: workspace:*
-        version: link:../../base/icons
-      '@vben-core/shadcn-ui':
-        specifier: workspace:*
-        version: link:../shadcn-ui
-      '@vben-core/typings':
-        specifier: workspace:*
-        version: link:../../base/typings
-      '@vueuse/core':
-        specifier: 'catalog:'
-        version: 14.3.0(vue@3.5.34(typescript@6.0.3))
-      vue:
-        specifier: ^3.5.34
-        version: 3.5.34(typescript@6.0.3)
-    devDependencies:
-      unplugin-vue:
-        specifier: 'catalog:'
-        version: 7.2.0(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(sass-embedded@1.100.0)(sass@1.100.0)(terser@5.48.0)(vue@3.5.34(typescript@6.0.3))(yaml@2.9.0)
-
   packages/constants:
     dependencies:
       '@vben-core/shared':
