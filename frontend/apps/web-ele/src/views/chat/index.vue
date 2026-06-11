@@ -1,24 +1,28 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted, watch } from 'vue';
-import { Home, UserRoundPen, Settings, MessageSquareCode, Sparkles, CornerRightUp } from 'lucide-vue-next';
-import NavBar from '#/components/NavBar.vue';
+import { ref, nextTick, onMounted, watch } from "vue";
+import { useRouter } from "vue-router";
+import { Sparkles, CornerRightUp } from "lucide-vue-next";
+import NavBar from "#/components/NavBar.vue";
+import { useChatStore } from "#/store";
+
+const router = useRouter();
 
 const navItems = [
-  { name: '首页', url: '/home'},
-  { name: '新聊天', url: '/chat'},
-  { name: '历史记录', url: '/history'}, 
-  { name: '知识库', url: '/knowledge'},
+  { name: "首页", url: "/home" },
+  { name: "新聊天", url: "/chat" },
+  { name: "历史记录", url: "/history" },
+  { name: "知识库", url: "/knowledge" },
 ];
 
 interface ChatMessage {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
 }
 
 const messages = ref<ChatMessage[]>([
-  { role: 'assistant', content: '你好！我是小SU，有什么可以帮你的吗？' },
+  { role: "assistant", content: "你好！我是小SU，有什么可以帮你的吗？" },
 ]);
-const inputText = ref('');
+const inputText = ref("");
 const chatRef = ref<HTMLDivElement | null>(null);
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const isLoading = ref(false);
@@ -50,24 +54,31 @@ function scrollToBottom() {
   });
 }
 
+/**
+ * 发送消息 —— 创建会话 ID、将问题保存到 Pinia，然后跳转到历史页面
+ * 历史页面会在 onMounted 时自动读取并发送 pendingQuestion
+ */
 async function sendMessage() {
   const text = inputText.value.trim();
   if (!text || isLoading.value) return;
 
-  messages.value.push({ role: 'user', content: text });
-  inputText.value = '';
-  nextTick(() => adjustHeight(true));
-  scrollToBottom();
+  // 1. 生成前端会话 ID（生产环境应由后端接口返回）
+  const sessionId = `sid_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
-  isLoading.value = true;
-  await new Promise((r) => setTimeout(r, 3000));
-  messages.value.push({ role: 'assistant', content: '收到你的消息了！这是小SU的智能回复。' });
-  isLoading.value = false;
-  scrollToBottom();
+  // 2. 将用户问题保存到 Pinia，跨页面传递给历史会话页面
+  const chatStore = useChatStore();
+  chatStore.setPending(sessionId, text);
+
+  // 3. 清空输入框
+  inputText.value = "";
+  nextTick(() => adjustHeight(true));
+
+  // 4. 跳转到历史会话页面，携带 sessionId 作为 query 参数
+  await router.push({ path: "/history", query: { sessionId } });
 }
 
 function handleKeydown(e: KeyboardEvent) {
-  if (e.key === 'Enter' && !e.shiftKey) {
+  if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
     sendMessage();
   }
@@ -92,7 +103,6 @@ onMounted(() => {
           </div>
         </div>
 
-
         <!-- AIInputWithLoading -->
         <div class="w-full relative z-51">
           <div class="relative w-full mx-auto">
@@ -108,21 +118,18 @@ onMounted(() => {
             <button
               :class="[
                 'absolute right-3 top-1/2 -translate-y-1/2 rounded-xl p-1.5 transition-colors',
-                isLoading ? 'bg-transparent' : inputText.trim() ? 'bg-teal-100 text-teal-600' : 'bg-gray-200 text-gray-400',
+                inputText.trim()
+                  ? 'bg-teal-100 text-teal-600'
+                  : 'bg-gray-200 text-gray-400',
               ]"
               :disabled="!inputText.trim() || isLoading"
               @click="sendMessage"
             >
-              <div
-                v-if="isLoading"
-                class="w-4 h-4 bg-gray-500 rounded-sm animate-spin"
-                style="animation-duration: 3s"
-              />
-              <CornerRightUp v-else :size="18" />
+              <CornerRightUp :size="18" />
             </button>
           </div>
           <p class="pl-4 h-4 text-xs text-gray-400 mt-1 text-center">
-            {{ isLoading ? '小SU 正在思考...' : '老师，我已经准备就绪！' }}
+            老师，我已经准备就绪！
           </p>
         </div>
       </div>
