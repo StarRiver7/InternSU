@@ -1,8 +1,16 @@
-"""Schema 加载器 - 自动读取 MySQL 业务库表结构并为 LLM 构建模式上下文。"""
+"""Schema 加载器 - 通过 Java 端 HTTP 接口获取业务库表结构，为 LLM 构建模式上下文。
+
+架构变更 (v5):
+  - 不再直连 MySQL。Python 通过 HTTP GET /api/sql/schema (Java) 获取完整 Schema。
+  - 枚举值提示（value hints）改用静态回退，业务表字段取值稳定，无需动态采样。
+"""
+
 from dataclasses import dataclass, field
+import httpx
 from app.core.config import settings
 from app.sql_agent.schema_cache import schema_cache
 from app.core.logger import get_logger
+
 logger = get_logger(__name__)
 
 BUSINESS_DB = "internsu_business"
@@ -31,6 +39,7 @@ EXCLUDED_COLUMNS = {
     "user_template", "variables_schema", "step_detail", "update_time",
 }
 
+
 @dataclass
 class ColumnInfo:
     name: str
@@ -40,70 +49,114 @@ class ColumnInfo:
     column_comment: str
     ordinal: int
 
+
 @dataclass
 class TableInfo:
     name: str
     comment: str
     columns: list = field(default_factory=list)
 
+
 class SchemaLoader:
+    """Schema 加载器 —— 通过 Java HTTP API 获取业务库结构。"""
+
+    def __init__(self):
+        self._base_url = settings.java_service_url.rstrip("/")
+        self._api_key = settings.java_service_api_key
+
+    # ========== 公共入口 ==========
+
     async def load(self) -> dict:
+        """加载业务库 Schema（优先缓存）。"""
         cached = schema_cache.get()
         if cached:
             return cached
-        tables = await self._load_from_mysql()
+        tables = await self._load_from_java()
         if not tables:
             tables = self._static_fallback()
         schema_cache.set(tables)
         return tables
 
-    async def _load_from_mysql(self) -> dict:
+    # ========== Java HTTP 加载 ==========
+
+    async def _load_from_java(self) -> dict:
+        """通过 HTTP GET /api/sql/schema 从 Java 端获取完整 Schema。
+
+        Java 返回格式:
+          {"code": 200, "data": {"tables": [{ "tableName", "tableComment",
+            "columns": [{ "columnName", "dataType", "isNullable",
+                         "isPrimaryKey", "columnComment" }] }], ... }}
+
+        Returns:
+            {table_name: TableInfo} 字典，仅包含 EXPOSED_TABLES 中的表。
+        """
         try:
-            from sqlalchemy import text
-            from sqlalchemy.ext.asyncio import create_async_engine
-            url = settings.business_db_url.replace("mysql+pymysql://", "mysql+aiomysql://")
-            engine = create_async_engine(url, echo=False, pool_pre_ping=True)
-            tables = {}
-            try:
-                async with engine.connect() as conn:
-                    for table_name in EXPOSED_TABLES:
-                        info = await self._load_table(conn, table_name)
-                        if info:
-                            tables[table_name] = info
-                logger.info(f"已从业务库 {BUSINESS_DB} 加载 Schema: {len(tables)} 个表")
-            finally:
-                await engine.dispose()
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                resp = await client.get(
+                    f"{self._base_url}/api/sql/schema",
+                    headers={
+                        "X-Api-Key": self._api_key,
+                        "Content-Type": "application/json",
+                    },
+                )
+
+            if resp.status_code != 200:
+                logger.warning(
+                    "Java Schema 接口返回 HTTP %d: %s",
+                    resp.status_code,
+                    resp.text[:200],
+                )
+                return {}
+
+            body = resp.json()
+            # Java Result<T> 格式: {"code": 200, "data": {...}}
+            data = body.get("data", body)
+            java_tables = data.get("tables", [])
+
+            tables: dict = {}
+            for jt in java_tables:
+                table_name = jt.get("tableName", "")
+                if table_name not in EXPOSED_TABLES:
+                    continue
+
+                columns = []
+                for idx, jc in enumerate(jt.get("columns", [])):
+                    columns.append(ColumnInfo(
+                        name=jc.get("columnName", ""),
+                        data_type=jc.get("dataType", ""),
+                        is_nullable=jc.get("isNullable", False),
+                        column_key="PRI" if jc.get("isPrimaryKey") else "",
+                        column_comment=jc.get("columnComment", ""),
+                        ordinal=idx + 1,
+                    ))
+
+                tables[table_name] = TableInfo(
+                    name=table_name,
+                    comment=jt.get("tableComment", ""),
+                    columns=columns,
+                )
+
+            logger.info(
+                "已从 Java 端加载 Schema: %d 个表 (共 %d 个)",
+                len(tables),
+                len(java_tables),
+            )
             return tables
+
+        except httpx.TimeoutException:
+            logger.warning("Java Schema 接口超时，回退静态 Schema")
+            return {}
+        except httpx.ConnectError:
+            logger.warning("无法连接 Java 服务，回退静态 Schema")
+            return {}
         except Exception as e:
-            logger.warning(f"业务库 Schema 加载失败: {e}")
+            logger.warning("Java Schema 加载失败: %s", e)
             return {}
 
-    async def _load_table(self, conn, table_name: str):
-        from sqlalchemy import text
-        try:
-            result = await conn.execute(text(
-                "SELECT TABLE_COMMENT FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=:db AND TABLE_NAME=:tbl"
-            ), {"db": BUSINESS_DB, "tbl": table_name})
-            row = result.fetchone()
-            comment = row[0] if row else ""
-        except Exception:
-            comment = ""
-        try:
-            result = await conn.execute(text(
-                "SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_KEY, COLUMN_COMMENT, ORDINAL_POSITION "
-                "FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=:db AND TABLE_NAME=:tbl ORDER BY ORDINAL_POSITION"
-            ), {"db": BUSINESS_DB, "tbl": table_name})
-        except Exception:
-            return None
-        columns = []
-        for row in result.fetchall():
-            columns.append(ColumnInfo(
-                name=row[0], data_type=row[1], is_nullable=row[2] == "YES",
-                column_key=row[3] or "", column_comment=row[4] or "", ordinal=row[5],
-            ))
-        return TableInfo(name=table_name, comment=comment, columns=columns) if columns else None
+    # ========== 静态回退 ==========
 
     def _static_fallback(self) -> dict:
+        """当 Java 接口不可用时，使用硬编码的静态 Schema 作为兜底。"""
         tables = {}
         tables["hr_candidate"] = TableInfo("hr_candidate", "候选人表", [
             ColumnInfo("id", "bigint", False, "PRI", "候选人ID", 1),
@@ -218,7 +271,14 @@ class SchemaLoader:
         logger.info(f"静态 Schema 回退: {len(tables)} 个业务表")
         return tables
 
-    def build_context(self, tables: dict | None = None, target_tables: list | None = None) -> str:
+    # ========== 上下文构建 ==========
+
+    def build_context(
+        self,
+        tables: dict | None = None,
+        target_tables: list | None = None,
+    ) -> str:
+        """根据 Schema 构建 LLM 可读的表结构上下文。"""
         tables = tables or {}
         src = target_tables or EXPOSED_TABLES
         lines_list = ["## 业务数据库结构 (internsu_business)"]
@@ -235,13 +295,16 @@ class SchemaLoader:
                 nullable = "?" if col.is_nullable else ""
                 pk = " PK" if col.column_key == "PRI" else ""
                 comment = f" -- {col.column_comment}" if col.column_comment else ""
-                col_lines.append(f"    {col.name} ({col.data_type}{nullable}{pk}){comment}")
+                col_lines.append(
+                    f"    {col.name} ({col.data_type}{nullable}{pk}){comment}"
+                )
             if col_lines:
                 lines_list.extend(col_lines)
             lines_list.append("")
         return "\n".join(lines_list)
 
     def get_join_hints(self) -> str:
+        """返回业务表之间的关联关系提示。"""
         return (
             "## 表关联提示\n"
             "- hr_candidate.position_id -> hr_position.id (候选人应聘职位)\n"
@@ -259,58 +322,44 @@ class SchemaLoader:
             "- oa_task.assignee_id -> oa_employee.id (任务负责人)\n"
         )
 
-    # 需要采样 DISTINCT 值的列（只配列名，值从数据库动态读取）
-    _VALUE_SAMPLE_COLUMNS = {
-        "oa_employee": ["status"],
-        "oa_attendance": ["status", "leave_type"],
-        "oa_project": ["status"],
-        "oa_task": ["status", "priority"],
-        "hr_candidate": ["status"],
-        "hr_position": ["status", "level"],
-        "hr_interview": ["status", "type"],
-        "hr_department": ["status"],
-        "oa_department": ["status"],
-    }
+    # ========== 枚举值提示（静态） ==========
+    # 业务表枚举字段的取值稳定，直接硬编码避免额外 HTTP 调用。
+    # 如需动态更新，可通过 Java /api/sql/execute 查询 DISTINCT 值。
 
-    async def _load_value_hints(self) -> str:
-        """从数据库动态读取枚举字段的 DISTINCT 值，避免硬编码脱节。"""
-        try:
-            from sqlalchemy import text
-            from sqlalchemy.ext.asyncio import create_async_engine
-            url = settings.business_db_url.replace("mysql+pymysql://", "mysql+aiomysql://")
-            engine = create_async_engine(url, echo=False, pool_pre_ping=True)
-            lines = ["## 字段值提示（WHERE 条件请使用这些精确值）"]
-            try:
-                async with engine.connect() as conn:
-                    for table, columns in self._VALUE_SAMPLE_COLUMNS.items():
-                        for col in columns:
-                            try:
-                                r = await conn.execute(
-                                    text(f"SELECT DISTINCT `{col}` FROM `{table}`"
-                                         f" WHERE `{col}` IS NOT NULL LIMIT 30")
-                                )
-                                vals = [str(row[0]) for row in r.fetchall() if row[0] is not None]
-                                if vals:
-                                    quoted = " / ".join(f"'{v}'" for v in vals)
-                                    lines.append(f"- {table}.{col}: {quoted}")
-                            except Exception:
-                                pass
-            finally:
-                await engine.dispose()
-            return "\n".join(lines) if len(lines) > 1 else ""
-        except Exception:
-            return ""
+    def _get_value_hints(self) -> str:
+        """返回字段枚举值提示（静态）。"""
+        return (
+            "## 字段值提示（WHERE 条件请使用这些精确值）\n"
+            "- oa_employee.status: '在职' / '离职' / '试用期'\n"
+            "- oa_attendance.status: '正常' / '迟到' / '早退' / '旷工' / '请假'\n"
+            "- oa_attendance.leave_type: '事假' / '病假' / '年假' / '调休'\n"
+            "- oa_project.status: '待启动' / '进行中' / '已完成' / '已终止'\n"
+            "- oa_task.status: '待处理' / '进行中' / '已完成' / '已取消'\n"
+            "- oa_task.priority: '高' / '中' / '低' / '紧急'\n"
+            "- hr_candidate.status: '待筛选' / '筛选通过' / '面试中' / '已录用' / '已拒绝'\n"
+            "- hr_position.status: '招聘中' / '暂停招聘' / '已关闭'\n"
+            "- hr_position.level: '初级' / '中级' / '高级' / '资深' / '管理'\n"
+            "- hr_interview.status: '待面试' / '已面试' / '通过' / '未通过'\n"
+            "- hr_interview.type: '初试' / '复试' / '技术面' / 'HR面' / '终面'\n"
+        )
 
-    async def get_schema_context(self, tables: list | None = None) -> str:
+    # ========== 综合上下文入口 ==========
+
+    async def get_schema_context(self, target_tables: list | None = None) -> str:
+        """获取完整的 Schema 上下文文本（用于注入 LLM 提示词）。
+
+        包含: 表结构 + 关联提示 + 枚举值提示。
+        """
         schema = await self.load()
-        ctx = self.build_context(schema, tables)
+        ctx = self.build_context(schema, target_tables)
         ctx += "\n" + self.get_join_hints()
-        value_hints = await self._load_value_hints()
-        if value_hints:
-            ctx += "\n" + value_hints
+        ctx += "\n" + self._get_value_hints()
+
         cached = schema_cache.get_context()
         if not cached:
             schema_cache.set_context(ctx)
         return ctx
 
+
+# 全局单例
 schema_loader = SchemaLoader()

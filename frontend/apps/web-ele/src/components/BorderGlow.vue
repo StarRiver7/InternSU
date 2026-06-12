@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import type { Ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 
 const props = withDefaults(
   defineProps<{
@@ -30,11 +29,11 @@ const isHovered = ref(false);
 const cursorAngle = ref(45);
 const edgeProximity = ref(0);
 
-const colorSensitivity: Ref<number> = computed(() => props.edgeSensitivity + 20);
+const colorSensitivity = props.edgeSensitivity + 20;
 const isVisible = computed(() => isHovered.value);
 const borderOpacity = computed(() =>
   isVisible.value
-    ? Math.max(0, (edgeProximity.value * 100 - colorSensitivity.value) / (100 - colorSensitivity.value))
+    ? Math.max(0, (edgeProximity.value * 100 - colorSensitivity) / (100 - colorSensitivity))
     : 0,
 );
 const glowOpacityVal = computed(() =>

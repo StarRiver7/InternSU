@@ -32,16 +32,14 @@ def _now() -> str:
 
 
 class ToolManager:
-    """Unified tool execution manager.
-
-    Responsibilities:
-      1. Look up tool by name from ToolRegistry
-      2. Validate tool exists and is enabled
-      3. Execute tool with parameter validation and timeout
-      4. Record AI Trace steps (status, duration, summary)
-      5. Log execution for audit trail
-
-    This is the single entry point for all tool invocations in the system.
+    """统一的工具执行管理器。
+    职责：
+    1. 从工具注册表中按名称查找工具
+    2. 验证工具是否存在且已启用
+    3. 执行工具，并进行参数验证和超时处理
+    4. 记录 AI 跟踪步骤（状态、时长、摘要）
+    5. 记录执行日志以便审计
+    这是系统中所有工具调用的唯一入口。
     """
 
     def __init__(self, registry: Optional[ToolRegistry] = None):
@@ -61,23 +59,23 @@ class ToolManager:
         params: Optional[Dict[str, Any]] = None,
         trace_context: Optional[Dict[str, Any]] = None,
     ) -> ToolResult:
-        """Execute a tool by name with unified handling.
+        """通过名称执行工具，并进行统一处理。
 
-        Pipeline:
-          1. Tool lookup from registry
-          2. Build trace step header
-          3. Execute tool via BaseTool.execute()
-          4. Record trace with status/duration/summary
-          5. Return ToolResult
-
-        Args:
-            tool_name: Registered tool name (e.g. 'sql_query', 'feishu_summary').
-            params: Parameter dict for the tool.
-            trace_context: Optional context for trace enrichment
-                           (e.g. {'user_id': '...', 'conversation_id': '...'}).
-
-        Returns:
-            ToolResult with execution outcome.
+        流程：
+        1. 从注册表查找工具
+        2. 构建跟踪步骤头
+        3. 通过 BaseTool.execute() 执行工具
+        4. 记录跟踪，包括状态/耗时/摘要
+        5. 返回 ToolResult
+        
+        参数：
+        tool_name：已注册的工具名称（例如 'sql_query', 'feishu_summary'）。
+        params：工具的参数字典。
+        trace_context：可选的跟踪上下文，用于丰富跟踪信息
+        （例如 {'user_id': '...', 'conversation_id': '...'}）。
+        
+        返回：
+        带有执行结果的 ToolResult。
         """
         params = params or {}
         t_start = time.time()
@@ -85,10 +83,10 @@ class ToolManager:
         # ---- Step 1: Lookup ----
         tool = self._registry.get(tool_name)
         if tool is None:
-            logger.error("Tool not found in registry: %s", tool_name)
+            logger.error("在注册中心没有发现tool: %s", tool_name)
             return ToolResult(
                 success=False,
-                error=f"Tool '{tool_name}' is not registered.",
+                error=f"Tool '{tool_name}' 没有注册",
                 duration_ms=(time.time() - t_start) * 1000,
             )
 
@@ -99,7 +97,7 @@ class ToolManager:
         trace_steps.append({
             "step_type": "tool_execution",
             "step_name": f"Tool: {meta.display_name or tool_name}",
-            "message": f"Executing {tool_name}...",
+            "message": f"执行： {tool_name}...",
             "status": "running",
             "timestamp": _now(),
             "detail": {
@@ -130,10 +128,10 @@ class ToolManager:
             trace_steps.extend(result.trace_steps)
 
         # Update header with final status
-        trace_steps[0]["status"] = "completed" if result.success else "failed"
+        trace_steps[0]["status"] = "已完成" if result.success else "失败"
         trace_steps[0]["duration_ms"] = result.duration_ms
         trace_steps[0]["message"] = (
-            f"Tool {tool_name}: {'OK' if result.success else 'FAILED'}"
+            f"工具 {tool_name}: {'成功' if result.success else '失败'}"
             f" ({result.duration_ms:.0f}ms)"
         )
         trace_steps[0]["timestamp"] = _now()
@@ -143,17 +141,17 @@ class ToolManager:
         # ---- Step 5: Log ----
         if result.success:
             logger.info(
-                "ToolManager: %s OK (%.0fms, summary: %s)",
+                "ToolManager: %s 成功执行 (%.0fms, summary: %s)",
                 tool_name,
                 result.duration_ms,
                 (result.summary or "")[:100],
             )
         else:
             logger.warning(
-                "ToolManager: %s FAILED (%.0fms): %s",
+                "ToolManager: %s 执行失败 (%.0fms): %s",
                 tool_name,
                 result.duration_ms,
-                (result.error or "unknown"),
+                (result.error or "未知错误"),
             )
 
         return result

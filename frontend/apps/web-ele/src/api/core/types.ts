@@ -5,7 +5,6 @@ export interface ChatMessage {
   sources?: CitationSource[];
   trace?: AgentTrace[];
 }
-
 export interface CitationSource {
   document_name: string;
   page_number?: number;
@@ -53,6 +52,53 @@ export interface ChatResponse {
   sources?: CitationSource[];
   traces?: AgentTrace[];
   conversation_id: string;
+}
+
+// ========== POST /api/ai/chat 相关类型 ==========
+
+/** 聊天发送请求体 */
+export interface ChatSendRequest {
+  message: string;
+  model?: string;
+  conversation_id?: string;
+  user_id: string;
+  space_ids?: string[];
+  doc_ids?: string[];
+}
+
+/** 后端 SSE 流返回的 trace 进度消息 */
+export interface ChatTraceStep {
+  step: string;
+  step_type: string;
+  step_name: string;
+  status: 'running' | 'completed' | 'failed';
+  step_order: number;
+  message: string;
+  detail?: Record<string, any>;
+  duration_ms?: number;
+}
+
+/** 后端 SSE 流返回的最终回答 */
+export interface ChatFinalAnswer {
+  intent: string;
+  sources: CitationSource[];
+  conversation_id: string;
+  file: string;
+  answer: string;
+  trace_id: string;
+}
+
+/** SSE 流中每一帧可能是 trace 步 or 最终回答 */
+export type ChatStreamEvent = ChatTraceStep | ChatFinalAnswer;
+
+/** 判断一个 SSE 事件是否为最终回答（有 answer 字段） */
+export function isFinalAnswer(event: ChatStreamEvent): event is ChatFinalAnswer {
+  return 'answer' in event;
+}
+
+/** 判断一个 SSE 事件是否为 trace 步骤 */
+export function isTraceStep(event: ChatStreamEvent): event is ChatTraceStep {
+  return 'step' in event;
 }
 
 export interface Conversation {

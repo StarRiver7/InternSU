@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.aiplatform.rag.mapper.KnowledgeSpaceMapper">
+
+    <!--
+      ============================================================
+      selectAccessibleSpaces — 从 t_document 表查询用户可见的知识空间
+
+      业务规则（3 类知识空间）：
+        1. 公司公共 → space_id = 1（全员可见，只要有已就绪的文档）
+        2. 本部门   → space_id = 用户所在部门ID（同部门文档）
+        3. 个人文档 → space_id = 4 且 creator_id = 当前用户
+
+      名称来源：优先 t_knowledge_space.name，无记录时用硬编码默认名。
+
+      返回：KnowledgeSpaceVO (id, name)，仅返回有文档的空间。
+      ============================================================
+    -->
+    <select id="selectAccessibleSpaces" resultType="com.company.aiplatform.rag.dto.KnowledgeSpaceVO">
+        SELECT d.id,
+               d.file_name AS name
+        FROM t_document d
+        WHERE d.is_deleted = 0
+          AND (
+            -- 企业文档
+            d.space_id = 1
+                -- 个人文档（space_id=4 且 creator_id = 当前用户ID）
+                OR (d.space_id = 4 AND d.creator_id = #{userId})
+                -- 部门文档：space_id 属于当前部门对应的文档空间
+                OR d.space_id IN (SELECT id
+                                  FROM t_knowledge_space
+                                  WHERE is_deleted = 0
+                                    AND department_id = #{deptId})
+            );
+    </select>
+
+</mapper>

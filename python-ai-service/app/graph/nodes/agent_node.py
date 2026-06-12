@@ -76,8 +76,8 @@ async def agent_node(state: InternState) -> InternState:
     trace_steps.append({
         "node": "agent_node",
         "step_type": "agent_dispatch",
-        "step_name": "Agent Dispatch",
-        "message": f"Preparing tool: {tool_name}",
+        "step_name": "正在派遣小SU",
+        "message": f"准备执行: {tool_name}",
         "status": "running",
         "timestamp": _now(),
     })

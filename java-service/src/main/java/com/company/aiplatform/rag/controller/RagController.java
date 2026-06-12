@@ -6,10 +6,12 @@ import com.company.aiplatform.common.enums.ResultCode;
 import com.company.aiplatform.common.exception.BusinessException;
 import com.company.aiplatform.common.result.Result;
 import com.company.aiplatform.common.util.SecurityContextUtil;
+import com.company.aiplatform.rag.dto.KnowledgeSpaceVO;
 import com.company.aiplatform.rag.dto.MyDocumentDTO;
 import com.company.aiplatform.rag.dto.PublicDocumentDTO;
 import com.company.aiplatform.rag.entity.Document;
 import com.company.aiplatform.rag.service.DocumentService;
+import com.company.aiplatform.rag.service.KnowledgeSpaceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -17,6 +19,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 /**
  * 文档管理 Controller — V5 重构版.
@@ -41,6 +45,24 @@ public class RagController {
 
     private final DocumentService documentService;
     private final SecurityContextUtil securityContextUtil;
+    private final KnowledgeSpaceService knowledgeSpaceService;
+
+    @Operation(summary = "获取当前用户可见的知识空间列表（从文档表查询）")
+    @GetMapping("/spaces")
+    public Result<List<KnowledgeSpaceVO>> listAccessibleSpaces() {
+        Long userId = securityContextUtil.getCurrentUserId();
+        Long deptId = securityContextUtil.getCurrentDeptId();
+
+        if (userId == null) {
+            log.warn("GET /api/knowledge/spaces: 未获取到当前用户");
+            return Result.success(List.of());
+        }
+
+        log.debug("GET /api/knowledge/spaces: userId={}, deptId={}", userId, deptId);
+
+        List<KnowledgeSpaceVO> spaces = knowledgeSpaceService.listAccessibleSpaces(userId, deptId);
+        return Result.success(spaces);
+    }
 
     // ======================== 查询 ========================
 

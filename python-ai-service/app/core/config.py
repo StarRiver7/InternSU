@@ -155,17 +155,8 @@ class Settings(BaseSettings):
             "?charset=utf8mb4"
         )
 
-    @property
-    def business_db_url(self) -> str:
-        """构建业务数据库（internsu_business）只读连接 URL。
-
-        SQL Agent 使用该数据库进行查询，与 internsu 应用库物理隔离。
-        """
-        return (
-            f"mysql+pymysql://{self.mysql_user}:{self.mysql_password}"
-            f"@{self.mysql_host}:{self.mysql_port}/internsu_business"
-            "?charset=utf8mb4"
-        )
+    # business_db_url 已移除 (v5): Python 不再直连业务库，
+    # Schema 加载改为通过 Java /api/sql/schema HTTP 接口
 
 
 # 全局配置单例（应用启动时自动初始化）

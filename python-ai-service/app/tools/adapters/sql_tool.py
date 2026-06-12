@@ -83,24 +83,24 @@ class SqlTool(BaseTool):
         t1 = _time.time()
         trace_steps.append({
             "step_type": "sql_schema",
-            "step_name": "Schema Analysis",
-            "message": "Loading database schema...",
+            "step_name": "数据库模式分析",
+            "message": "加载数据库模式...",
             "status": "running",
             "timestamp": _now(),
         })
         try:
             from app.sql_agent.schema_loader import schema_loader
             schema_context = await schema_loader.get_schema_context()
-            trace_steps[-1]["status"] = "completed"
+            trace_steps[-1]["status"] = "已完成"
             trace_steps[-1]["duration_ms"] = int((_time.time() - t1) * 1000)
-            trace_steps[-1]["message"] = "Schema loaded successfully"
+            trace_steps[-1]["message"] = "数据库加载成功"
         except Exception as exc:
             logger.exception("Schema loading failed")
-            trace_steps[-1]["status"] = "failed"
-            trace_steps[-1]["detail"] = {"error": str(exc)}
+            trace_steps[-1]["status"] = "失败"
+            trace_steps[-1]["detail"] = {"失败原因": str(exc)}
             return ToolResult(
                 success=False,
-                error=f"Database schema loading failed: {exc}",
+                error=f"数据库加载失败: {exc}",
                 trace_steps=trace_steps,
             )
 
@@ -108,8 +108,8 @@ class SqlTool(BaseTool):
         t2 = _time.time()
         trace_steps.append({
             "step_type": "sql_generation",
-            "step_name": "SQL Generation",
-            "message": "Generating SQL query...",
+            "step_name": "SQL 生成",
+            "message": "生成SQL查询...",
             "status": "running",
             "timestamp": _now(),
         })
@@ -157,8 +157,8 @@ class SqlTool(BaseTool):
         t3 = _time.time()
         trace_steps.append({
             "step_type": "sql_security",
-            "step_name": "Security Check",
-            "message": "Checking SQL safety...",
+            "step_name": "安全检查",
+            "message": "检查SQL安全...",
             "status": "running",
             "timestamp": _now(),
         })
@@ -166,8 +166,8 @@ class SqlTool(BaseTool):
             from app.sql_agent.security import sql_security
             sec_result = sql_security.check(sql)
             if not sec_result["passed"]:
-                trace_steps[-1]["status"] = "completed"
-                trace_steps[-1]["detail"] = {"reason": sec_result["reason"]}
+                trace_steps[-1]["status"] = "已完成"
+                trace_steps[-1]["detail"] = {"失败原因": sec_result["reason"]}
                 return ToolResult(
                     success=False,
                     error=f"SQL blocked: {sec_result['reason']}",
@@ -177,10 +177,11 @@ class SqlTool(BaseTool):
             trace_steps[-1]["status"] = "completed"
             trace_steps[-1]["duration_ms"] = int((_time.time() - t3) * 1000)
         except Exception as exc:
-            trace_steps[-1]["status"] = "failed"
+            logger.exception("Security check failed")
+            trace_steps[-1]["status"] = "失败"
             return ToolResult(
                 success=False,
-                error=f"Security check failed: {exc}",
+                error=f"安全检查失败: {exc}",
                 trace_steps=trace_steps,
             )
 
@@ -188,8 +189,8 @@ class SqlTool(BaseTool):
         t4 = _time.time()
         trace_steps.append({
             "step_type": "sql_execution",
-            "step_name": "Query Execution",
-            "message": "Running query...",
+            "step_name": "查询执行",
+            "message": "执行查询...",
             "status": "running",
             "timestamp": _now(),
         })
@@ -213,8 +214,8 @@ class SqlTool(BaseTool):
         t5 = _time.time()
         trace_steps.append({
             "step_type": "sql_summarize",
-            "step_name": "Result Summary",
-            "message": "Summarizing results...",
+            "step_name": "结果总结",
+            "message": "总结结果...",
             "status": "running",
             "timestamp": _now(),
         })

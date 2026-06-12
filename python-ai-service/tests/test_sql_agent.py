@@ -7,25 +7,25 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 class TestSQLTrace:
     def test_trace_step_running(self):
         from app.sql_agent.sql_trace import trace_step
-        step = trace_step('sql_generator', '正在生成SQL...', 'running')
+        step = trace_step('sql_generator', '正在生成SQL...', '进行中')
         assert step['node'] == 'sql_generator'
-        assert step['status'] == 'running'
+        assert step['status'] == '进行中'
         assert 'timestamp' in step
         assert 'duration_ms' not in step
 
     def test_trace_step_completed(self):
         from app.sql_agent.sql_trace import trace_step
-        step = trace_step('sql_generator', 'SQL生成完成', 'completed',
+        step = trace_step('sql_generator', 'SQL生成完成', '已完成',
                            detail={'sql': 'SELECT'}, duration_ms=150)
-        assert step['status'] == 'completed'
+        assert step['status'] == '已完成'
         assert step['detail']['sql'] == 'SELECT'
         assert step['duration_ms'] == 150
 
     def test_trace_step_failed(self):
         from app.sql_agent.sql_trace import trace_step
-        step = trace_step('sql_executor', '执行失败', 'failed', detail={'error': 'timeout'})
-        assert step['status'] == 'failed'
-        assert step['detail']['error'] == 'timeout'
+        step = trace_step('sql_executor', '执行失败', '失败', detail={'error': 'timeout'})
+        assert step['status'] == '失败'
+        assert step['detail']['error'] == '超时'
 
     def test_trace_messages_all_present(self):
         from app.sql_agent.sql_trace import SQL_TRACE_MESSAGES

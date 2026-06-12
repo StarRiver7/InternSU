@@ -1,2 +1,3 @@
 export { useAuthStore } from "./auth";
-export { useChatStore } from "./chat";
+export { useChatStore, type UIMessage } from "./chat";
+export { useKnowledgeStore } from "./knowledge";

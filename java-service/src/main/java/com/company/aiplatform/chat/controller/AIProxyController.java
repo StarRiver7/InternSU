@@ -98,9 +98,15 @@ public class AIProxyController {
                                 }
                                 break;
                             case "meta":
-                                if (node.has("tokens_used")) tokensRef.set(node.get("tokens_used").asInt());
-                                if (node.has("sources")) sourcesRef.set(node.get("sources").toString());
-                                if (node.has("trace_id")) traceIdRef.set(node.get("trace_id").asText());
+                                if (node.has("tokens_used")) {
+                                    tokensRef.set(node.get("tokens_used").asInt());
+                                }
+                                if (node.has("sources")) {
+                                    sourcesRef.set(node.get("sources").toString());
+                                }
+                                if (node.has("trace_id")) {
+                                    traceIdRef.set(node.get("trace_id").asText());
+                                }
                                 // Token 统计：精确值优先，降级为 tokens_used 估算值
                                 Integer prompt = node.has("prompt_tokens") ? node.get("prompt_tokens").asInt() : null;
                                 Integer completion = node.has("completion_tokens") ? node.get("completion_tokens").asInt() : null;
@@ -111,12 +117,18 @@ public class AIProxyController {
                                 }
                                 break;
                             case "done":
-                                if (node.has("intent")) intentRef.set(node.get("intent").asText());
+                                if (node.has("intent")) {
+                                    intentRef.set(node.get("intent").asText());
+                                }
                                 if (node.has("answer") && answerBuffer.isEmpty()) {
                                     answerBuffer.append(node.get("answer").asText());
                                 }
-                                if (node.has("tokens_used")) tokensRef.set(node.get("tokens_used").asInt());
-                                if (node.has("trace_id")) traceIdRef.set(node.get("trace_id").asText());
+                                if (node.has("tokens_used")) {
+                                    tokensRef.set(node.get("tokens_used").asInt());
+                                }
+                                if (node.has("trace_id")) {
+                                    traceIdRef.set(node.get("trace_id").asText());
+                                }
                                 break;
                         }
                     } catch (Exception ignored) { /* skip */ }
