@@ -72,6 +72,7 @@
         SELECT
             d.id AS id,
             d.file_name AS fileName,
+            d.file_size AS fileSize,
             IFNULL(dept.name, '公司文档') AS departmentName,
             d.creator_id AS creatorId,
             u.nickname AS creatorName,

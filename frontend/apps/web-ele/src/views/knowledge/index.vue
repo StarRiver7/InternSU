@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import {
   FileCheckCorner,
   Home,
@@ -16,9 +16,21 @@ import {
   Trash2,
   Upload,
   Users,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-vue-next";
+import { ElMessage } from "element-plus";
+import { useUserStore } from "@vben/stores";
 import NavBar from "#/components/NavBar.vue";
 import Dock from "#/components/ui/Dock.vue";
+import { requestClient } from "#/api/request";
+import {
+  getMyDocumentsApi,
+  getPublicDocumentsApi,
+  uploadDocumentApi,
+  type MyDocumentDTO,
+  type PublicDocumentDTO,
+} from "#/api/core/knowledge";
 
 const navItems = [
   { name: "首页", url: "/home", icon: Home },
@@ -72,11 +84,21 @@ const stageIndexMap: Record<ProcessStatus, number> = {
   ready: 4,
 };
 
+/** 后端 status 整数值 → ProcessStatus */
+const INT_TO_STATUS: Record<number, ProcessStatus> = {
+  0: "uploaded",
+  1: "analyzing",
+  2: "splitting",
+  3: "vectorizing",
+  4: "ready",
+  [-1]: "uploaded", // 失败暂视为 uploaded
+};
+
 function getStatusLabel(status: ProcessStatus): string {
   return statusStages[stageIndexMap[status]]!.label;
 }
 
-// ---- Personal documents data & pagination ----
+// ---- Personal documents ----
 interface PersonalDoc {
   id: number;
   fileName: string;
@@ -86,154 +108,73 @@ interface PersonalDoc {
   createdAt: string;
 }
 
-const personalDocs = ref<PersonalDoc[]>([
-  {
-    id: 1,
-    fileName: "技术方案评审报告.pdf",
-    fileSize: "2.4 MB",
-    status: "ready",
-    chunkCount: 48,
-    createdAt: "2026-06-10 14:30",
-  },
-  {
-    id: 2,
-    fileName: "年度工作总结.docx",
-    fileSize: "1.1 MB",
-    status: "vectorizing",
-    chunkCount: 32,
-    createdAt: "2026-06-09 10:15",
-  },
-  {
-    id: 3,
-    fileName: "产品需求文档PRD.pdf",
-    fileSize: "3.8 MB",
-    status: "splitting",
-    chunkCount: 0,
-    createdAt: "2026-06-08 16:45",
-  },
-  {
-    id: 4,
-    fileName: "用户调研分析.xlsx",
-    fileSize: "856 KB",
-    status: "analyzing",
-    chunkCount: 0,
-    createdAt: "2026-06-07 09:20",
-  },
-  {
-    id: 5,
-    fileName: "竞品分析报告.pdf",
-    fileSize: "5.2 MB",
-    status: "uploaded",
-    chunkCount: 0,
-    createdAt: "2026-06-06 11:00",
-  },
-  {
-    id: 6,
-    fileName: "Q2季度复盘.pptx",
-    fileSize: "4.1 MB",
-    status: "ready",
-    chunkCount: 56,
-    createdAt: "2026-06-05 08:30",
-  },
-  {
-    id: 7,
-    fileName: "架构设计文档.md",
-    fileSize: "320 KB",
-    status: "ready",
-    chunkCount: 22,
-    createdAt: "2026-06-04 13:15",
-  },
-  {
-    id: 8,
-    fileName: "API接口规范.pdf",
-    fileSize: "1.6 MB",
-    status: "splitting",
-    chunkCount: 0,
-    createdAt: "2026-06-03 17:00",
-  },
-  {
-    id: 9,
-    fileName: "API接口规范.pdf",
-    fileSize: "1.6 MB",
-    status: "splitting",
-    chunkCount: 0,
-    createdAt: "2026-06-03 17:00",
-  },
-  {
-    id: 10,
-    fileName: "API接口规范.pdf",
-    fileSize: "1.6 MB",
-    status: "splitting",
-    chunkCount: 0,
-    createdAt: "2026-06-03 17:00",
-  },
-  {
-    id: 11,
-    fileName: "API接口规范.pdf",
-    fileSize: "1.6 MB",
-    status: "splitting",
-    chunkCount: 0,
-    createdAt: "2026-06-03 17:00",
-  },
-  {
-    id: 12,
-    fileName: "API接口规范.pdf",
-    fileSize: "1.6 MB",
-    status: "splitting",
-    chunkCount: 0,
-    createdAt: "2026-06-03 17:00",
-  },
-  {
-    id: 13,
-    fileName: "API接口规范.pdf",
-    fileSize: "1.6 MB",
-    status: "splitting",
-    chunkCount: 0,
-    createdAt: "2026-06-03 17:00",
-  },
-  {
-    id: 14,
-    fileName: "API接口规范.pdf",
-    fileSize: "1.6 MB",
-    status: "splitting",
-    chunkCount: 0,
-    createdAt: "2026-06-03 17:00",
-  },
-  {
-    id: 15,
-    fileName: "API接口规范.pdf",
-    fileSize: "1.6 MB",
-    status: "splitting",
-    chunkCount: 0,
-    createdAt: "2026-06-03 17:00",
-  },
-  {
-    id: 16,
-    fileName: "API接口规范.pdf",
-    fileSize: "1.6 MB",
-    status: "splitting",
-    chunkCount: 0,
-    createdAt: "2026-06-03 17:00",
-  },
-  {
-    id: 17,
-    fileName: "API接口规范.pdf",
-    fileSize: "1.6 MB",
-    status: "splitting",
-    chunkCount: 0,
-    createdAt: "2026-06-03 17:00",
-  },
-]);
+const PERSONAL_PAGE_SIZE = 11;
+
+const personalDocs = ref<PersonalDoc[]>([]);
+const personalLoading = ref(false);
+const personalPageNum = ref(1);
+const personalTotal = ref(0);
+const personalPages = ref(0);
+const personalLoaded = ref(false);
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+function mapApiDocToPersonal(dto: MyDocumentDTO): PersonalDoc {
+  return {
+    id: dto.id,
+    fileName: dto.fileName,
+    fileSize: formatFileSize(dto.fileSize),
+    status: INT_TO_STATUS[dto.status] ?? "uploaded",
+    chunkCount: dto.chunkCount,
+    createdAt: dto.createTime?.replace("T", " ").substring(0, 16) ?? "",
+  };
+}
+
+async function fetchPersonalDocs(pageNum?: number) {
+  if (pageNum !== undefined) personalPageNum.value = pageNum;
+  personalLoading.value = true;
+  try {
+    const result = await getMyDocumentsApi(personalPageNum.value, PERSONAL_PAGE_SIZE);
+    personalDocs.value = (result.records ?? []).map(mapApiDocToPersonal);
+    personalTotal.value = result.total ?? 0;
+    personalPages.value = result.pages ?? 0;
+  } catch {
+    ElMessage.error("获取文档列表失败");
+  } finally {
+    personalLoading.value = false;
+    personalLoaded.value = true;
+  }
+}
+
+function handlePersonalPageChange(page: number) {
+  if (page < 1 || page > personalPages.value || page === personalPageNum.value) return;
+  fetchPersonalDocs(page);
+}
 
 function handlePersonalEdit(_doc: PersonalDoc) {
   // placeholder
 }
 
-function handlePersonalDelete(doc: PersonalDoc) {
-  personalDocs.value = personalDocs.value.filter((d) => d.id !== doc.id);
+async function handlePersonalDelete(doc: PersonalDoc) {
+  try {
+    await requestClient.delete(`/v1/documents/${doc.id}`);
+    ElMessage.success("删除成功");
+    // 如果删除后当前页为空且不是第一页，回到上一页
+    if (personalDocs.value.length === 1 && personalPageNum.value > 1) {
+      fetchPersonalDocs(personalPageNum.value - 1);
+    } else {
+      fetchPersonalDocs();
+    }
+  } catch {
+    ElMessage.error("删除失败");
+  }
 }
 
-// ---- Enterprise knowledge base data & pagination ----
+// ---- Enterprise documents ----
 interface EnterpriseDoc {
   id: number;
   fileName: string;
@@ -243,93 +184,114 @@ interface EnterpriseDoc {
   createdAt: string;
 }
 
-const enterpriseDocs = ref<EnterpriseDoc[]>([
-  {
-    id: 1,
-    fileName: "企业安全管理规范.pdf",
-    fileSize: "4.2 MB",
-    department: "安全部",
-    owner: "张伟",
-    createdAt: "2026-06-10 09:00",
-  },
-  {
-    id: 2,
-    fileName: "人力资源政策手册.docx",
-    fileSize: "2.8 MB",
-    department: "人力资源",
-    owner: "李娜",
-    createdAt: "2026-06-09 14:30",
-  },
-  {
-    id: 3,
-    fileName: "财务审计报告2026.pdf",
-    fileSize: "6.1 MB",
-    department: "财务部",
-    owner: "王强",
-    createdAt: "2026-06-08 11:15",
-  },
-  {
-    id: 4,
-    fileName: "项目管理流程指南.pdf",
-    fileSize: "1.9 MB",
-    department: "项目管理部",
-    owner: "陈敏",
-    createdAt: "2026-06-07 16:45",
-  },
-  {
-    id: 5,
-    fileName: "技术架构白皮书.pdf",
-    fileSize: "5.5 MB",
-    department: "技术部",
-    owner: "刘洋",
-    createdAt: "2026-06-06 10:30",
-  },
-  {
-    id: 6,
-    fileName: "市场营销策略分析.pptx",
-    fileSize: "3.3 MB",
-    department: "市场部",
-    owner: "赵丽",
-    createdAt: "2026-06-05 08:00",
-  },
-  {
-    id: 7,
-    fileName: "客户服务标准流程.pdf",
-    fileSize: "2.1 MB",
-    department: "客服部",
-    owner: "孙鹏",
-    createdAt: "2026-06-04 13:45",
-  },
-  {
-    id: 8,
-    fileName: "产品研发路线图.pdf",
-    fileSize: "4.8 MB",
-    department: "产品部",
-    owner: "周杰",
-    createdAt: "2026-06-03 09:20",
-  },
-]);
+const ENTERPRISE_PAGE_SIZE = 13;
 
-// ---- File upload dialog ----
+const enterpriseDocs = ref<EnterpriseDoc[]>([]);
+const enterpriseLoading = ref(false);
+const enterprisePageNum = ref(1);
+const enterpriseTotal = ref(0);
+const enterprisePages = ref(0);
+const enterpriseLoaded = ref(false);
+
+function mapApiDocToEnterprise(dto: PublicDocumentDTO): EnterpriseDoc {
+  return {
+    id: dto.id,
+    fileName: dto.fileName,
+    fileSize: formatFileSize(dto.fileSize ?? 0),
+    department: dto.departmentName ?? "-",
+    owner: dto.creatorName ?? "-",
+    createdAt: dto.createTime?.replace("T", " ").substring(0, 16) ?? "",
+  };
+}
+
+async function fetchEnterpriseDocs(pageNum?: number) {
+  if (pageNum !== undefined) enterprisePageNum.value = pageNum;
+  enterpriseLoading.value = true;
+  try {
+    const result = await getPublicDocumentsApi(enterprisePageNum.value, ENTERPRISE_PAGE_SIZE);
+    enterpriseDocs.value = (result.records ?? []).map(mapApiDocToEnterprise);
+    enterpriseTotal.value = result.total ?? 0;
+    enterprisePages.value = result.pages ?? 0;
+  } catch {
+    ElMessage.error("获取文档列表失败");
+  } finally {
+    enterpriseLoading.value = false;
+    enterpriseLoaded.value = true;
+  }
+}
+
+function handleEnterprisePageChange(page: number) {
+  if (page < 1 || page > enterprisePages.value || page === enterprisePageNum.value) return;
+  fetchEnterpriseDocs(page);
+}
+
+// ---- Pagination helpers ----
+const MAX_PAGE_BUTTONS = 5;
+
+function buildPageNumbers(current: number, total: number): number[] {
+  if (total <= MAX_PAGE_BUTTONS) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  const half = Math.floor(MAX_PAGE_BUTTONS / 2);
+  let start = current - half;
+  let end = current + half;
+  if (start < 1) {
+    start = 1;
+    end = MAX_PAGE_BUTTONS;
+  }
+  if (end > total) {
+    end = total;
+    start = total - MAX_PAGE_BUTTONS + 1;
+  }
+  const pages: number[] = [];
+  for (let i = start; i <= end; i++) pages.push(i);
+  return pages;
+}
+
+const personalPageNumbers = computed(() =>
+  buildPageNumbers(personalPageNum.value, personalPages.value),
+);
+
+const enterprisePageNumbers = computed(() =>
+  buildPageNumbers(enterprisePageNum.value, enterprisePages.value),
+);
+
+// ---- Init & tab switch ----
+onMounted(() => {
+  fetchPersonalDocs(1);
+  fetchEnterpriseDocs(1);
+});
+
+// 切换 Tab 时，如果目标 tab 尚未加载过数据则触发加载
+watch(activeTab, (tab) => {
+  if (tab === "personal" && personalDocs.value.length === 0 && !personalLoading.value) {
+    fetchPersonalDocs();
+  }
+  if (tab === "enterprise" && enterpriseDocs.value.length === 0 && !enterpriseLoading.value) {
+    fetchEnterpriseDocs();
+  }
+});
+
+// ---- File upload dialog (unchanged) ----
 const showUploadDialog = ref(false);
 const uploadStep = ref(1);
-const direction = ref<'forward' | 'back'>('forward');
-const docScope = ref<'enterprise' | 'department' | 'private' | null>(null);
-const uploadedFiles = ref<{ name: string; size: number }[]>([]);
+const direction = ref<"forward" | "back">("forward");
+const docScope = ref<"enterprise" | "department" | "private" | null>(null);
+const uploadedFiles = ref<{ name: string; size: number; file: File }[]>([]);
 
-type DocScope = 'enterprise' | 'department' | 'private';
+type DocScope = "enterprise" | "department" | "private";
 
 const scopeOptions: { key: DocScope; label: string; desc: string; icon: any }[] = [
-  { key: 'enterprise', label: '企业公开', desc: '全公司可见', icon: Building2 },
-  { key: 'department', label: '部门公开', desc: '仅本部门可见', icon: Users },
-  { key: 'private', label: '私人文档', desc: '仅自己可见', icon: Lock },
+  { key: "enterprise", label: "企业公开", desc: "全公司可见", icon: Building2 },
+  { key: "department", label: "部门公开", desc: "仅本部门可见", icon: Users },
+  { key: "private", label: "私人文档", desc: "仅自己可见", icon: Lock },
 ];
 
 const fileInputRef = ref<HTMLInputElement | null>(null);
 
 function openUploadDialog() {
   uploadStep.value = 1;
-  direction.value = 'forward';
+  direction.value = "forward";
   docScope.value = null;
   uploadedFiles.value = [];
   showUploadDialog.value = true;
@@ -341,12 +303,12 @@ function selectScope(scope: DocScope) {
 
 function goNext() {
   if (!docScope.value) return;
-  direction.value = 'forward';
+  direction.value = "forward";
   uploadStep.value = 2;
 }
 
 function goBack() {
-  direction.value = 'back';
+  direction.value = "back";
   uploadStep.value = 1;
 }
 
@@ -360,31 +322,48 @@ function onFilesSelected(e: Event) {
   uploadedFiles.value = Array.from(input.files).map((f) => ({
     name: f.name,
     size: f.size,
+    file: f,
   }));
-  // Reset input so the same file can be re-selected
-  input.value = '';
+  input.value = "";
 }
 
 function removeFile(index: number) {
   uploadedFiles.value.splice(index, 1);
 }
 
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-}
+const uploadSubmitting = ref(false);
 
-function submitUpload() {
-  console.log('上传提交:', {
-    scope: docScope.value,
-    scopeLabel: scopeOptions.find((o) => o.key === docScope.value)?.label,
-    files: uploadedFiles.value,
-  });
-  showUploadDialog.value = false;
-  docScope.value = null;
-  uploadedFiles.value = [];
-  uploadStep.value = 1;
+async function submitUpload() {
+  if (!docScope.value || uploadedFiles.value.length === 0) return;
+
+  const spaceIdMap: Record<string, number> = {
+    enterprise: 1,
+    department: 0,
+    private: 4,
+  };
+  const spaceId = spaceIdMap[docScope.value];
+
+  if (uploadedFiles.value.length === 0) {
+    ElMessage.error("请先选择文件");
+    return;
+  }
+
+  uploadSubmitting.value = true;
+  try {
+    for (const item of uploadedFiles.value) {
+      await uploadDocumentApi(item.file, spaceId);
+    }
+    ElMessage.success(`成功上传 ${uploadedFiles.value.length} 个文件`);
+    showUploadDialog.value = false;
+    docScope.value = null;
+    uploadedFiles.value = [];
+    uploadStep.value = 1;
+    fetchPersonalDocs(1);
+  } catch {
+    ElMessage.error("上传失败，请重试");
+  } finally {
+    uploadSubmitting.value = false;
+  }
 }
 
 function closeDialog() {
@@ -395,43 +374,38 @@ function closeDialog() {
 }
 
 function onOverlayClick(e: MouseEvent) {
-  if ((e.target as HTMLElement).classList.contains('dialog-overlay')) {
+  if ((e.target as HTMLElement).classList.contains("dialog-overlay")) {
     closeDialog();
   }
 }
 
 function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') {
+  if (e.key === "Escape") {
     closeDialog();
   }
 }
-
 </script>
 
 <template>
   <div class="w-full h-screen flex flex-col bg-white">
     <NavBar :items="navItems" />
-
-    <!-- Main content area -->
     <div class="flex-1 px-4 pb-4 pt-4 overflow-hidden">
       <div class="w-full max-w-7xl mx-auto h-full flex flex-col pt-10">
-        <!-- Page header -->
         <div class="mb-4 flex items-center">
           <h1 class="text-xl text-gray-900">
-            {{ activeTab === "personal" ? "个人文档" : "企业知识库" }}
+            {{ activeTab === "personal" ? "个人知识库" : "企业知识库" }}
           </h1>
           <span class="text-sm text-gray-400 pl-4">
             {{
               activeTab === "personal"
-                ? `共 ${personalDocs.length} 个文件`
-                : `共 ${enterpriseDocs.length} 个文件`
+                ? `共 ${personalTotal} 个文件`
+                : `共 ${enterpriseTotal} 个文件`
             }}
           </span>
         </div>
 
-        <!-- ==================== 个人文档 ==================== -->
-        <div v-if="activeTab === 'personal'" class="flex-1 flex flex-col min-h-0 max-h-165">
-          <!-- Upload bar -->
+        <!-- ==================== 个人知识库 ==================== -->
+        <div v-if="activeTab === 'personal'" class="flex-1 flex flex-col min-h-0 max-h-164">
           <div class="mb-3">
             <button
               class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-500 text-white text-sm font-medium hover:bg-teal-600 transition-colors"
@@ -440,62 +414,57 @@ function onKeydown(e: KeyboardEvent) {
               <span>上传文件</span>
             </button>
           </div>
-
-          <!-- Table -->
-          <div class="flex-1 overflow-auto bg-white rounded-xl border border-gray-100 min-h-0">
+          <div class="flex-1 overflow-auto bg-white rounded-xl border border-gray-100 min-h-0 relative">
+            <div v-if="personalLoading"
+              class="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-sm rounded-xl">
+              <div class="flex items-center gap-2 text-sm text-gray-500">
+                <svg class="animate-spin h-4 w-4 text-teal-500" xmlns="http://www.w3.org/2000/svg" fill="none"
+                  viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                  <path class="opacity-75" fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                <span>加载中...</span>
+              </div>
+            </div>
             <table class="w-full text-sm">
               <thead class="sticky top-0 z-10">
                 <tr class="border-b border-gray-100 bg-gray-50">
-                  <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">文件名</th>
-                  <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">文件大小</th>
-                  <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">处理状态</th>
-                  <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">分块数量</th>
-                  <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
-                  <th class="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                  <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">文件名
+                  </th>
+                  <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    文件大小</th>
+                  <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    处理状态</th>
+                  <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    分块数量</th>
+                  <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    创建时间</th>
+                  <th class="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">操作
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="doc in personalDocs" :key="doc.id"
                   class="border-b border-gray-100 hover:bg-gray-100/30 transition-colors">
-                  <!-- 文件名 -->
-                  <td class="px-4 py-3">
-                    <span class="text-gray-900">{{ doc.fileName }}</span>
-                  </td>
-                  <!-- 文件大小 -->
-                  <td class="px-4 py-3">
-                    <span class="text-gray-500">{{ doc.fileSize }}</span>
-                  </td>
-                  <!-- 处理状态 -->
+                  <td class="px-4 py-3"><span class="text-gray-900">{{ doc.fileName }}</span></td>
+                  <td class="px-4 py-3"><span class="text-gray-500">{{ doc.fileSize }}</span></td>
                   <td class="px-4 py-3">
                     <div class="flex items-center gap-1.5">
                       <template v-for="(stage, si) in statusStages" :key="stage.key">
-                        <!-- Connector line -->
                         <div v-if="si > 0" class="h-px w-4 rounded"
                           :class="si <= stageIndexMap[doc.status] ? 'bg-teal-400' : 'bg-gray-200'" />
-                        <!-- Dot -->
                         <div class="w-2.5 h-2.5 rounded-full flex-shrink-0" :class="{
                           'bg-teal-500': si < stageIndexMap[doc.status],
                           'bg-teal-500 ring-2 ring-teal-200': si === stageIndexMap[doc.status],
                           'bg-gray-200': si > stageIndexMap[doc.status],
                         }" :title="stage.label" />
-
-
                       </template>
-                      
-                      <span class="ml-2 text-xs text-gray-500">
-                        {{ getStatusLabel(doc.status) }}
-                      </span>
+                      <span class="ml-2 text-xs text-gray-500">{{ getStatusLabel(doc.status) }}</span>
                     </div>
                   </td>
-                  <!-- 分块数量 -->
-                  <td class="px-4 py-3">
-                    <span class="text-gray-500">{{ doc.chunkCount || "-" }}</span>
-                  </td>
-                  <!-- 创建时间 -->
-                  <td class="px-4 py-3">
-                    <span class="text-gray-500">{{ doc.createdAt }}</span>
-                  </td>
-                  <!-- 操作 -->
+                  <td class="px-4 py-3"><span class="text-gray-500">{{ doc.chunkCount || "-" }}</span></td>
+                  <td class="px-4 py-3"><span class="text-gray-500">{{ doc.createdAt }}</span></td>
                   <td class="px-4 py-3 text-right">
                     <div class="flex items-center justify-end gap-1">
                       <button
@@ -511,62 +480,113 @@ function onKeydown(e: KeyboardEvent) {
                     </div>
                   </td>
                 </tr>
-                <tr v-if="personalDocs.length === 0">
-                  <td colspan="6" class="px-4 py-20 text-center text-gray-400">
-                    暂无文档，点击上方按钮上传
-                  </td>
+                <tr v-if="personalDocs.length === 0 && !personalLoading">
+                  <td colspan="6" class="px-4 py-20 text-center text-gray-400">暂无文档，点击上方按钮上传</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
+          <!-- Personal pagination -->
+          <div v-if="personalLoaded" class="flex items-center justify-between pt-3 pb-1">
+            <span class="text-xs text-gray-400">
+              共 {{ personalTotal }} 条，第 {{ personalPageNum }}/{{ personalPages }} 页
+            </span>
+            <div class="flex items-center gap-1">
+              <button
+                class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                :disabled="personalPageNum <= 1" @click="handlePersonalPageChange(personalPageNum - 1)">
+                <ChevronLeft :size="16" />
+              </button>
+              <button v-for="p in personalPageNumbers" :key="p"
+                class="w-8 h-8 rounded-lg text-xs font-medium transition-colors"
+                :class="p === personalPageNum ? 'bg-teal-500 text-white' : 'text-gray-500 hover:bg-gray-100'"
+                @click="handlePersonalPageChange(p)">{{ p }}</button>
+              <button
+                class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                :disabled="personalPageNum >= personalPages"
+                @click="handlePersonalPageChange(personalPageNum + 1)">
+                <ChevronRight :size="16" />
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- ==================== 企业知识库 ==================== -->
         <div v-else class="flex-1 flex flex-col min-h-0">
-          <!-- Table -->
-          <div class="flex-1 overflow-auto bg-white rounded-xl border border-gray-100 min-h-0 max-h-165">
+          <div
+            class="flex-1 overflow-auto bg-white rounded-xl border border-gray-100 min-h-0 max-h-159 relative">
+            <div v-if="enterpriseLoading"
+              class="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-sm rounded-xl">
+              <div class="flex items-center gap-2 text-sm text-gray-500">
+                <svg class="animate-spin h-4 w-4 text-teal-500" xmlns="http://www.w3.org/2000/svg" fill="none"
+                  viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                  <path class="opacity-75" fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                <span>加载中...</span>
+              </div>
+            </div>
             <table class="w-full text-sm">
               <thead class="sticky top-0 z-10">
                 <tr class="border-b border-gray-100 bg-gray-50">
-                  <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">文件名</th>
-                  <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">文件大小</th>
-                  <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">所属部门</th>
-                  <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">所属者</th>
-                  <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
+                  <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">文件名
+                  </th>
+                  <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    文件大小</th>
+                  <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    所属部门</th>
+                  <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">所属者
+                  </th>
+                  <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    创建时间</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="doc in enterpriseDocs" :key="doc.id"
                   class="border-b border-gray-50 hover:bg-gray-50/30 transition-colors">
-                  <td class="px-4 py-3">
-                    <span class="text-gray-900">{{ doc.fileName }}</span>
-                  </td>
-                  <td class="px-4 py-3">
-                    <span class="text-gray-500">{{ doc.fileSize }}</span>
-                  </td>
+                  <td class="px-4 py-3"><span class="text-gray-900">{{ doc.fileName }}</span></td>
+                  <td class="px-4 py-3"><span class="text-gray-500">{{ doc.fileSize }}</span></td>
                   <td class="px-4 py-3">
                     <span
                       class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-teal-50 text-teal-700">
                       {{ doc.department }}
                     </span>
                   </td>
-                  <td class="px-4 py-3">
-                    <span class="text-gray-700">{{ doc.owner }}</span>
-                  </td>
-                  <td class="px-4 py-3">
-                    <span class="text-gray-500">{{ doc.createdAt }}</span>
-                  </td>
+                  <td class="px-4 py-3"><span class="text-gray-700">{{ doc.owner }}</span></td>
+                  <td class="px-4 py-3"><span class="text-gray-500">{{ doc.createdAt }}</span></td>
                 </tr>
-                <tr v-if="enterpriseDocs.length === 0">
-                  <td colspan="5" class="px-4 py-20 text-center text-gray-400">
-                    暂无企业知识库文档
-                  </td>
+                <tr v-if="enterpriseDocs.length === 0 && !enterpriseLoading">
+                  <td colspan="5" class="px-4 py-20 text-center text-gray-400">暂无企业知识库文档</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
+          <!-- Enterprise pagination -->
+          <div v-if="enterpriseLoaded" class="flex items-center justify-between pt-3 pb-1">
+            <span class="text-xs text-gray-400">
+              共 {{ enterpriseTotal }} 条，第 {{ enterprisePageNum }}/{{ enterprisePages }} 页
+            </span>
+            <div class="flex items-center gap-1">
+              <button
+                class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                :disabled="enterprisePageNum <= 1" @click="handleEnterprisePageChange(enterprisePageNum - 1)">
+                <ChevronLeft :size="16" />
+              </button>
+              <button v-for="p in enterprisePageNumbers" :key="p"
+                class="w-8 h-8 rounded-lg text-xs font-medium transition-colors"
+                :class="p === enterprisePageNum ? 'bg-teal-500 text-white' : 'text-gray-500 hover:bg-gray-100'"
+                @click="handleEnterprisePageChange(p)">{{ p }}</button>
+              <button
+                class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                :disabled="enterprisePageNum >= enterprisePages"
+                @click="handleEnterprisePageChange(enterprisePageNum + 1)">
+                <ChevronRight :size="16" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -574,7 +594,8 @@ function onKeydown(e: KeyboardEvent) {
     <!-- Upload Dialog -->
     <Teleport to="body">
       <Transition name="dialog-fade">
-        <div v-if="showUploadDialog" class="dialog-overlay fixed inset-0 z-50 flex items-center justify-center p-4"
+        <div v-if="showUploadDialog"
+          class="dialog-overlay fixed inset-0 z-50 flex items-center justify-center p-4"
           style="background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(4px);" @click="onOverlayClick"
           @keydown="onKeydown">
           <div class="relative w-full max-w-lg rounded-2xl overflow-hidden"
@@ -582,17 +603,15 @@ function onKeydown(e: KeyboardEvent) {
             <div class="flex items-center justify-between px-6 pt-5 pb-3">
               <div>
                 <h2 class="text-lg font-semibold text-gray-900">上传文档</h2>
-                <p class="text-xs text-gray-400 mt-0.5">
-                  步骤 {{ uploadStep }}/2 ·
-                  {{ uploadStep === 1 ? '选择可见范围' : '选择文件' }}
-                </p>
+                <p class="text-xs text-gray-400 mt-0.5">步骤 {{ uploadStep }}/2 · {{ uploadStep === 1 ? '选择可见范围' :
+                  '选择文件' }}</p>
               </div>
-              <button class="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              <button
+                class="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                 @click="closeDialog">
                 <X :size="18" />
               </button>
             </div>
-
             <div class="flex items-center justify-center gap-2 px-6 pb-4">
               <div class="w-2 h-2 rounded-full transition-all duration-300"
                 :class="uploadStep === 1 ? 'bg-teal-500 w-5' : 'bg-gray-300'" />
@@ -600,9 +619,9 @@ function onKeydown(e: KeyboardEvent) {
               <div class="w-2 h-2 rounded-full transition-all duration-300"
                 :class="uploadStep === 2 ? 'bg-teal-500 w-5' : 'bg-gray-300'" />
             </div>
-
             <div class="relative overflow-hidden px-6" style="min-height: 220px;">
-              <Transition :name="direction === 'forward' ? 'card-slide-left' : 'card-slide-right'" mode="out-in">
+              <Transition :name="direction === 'forward' ? 'card-slide-left' : 'card-slide-right'"
+                mode="out-in">
                 <div v-if="uploadStep === 1" key="step1" class="space-y-3">
                   <div v-for="opt in scopeOptions" :key="opt.key"
                     class="flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200"
@@ -624,7 +643,6 @@ function onKeydown(e: KeyboardEvent) {
                     </div>
                   </div>
                 </div>
-
                 <div v-else-if="uploadStep === 2" key="step2" class="space-y-3">
                   <div
                     class="relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200"
@@ -637,7 +655,6 @@ function onKeydown(e: KeyboardEvent) {
                     <p class="text-sm text-gray-500">点击选择文件，或拖拽到此处</p>
                     <p class="text-xs text-gray-400 mt-1">支持 PDF、Word、Excel、PPT、MD、TXT、CSV</p>
                   </div>
-
                   <div v-if="uploadedFiles.length > 0" class="space-y-1.5 max-h-36 overflow-y-auto">
                     <div v-for="(f, idx) in uploadedFiles" :key="idx"
                       class="flex items-center gap-3 px-3 py-2 rounded-lg"
@@ -655,35 +672,33 @@ function onKeydown(e: KeyboardEvent) {
                 </div>
               </Transition>
             </div>
-
             <div class="flex items-center justify-between px-6 py-4">
               <button v-if="uploadStep === 2"
                 class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100/70 transition-colors"
                 @click="goBack">
-                <ArrowLeft :size="16" />
-                <span>上一页</span>
+                <ArrowLeft :size="16" /><span>上一页</span>
               </button>
               <div v-else />
-
               <div class="flex gap-2">
                 <button
                   class="px-4 py-2 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-100/70 transition-colors"
-                  @click="closeDialog">
-                  取消
-                </button>
+                  @click="closeDialog">取消</button>
                 <button v-if="uploadStep === 1" :disabled="!docScope"
                   class="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-sm font-medium text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
                   style="background: linear-gradient(135deg, #14b8a6, #0d9488); box-shadow: 0 2px 8px rgba(13,148,136,0.3);"
-                  @click="goNext">
-                  <span>下一页</span>
+                  @click="goNext"><span>下一页</span>
                   <ArrowRight :size="16" />
                 </button>
-                <button v-if="uploadStep === 2" :disabled="uploadedFiles.length === 0"
+                <button v-if="uploadStep === 2" :disabled="uploadedFiles.length === 0 || uploadSubmitting"
                   class="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-sm font-medium text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
                   style="background: linear-gradient(135deg, #14b8a6, #0d9488); box-shadow: 0 2px 8px rgba(13,148,136,0.3);"
                   @click="submitUpload">
-                  <Check :size="16" />
-                  <span>提交</span>
+                  <svg v-if="uploadSubmitting" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <Check v-else :size="16" />
+                  <span>{{ uploadSubmitting ? '上传中...' : '提交' }}</span>
                 </button>
               </div>
             </div>
@@ -692,11 +707,10 @@ function onKeydown(e: KeyboardEvent) {
       </Transition>
     </Teleport>
 
-    <!-- Dock -->
     <Dock :items="dockItems" :panel-height="68" :base-item-size="50" :magnification="70" />
   </div>
-
 </template>
+
 <style scoped>
 .dialog-fade-enter-active,
 .dialog-fade-leave-active {

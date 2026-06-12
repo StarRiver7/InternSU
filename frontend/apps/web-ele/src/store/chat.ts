@@ -19,7 +19,7 @@
  *
  * 发送消息 → SSE 流：
  * - sendChatMessage(message, userId) 调用 POST /api/ai/chat
- * - space_ids 自动从 KnowledgeStore.selectedSpaceIds 读取
+ * - doc_ids 自动从 KnowledgeStore.selectedSpaceIds 读取
  * - trace 步骤 → 写入 currentTraces，右侧面板实时累加显示
  * - 最终回答 → 写入 currentMessages 中 AI 消息的 content
  */
@@ -173,7 +173,7 @@ export const useChatStore = defineStore("chat", () => {
   /**
    * 发送聊天消息 — POST /api/ai/chat (SSE)
    *
-   * space_ids 自动从 KnowledgeStore.selectedSpaceIds 读取，
+   * doc_ids 自动从 KnowledgeStore.selectedSpaceIds 读取，
    * 用户未选择时发送空数组 path[] 表示普通聊天（由后端决定行为）。
    *
    * @param message    用户输入的消息文本
@@ -188,12 +188,13 @@ export const useChatStore = defineStore("chat", () => {
   ): Promise<string> {
     streamError.value = "";
     isStreaming.value = true;
+    currentTraces.value = []; 
 
-    // 从 KnowledgeStore 读取当前选中的知识库 ID
-    let spaceIds: number[] = [];
+    // 从 KnowledgeStore 读取当前选中的文档 ID
+    let docIds: number[] = [];
     try {
       const { useKnowledgeStore } = await import("#/store");
-      spaceIds = useKnowledgeStore().selectedSpaceIds;
+      docIds = useKnowledgeStore().selectedSpaceIds;
     } catch {
       // KnowledgeStore 不可用时使用空数组
     }
@@ -204,8 +205,8 @@ export const useChatStore = defineStore("chat", () => {
       user_id: userId,
       conversation_id: currentConversationId.value || undefined,
       model: model || "",
-      space_ids: spaceIds,
-      doc_ids: [],
+      space_ids: [],
+      doc_ids: docIds,
     };
 
     return new Promise<string>((resolve) => {
@@ -261,6 +262,8 @@ export const useChatStore = defineStore("chat", () => {
    * 返回 AI 占位消息的 ID，供 sendChatMessage 内部回填使用
    */
   function prepareMessages(userContent: string): number {
+     // 发送新消息时清空上次对话的 trace 流
+    currentTraces.value = [];
     // 用户消息
     const userMsg: UIMessage = {
       id: ++messageIdCounter,

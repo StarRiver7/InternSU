@@ -444,7 +444,11 @@ onMounted(async () => {
                                 class="text-white"
                               />
                             </div>
-                            <span class="text-sm text-gray-700 truncate">{{ space.name }}</span>
+                            <span class="text-sm text-gray-700 truncate flex-1">{{ space.name }}</span>
+                            <span
+                              v-if="space.space"
+                              class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded flex-shrink-0"
+                            >{{ space.space }}</span>
                             <input
                               type="checkbox"
                               :checked="knowledgeStore.selectedSpaceIds.includes(space.id)"
@@ -508,7 +512,7 @@ onMounted(async () => {
           <div class="mb-4">
             <div class="flex items-center gap-2">
               <Activity :size="18" class="text-teal-500" />
-              <h2 class="text-lg text-gray-900">执行步骤</h2>
+              <h2 class="text-lg text-gray-900">步骤</h2>
             </div>
           </div>
 

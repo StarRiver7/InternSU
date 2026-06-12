@@ -17,6 +17,9 @@ public class PublicDocumentDTO {
     /** 文档名称 */
     private String fileName;
 
+    /** 文件大小 */
+    private Long fileSize;
+
     /** 所属部门名称 */
     private String departmentName;
 

@@ -18,7 +18,13 @@
     -->
     <select id="selectAccessibleSpaces" resultType="com.company.aiplatform.rag.dto.KnowledgeSpaceVO">
         SELECT d.id,
-               d.file_name AS name
+               d.file_name AS name,
+               CASE
+                   WHEN d.space_id = 1 THEN '企业'
+                   WHEN d.space_id = 4 THEN '个人'
+                   WHEN d.space_id = 5 THEN '测试'
+                   ELSE '部门'
+                   END AS space
         FROM t_document d
         WHERE d.is_deleted = 0
           AND (

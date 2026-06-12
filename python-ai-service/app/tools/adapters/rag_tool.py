@@ -133,11 +133,14 @@ class RagTool(BaseTool):
             from app.core.config import settings
 
             retriever = HybridRetriever()
-            retrieval_results = await retriever.retrieve(
+            # HybridRetriever.search() 接收单个 space_id（str）和 doc_ids（list[str]）
+            space_id = str(space_ids[0]) if space_ids else None
+            str_doc_ids = [str(d) for d in doc_ids] if doc_ids else None
+            retrieval_results = await retriever.search(
                 query=rewritten,
                 top_k=settings.rag_top_k,
-                space_ids=space_ids,
-                doc_ids=doc_ids,
+                space_id=space_id,
+                doc_ids=str_doc_ids,
             )
             hit_count = len(retrieval_results) if retrieval_results else 0
             trace_steps[-1]["status"] = "completed"

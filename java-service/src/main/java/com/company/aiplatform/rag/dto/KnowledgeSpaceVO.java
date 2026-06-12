@@ -23,4 +23,7 @@ public class KnowledgeSpaceVO {
 
     @Schema(description = "知识空间名称", example = "公司制度与规范")
     private String name;
+
+    @Schema(description = "所属", example = "个人")
+    private String space;
 }

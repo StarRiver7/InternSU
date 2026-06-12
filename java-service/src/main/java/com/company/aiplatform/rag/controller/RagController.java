@@ -69,10 +69,9 @@ public class RagController {
     @Operation(summary = "分页查询用户自己创建的文档")
     @GetMapping("/my")
     public Result<Page<MyDocumentDTO>> listMyDocuments(
-            @CurrentUserId Long userId,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize) {
-
+        Long userId = securityContextUtil.getCurrentUserId();
         Page<MyDocumentDTO> page = documentService.listMyDocuments(userId, pageNum, pageSize);
         return Result.success(page);
     }
@@ -94,7 +93,7 @@ public class RagController {
     @PostMapping("/upload")
     public Result<Document> uploadDocument(
             @CurrentUserId Long userId,
-            @RequestParam("space_id") Long spaceId,
+            @RequestParam Long spaceId,
             @RequestParam("file") MultipartFile file) {
 
         try {
