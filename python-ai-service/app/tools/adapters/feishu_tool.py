@@ -91,7 +91,7 @@ class FeishuTool(BaseTool):
         t1 = _time.time()
         trace_steps.append({
             "step_type": "feishu_query",
-            "step_name": "Feishu Message Fetch",
+            "step_name": "飞书消息获取",
                 "message": "正在获取飞书消息...",
             "status": "running",
             "timestamp": _now(),
@@ -162,7 +162,7 @@ class FeishuTool(BaseTool):
             return ToolResult(
                 success=True,
                 data={"chat_name": chat_name, "total": 0},
-                summary=f"No messages found in '{chat_name}' in the last {hours} hours.",
+                summary=f"在最近 {hours} 小时内未找到 '{chat_name}' 的消息。",
                 trace_steps=trace_steps,
             )
 
@@ -170,7 +170,7 @@ class FeishuTool(BaseTool):
         t2 = _time.time()
         trace_steps.append({
             "step_type": "message_filter",
-            "step_name": "Message Importance Filter",
+            "step_name": "消息重要性筛选",
             "message": "正在筛选重要消息...",
             "status": "running",
             "timestamp": _now(),
@@ -206,7 +206,7 @@ class FeishuTool(BaseTool):
         t3 = _time.time()
         trace_steps.append({
             "step_type": "prompt_build",
-            "step_name": "Prompt Construction",
+            "step_name": "提示词构建",
             "message": "正在构建摘要提示...",
             "status": "running",
             "timestamp": _now(),
@@ -229,7 +229,7 @@ class FeishuTool(BaseTool):
         t4 = _time.time()
         trace_steps.append({
             "step_type": "llm_generation",
-            "step_name": "LLM Summary Generation",
+            "step_name": "大模型摘要生成",
             "message": "正在使用大模型生成摘要...",
             "status": "running",
             "timestamp": _now(),

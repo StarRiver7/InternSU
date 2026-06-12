@@ -453,12 +453,12 @@ class FeishuClient:
 
         all_msgs: List[FeishuMessage] = []
         page_token: Optional[str] = None
-        done = False
         page_count = 0
         raw_count = 0
         filtered_out_count = 0
+        old_count = 0
 
-        while len(all_msgs) < max_messages and not done:
+        while len(all_msgs) < max_messages:
             page_count += 1
             result = await self.list_messages(
                 chat_id=chat_id,
@@ -472,31 +472,27 @@ class FeishuClient:
 
             for m in result.items:
                 raw_count += 1
-                # 飞书 API 默认按时间倒序返回 (最新在前)。
-                # 遇到早于截止时间的消息时停止分页。
-                if m.create_time and m.create_time < cutoff_time:
-                    logger.debug(
-                        "Skipping old message: create_time=%s < cutoff=%s",
-                        m.create_time.isoformat(), cutoff_time.isoformat(),
-                    )
-                    done = True
-                    break
+                ct = m.create_time
+                # 飞书 API 按时间升序返回（最旧在前）。
+                # 遇到早于截止时间的消息直接跳过（还在历史区域）；
+                # 一旦遇到时效内的消息，后续全部都是时效内的。
+                if ct and ct < cutoff_time:
+                    old_count += 1
+                    continue
                 # 只保留有可读文本的消息
                 if m.plain_text and m.plain_text != "[non-text]":
                     all_msgs.append(m)
                 else:
                     filtered_out_count += 1
 
-            if done:
-                break
             if not result.has_more or not result.page_token:
                 break
             page_token = result.page_token
 
         logger.info(
             "fetch_messages_for_summary result: collected=%d, raw=%d, "
-            "filtered_out=%d, pages=%d",
-            len(all_msgs), raw_count, filtered_out_count, page_count,
+            "old_skipped=%d, filtered_out=%d, pages=%d",
+            len(all_msgs), raw_count, old_count, filtered_out_count, page_count,
         )
 
         # 按时间升序排序 (最旧的在前，用于 LLM 上下文)

@@ -360,13 +360,13 @@ onMounted(async () => {
               <div v-for="message in chatStore.currentMessages" :key="message.id"
                 :class="['flex', message.role === 'user' ? 'justify-end' : 'justify-start']">
                 <div v-if="message.role === 'user'"
-                  class="bg-[#e9e9e9]/80 text-gray-900 text-sm px-4 py-3 rounded-2xl rounded-tr-sm max-w-[80%] break-words"
+                  class="bg-[#e9e9e9]/80 text-gray-900 text-base px-4 py-3 rounded-2xl rounded-tr-sm max-w-[80%] break-words"
                   :style="{ minWidth: '80px' }">
-                  <p class="whitespace-pre-wrap">{{ message.content }}</p>
+                  <p class="whitespace-pre-wrap leading-relaxed">{{ message.content }}</p>
                 </div>
                 <div v-else
-                  class="bg-white/80 backdrop-blur-sm text-gray-900 text-sm px-4 py-3 rounded-2xl rounded-tl-sm max-w-[80%] break-words">
-                  <p v-if="message.content" class="whitespace-pre-wrap">{{ message.content }}</p>
+                  class="bg-white/80 backdrop-blur-sm text-gray-900 text-base px-4 py-3 rounded-2xl rounded-tl-sm max-w-[80%] break-words">
+                  <p v-if="message.content" class="whitespace-pre-wrap leading-relaxed">{{ message.content }}</p>
                   <div v-else class="flex items-center gap-2 text-gray-400">
                     <Loader2 :size="14" class="animate-spin" />
                     <span class="text-xs">正在思考...</span>

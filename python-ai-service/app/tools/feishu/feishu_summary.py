@@ -27,6 +27,9 @@ logger = logging.getLogger(__name__)
 
 SUMMARY_SYSTEM_PROMPT = """你是一位资深企业助理 AI。你的任务是阅读企业聊天消息并生成结构化摘要。
 
+## 语言要求（最高优先级）
+必须使用中文回复，禁止使用英文（专业术语和缩写除外，如 SQL、API、OKR 等）。
+
 ## 摘要规则
 
 1. 提取并分类信息到各个部分:
@@ -120,11 +123,11 @@ def format_messages_for_prompt(
 def _category_label(category: str) -> str:
     """用于提示显示的中文类别标签。"""
     labels = {
-        "notification": "Notification/Announcement",
-        "meeting": "Meeting",
-        "task": "Task/To-do",
-        "risk": "Risk/Incident",
-        "other": "Other Important",
+        "notification": "通知/公告",
+        "meeting": "会议",
+        "task": "任务/待办",
+        "risk": "风险/事故",
+        "other": "其他重要",
     }
     return labels.get(category, category)
 

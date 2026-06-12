@@ -94,7 +94,8 @@ RECENCY_WINDOW_HOURS: int = 4
 RECENCY_BONUS: int = 5
 
 # 被视为"重要"的最低分数
-IMPORTANCE_THRESHOLD: int = 8
+# NOTE: 降低阈值以包含更多消息（原值 8 导致普通对话全部被过滤）
+IMPORTANCE_THRESHOLD: int = 0
 
 # 返回的最大重要消息数 (防止 LLM 令牌溢出)
 MAX_IMPORTANT_MESSAGES: int = 50
@@ -209,6 +210,11 @@ class MessageFilter:
         scored: List[ScoredMessage] = []
         for msg in messages:
             sm = self._score_one(msg, reference_time)
+            logger.debug(
+                "MessageFilter: score=%d, threshold=%d, sender=%s, text=%s",
+                sm.score, self._threshold, sm.sender_name,
+                sm.plain_text[:50] if sm.plain_text else "(empty)",
+            )
             if sm.score >= self._threshold:
                 scored.append(sm)
 
