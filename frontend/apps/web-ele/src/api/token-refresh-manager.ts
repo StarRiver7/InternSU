@@ -44,12 +44,4 @@ export function clearRefreshQueue(): void {
   refreshTokenQueue = [];
 }
 
-/**
- * 重置所有状态（用于页面切换时清理）
- */
-export function resetRefreshState(): void {
-  isRefreshing = false;
-  // 拒绝所有排队的请求
-  refreshTokenQueue.forEach((callback) => callback(''));
-  refreshTokenQueue = [];
-}
+

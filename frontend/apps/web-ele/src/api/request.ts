@@ -313,10 +313,3 @@ export const requestClient = createRequestClient(apiURL, {
  */
 export const baseRequestClient = new RequestClient({ baseURL: apiURL });
 
-/** AI 服务请求客户端 — Python 后端，不做 data 域提取 */
-export const aiRequestClient = (() => {
-  const client = new RequestClient({ baseURL: "/ai" });
-  installRequestInterceptor(client);
-  installResponseInterceptors(client, false);
-  return client;
-})();
