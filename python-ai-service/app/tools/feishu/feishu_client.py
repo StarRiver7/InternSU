@@ -392,9 +392,9 @@ class FeishuClient:
             try:
                 create_time = datetime.fromtimestamp(int(raw_time) / 1000)
             except (ValueError, TypeError, OSError):
-                pass
+                logger.warning("Failed to parse create_time: %s", raw_time)
 
-        return FeishuMessage(
+        msg = FeishuMessage(
             message_id=raw.get("message_id", ""),
             chat_id=raw.get("chat_id", default_chat_id),
             chat_name="",
@@ -408,6 +408,16 @@ class FeishuClient:
             thread_id=raw.get("thread_id"),
             parent_id=raw.get("parent_id"),
         )
+
+        logger.debug(
+            "Parsed message: id=%s, type=%s, sender=%s, "
+            "create_time=%s, plain_text_len=%d",
+            msg.message_id, msg_type, msg.sender_name,
+            create_time.isoformat() if create_time else "None",
+            len(plain_text),
+        )
+
+        return msg
 
     # ----------------------------------------------------------
     # 便捷方法: 获取摘要消息
@@ -434,32 +444,60 @@ class FeishuClient:
         from datetime import timedelta
 
         cutoff_time = datetime.now() - timedelta(hours=lookback_hours)
+        logger.info(
+            "fetch_messages_for_summary: chat_id=%s, lookback_hours=%d, "
+            "cutoff_time=%s, now=%s",
+            chat_id, lookback_hours, cutoff_time.isoformat(),
+            datetime.now().isoformat(),
+        )
 
         all_msgs: List[FeishuMessage] = []
         page_token: Optional[str] = None
         done = False
+        page_count = 0
+        raw_count = 0
+        filtered_out_count = 0
 
         while len(all_msgs) < max_messages and not done:
+            page_count += 1
             result = await self.list_messages(
                 chat_id=chat_id,
                 page_size=min(50, max_messages - len(all_msgs)),
                 page_token=page_token,
             )
+            logger.info(
+                "Page %d: got %d messages, has_more=%s",
+                page_count, len(result.items), result.has_more,
+            )
 
             for m in result.items:
-                # 一旦遇到早于截止时间的消息就停止分页
+                raw_count += 1
+                # 飞书 API 默认按时间倒序返回 (最新在前)。
+                # 遇到早于截止时间的消息时停止分页。
                 if m.create_time and m.create_time < cutoff_time:
+                    logger.debug(
+                        "Skipping old message: create_time=%s < cutoff=%s",
+                        m.create_time.isoformat(), cutoff_time.isoformat(),
+                    )
                     done = True
                     break
                 # 只保留有可读文本的消息
                 if m.plain_text and m.plain_text != "[non-text]":
                     all_msgs.append(m)
+                else:
+                    filtered_out_count += 1
 
             if done:
                 break
             if not result.has_more or not result.page_token:
                 break
             page_token = result.page_token
+
+        logger.info(
+            "fetch_messages_for_summary result: collected=%d, raw=%d, "
+            "filtered_out=%d, pages=%d",
+            len(all_msgs), raw_count, filtered_out_count, page_count,
+        )
 
         # 按时间升序排序 (最旧的在前，用于 LLM 上下文)
         all_msgs.sort(key=lambda m: m.create_time or datetime.min)

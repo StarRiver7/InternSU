@@ -86,7 +86,7 @@ class ToolManager:
             logger.error("在注册中心没有发现tool: %s", tool_name)
             return ToolResult(
                 success=False,
-                error=f"Tool '{tool_name}' 没有注册",
+                error=f"工具 '{tool_name}' 未注册",
                 duration_ms=(time.time() - t_start) * 1000,
             )
 
@@ -118,7 +118,7 @@ class ToolManager:
             logger.exception("ToolManager: unhandled error in %s", tool_name)
             result = ToolResult(
                 success=False,
-                error=f"Unexpected error: {type(exc).__name__}: {exc}",
+                error=f"未知错误：{type(exc).__name__}: {exc}",
                 duration_ms=(time.time() - t_start) * 1000,
             )
 

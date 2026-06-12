@@ -94,7 +94,7 @@ async def agent_node(state: InternState) -> InternState:
         if step.get("step_type") == "agent_dispatch" and step.get("status") == "running":
             step["status"] = "completed"
             step["duration_ms"] = duration_ms
-            step["message"] = f"Agent completed: {tool_name}"
+            step["message"] = f"Agent 完成: {tool_name}"
             step["timestamp"] = _now()
             break
 
@@ -145,8 +145,8 @@ async def _execute_via_manager(
         state["final_answer"] = result.summary
     else:
         state["final_answer"] = (
-            f"Sorry, I encountered an issue: {result.error}\n\n"
-            "Please try again or rephrase your request."
+            f"抱歉，遇到了一个问题：{result.error}\n\n"
+            "请稍后重试或换个方式提问。"
         )
 
     state["done"] = True
@@ -180,15 +180,14 @@ async def _unknown_tool(
         "node": "agent_node",
         "step_type": "agent_unknown",
         "step_name": "Unknown Tool",
-        "message": f"Tool '{tool_name}' is not recognized",
+        "message": f"工具 '{tool_name}' 未被识别",
         "status": "completed",
         "timestamp": _now(),
     })
 
     state["final_answer"] = (
-        "Your request has been received, but the corresponding tool "
-        "is not yet available. Currently supported: data queries, "
-        "knowledge base search, and Feishu message summaries."
+        "已收到您的请求，但对应的工具暂未上线。"
+        "目前支持：数据查询、知识库搜索、飞书消息总结。"
     )
     state["done"] = True
     state["trace_steps"] = trace_steps

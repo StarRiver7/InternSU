@@ -36,7 +36,7 @@ class FeishuTool(BaseTool):
 
     def get_metadata(self) -> ToolMetadata:
         return ToolMetadata(
-            name="feishu_summary",
+            name="feishu_agent",
             display_name="飞书群消息总结",
             description=(
                 "总结飞书群聊中的近期消息。自动拉取消息、筛选重要内容、"
@@ -92,7 +92,7 @@ class FeishuTool(BaseTool):
         trace_steps.append({
             "step_type": "feishu_query",
             "step_name": "Feishu Message Fetch",
-            "message": "Fetching messages from Feishu...",
+                "message": "正在获取飞书消息...",
             "status": "running",
             "timestamp": _now(),
         })
@@ -116,7 +116,7 @@ class FeishuTool(BaseTool):
                     await client.close()
                     return ToolResult(
                         success=False,
-                        error="No Feishu chat groups found. Add the bot to a group first.",
+                        error="未找到飞书群聊，请先将机器人添加到群聊中。",
                         trace_steps=trace_steps,
                     )
                 chat_id = chats_result.items[0].chat_id
@@ -139,14 +139,14 @@ class FeishuTool(BaseTool):
                 "chat_id": chat_id, "chat_name": chat_name,
                 "total": total_count, "hours": hours,
             }
-            trace_steps[-1]["message"] = f"Fetched {total_count} messages from {chat_name}"
+            trace_steps[-1]["message"] = f"从 {chat_name} 获取了 {total_count} 条消息"
 
         except ValueError as exc:
             trace_steps[-1]["status"] = "failed"
             trace_steps[-1]["detail"] = {"error": str(exc)}
             return ToolResult(
                 success=False,
-                error=f"Feishu not configured: {exc}. Set FEISHU_APP_ID and FEISHU_APP_SECRET.",
+                error=f"飞书未配置：{exc}。请设置 FEISHU_APP_ID 和 FEISHU_APP_SECRET。",
                 trace_steps=trace_steps,
             )
         except Exception as exc:
@@ -154,7 +154,7 @@ class FeishuTool(BaseTool):
             trace_steps[-1]["status"] = "failed"
             return ToolResult(
                 success=False,
-                error=f"Failed to fetch Feishu messages: {exc}",
+                error=f"获取飞书消息失败：{exc}",
                 trace_steps=trace_steps,
             )
 
@@ -171,7 +171,7 @@ class FeishuTool(BaseTool):
         trace_steps.append({
             "step_type": "message_filter",
             "step_name": "Message Importance Filter",
-            "message": "Filtering important messages...",
+            "message": "正在筛选重要消息...",
             "status": "running",
             "timestamp": _now(),
         })
@@ -207,7 +207,7 @@ class FeishuTool(BaseTool):
         trace_steps.append({
             "step_type": "prompt_build",
             "step_name": "Prompt Construction",
-            "message": "Building summary prompt...",
+            "message": "正在构建摘要提示...",
             "status": "running",
             "timestamp": _now(),
         })
@@ -230,7 +230,7 @@ class FeishuTool(BaseTool):
         trace_steps.append({
             "step_type": "llm_generation",
             "step_name": "LLM Summary Generation",
-            "message": "Generating summary with LLM...",
+            "message": "正在使用大模型生成摘要...",
             "status": "running",
             "timestamp": _now(),
         })
