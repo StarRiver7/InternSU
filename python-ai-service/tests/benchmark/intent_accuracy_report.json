@@ -1,0 +1,27 @@
+{
+  "timestamp": "2026-06-16 00:25:48",
+  "intent_accuracy": 0.98,
+  "clarify_success_rate": 1.0,
+  "tool_breakdown": {
+    "chat": {
+      "accuracy": 1.0,
+      "correct": 15,
+      "total": 15
+    },
+    "rag": {
+      "accuracy": 1.0,
+      "correct": 20,
+      "total": 20
+    },
+    "sql": {
+      "accuracy": 0.9,
+      "correct": 9,
+      "total": 10
+    },
+    "clarify": {
+      "accuracy": 1.0,
+      "correct": 5,
+      "total": 5
+    }
+  }
+}

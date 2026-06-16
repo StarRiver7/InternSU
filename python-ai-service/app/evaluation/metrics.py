@@ -1,13 +1,43 @@
-"""Ragas 核心指标自定义实现 — 基于 LLM Judge 的 RAG 评估指标。
+"""Ragas 核心指标自定义实现 —— 基于 LLM Judge 的 RAG 评估指标体系。
 
-指标说明:
-1. Faithfulness (忠实度): 回答是否基于检索上下文，有无幻觉
-2. Answer Relevancy (回答相关性): 回答是否真正回答了用户的问题
-3. Context Precision (上下文精确率): 检索结果中相关文档的比例
-4. Context Recall (上下文召回率): 检索是否覆盖了所有必要信息
-5. Answer Correctness (回答正确性): 与标准答案的一致程度
+【架构定位】
+该模块是 Ragas 评估框架的核心指标层，自定义实现了 5 个 Ragas 标准指标，
+通过 InternSU LLM Gateway 调用 DeepSeek V3 作为 LLM-as-Judge 进行评分。
 
-每个指标通过 LLM 进行评判，返回 0-1 的分数。
+【指标体系】
+
+  1. Faithfulness (忠实度):
+     回答是否基于检索到的上下文，有无幻觉（编造内容）
+     评估逻辑：将回答中的每个声明与上下文逐一比对
+
+  2. Answer Relevancy (回答相关性):
+     回答是否真正回答了用户的问题
+     评估逻辑：检查回答与问题的语义匹配度
+
+  3. Context Precision (上下文精确率):
+     检索到的上下文中，有多少是与问题相关的
+     评估逻辑：检查每个检索片段与问题的相关性
+
+  4. Context Recall (上下文召回率):
+     检索是否覆盖了回答问题所需的所有信息（需 ground_truth）
+     评估逻辑：将 ground_truth 中的信息点与上下文逐一比对
+
+  5. Answer Correctness (回答正确性):
+     回答与标准答案的一致程度（需 ground_truth）
+     评估逻辑：将回答与 ground_truth 进行语义和事实比对
+
+【评分机制】
+每个指标通过精心设计的 Prompt 要求 LLM 返回 0-1 的数字分数，
+评分标准分为 6 个等级（0.0/0.2/0.4/0.6/0.8/1.0），
+低温度参数（temperature=0.1）保证评分的稳定性和可重复性。
+
+【使用方式】
+    from app.evaluation.metrics import evaluate_sample
+    result = await evaluate_sample(
+        query="校训是什么",
+        contexts=["校训: 博学笃行厚德创新"],
+        answer="校训是博学笃行厚德创新",
+    )
 """
 
 import asyncio
@@ -19,7 +49,9 @@ from app.core.logger import get_logger
 
 logger = get_logger(__name__)
 
-# ── 指标评分 Prompt 模板 ──────────────────────────────────────────
+
+# ── 指标评分 Prompt 模板 ─────────────────────────────────────────────
+# 每个 Prompt 定义了 6 级评分标准，要求 LLM 仅返回数字分数
 
 FAITHFULNESS_PROMPT = """你是一个严格的事实核查专家。请评估以下回答是否忠实于给定的上下文。
 
@@ -118,10 +150,17 @@ ANSWER_CORRECTNESS_PROMPT = """你是一个答案正确性评估专家。请评�
 请只返回一个 0-1 之间的数字分数，不要解释。"""
 
 
+# ── 数据结构定义 ────────────────────────────────────────────────────
+
 @dataclass
 class MetricResult:
-    """单个指标的评估结果。"""
+    """单个指标的评估结果。
 
+    Attributes:
+        name: 指标名称（如 faithfulness, answer_relevancy）
+        score: 评估分数 [0, 1]
+        details: LLM 返回的原始评估文本（用于调试）
+    """
     name: str
     score: float
     details: str = ""
@@ -129,18 +168,27 @@ class MetricResult:
 
 @dataclass
 class SampleEvaluation:
-    """单条样本的完整评估结果。"""
+    """单条样本的完整评估结果。
 
+    包含所有指标的评分，支持按指标名查询分数和计算平均分。
+
+    Attributes:
+        query: 用户原始问题
+        answer: LLM 生成的回答
+        metrics: 各指标的评估结果列表
+    """
     query: str
     answer: str
     metrics: list[MetricResult] = field(default_factory=list)
 
     @property
     def scores(self) -> dict[str, float]:
+        """返回 {指标名: 分数} 的字典。"""
         return {m.name: m.score for m in self.metrics}
 
     @property
     def average_score(self) -> float:
+        """计算所有指标的平均分。"""
         if not self.metrics:
             return 0.0
         return sum(m.score for m in self.metrics) / len(self.metrics)
@@ -148,19 +196,25 @@ class SampleEvaluation:
 
 @dataclass
 class EvaluationResult:
-    """批量评估的完整结果。"""
+    """批量评估的完整结果。
 
+    支持按指标名计算各指标的平均分和总平均分。
+
+    Attributes:
+        samples: 所有样本的评估结果列表
+    """
     samples: list[SampleEvaluation] = field(default_factory=list)
 
     @property
     def metric_names(self) -> list[str]:
+        """返回所有指标名称列表。"""
         if not self.samples:
             return []
         return list(self.samples[0].scores.keys())
 
     @property
     def average_scores(self) -> dict[str, float]:
-        """各指标的平均分。"""
+        """计算各指标在所有样本上的平均分。"""
         if not self.samples:
             return {}
         names = self.metric_names
@@ -171,15 +225,29 @@ class EvaluationResult:
 
     @property
     def overall_average(self) -> float:
-        """所有指标的总平均分。"""
+        """计算所有指标、所有样本的总平均分。"""
         avgs = self.average_scores
         if not avgs:
             return 0.0
         return sum(avgs.values()) / len(avgs)
 
 
+# ── 分数解析工具 ────────────────────────────────────────────────────
+
 def _parse_score(text: str) -> float:
-    """从 LLM 返回的文本中解析分数。"""
+    """从 LLM 返回的文本中解析 0-1 的数字分数。
+
+    支持三种格式：
+    1. 纯数字（如 "0.85"）
+    2. 嵌入文本的数字（如 "分数是 0.75 分"）
+    3. 无法解析时返回 0.0
+
+    Args:
+        text: LLM 返回的评估文本
+
+    Returns:
+        解析后的分数 [0, 1]
+    """
     text = text.strip()
 
     # 尝试直接解析为浮点数
@@ -203,6 +271,8 @@ def _parse_score(text: str) -> float:
     return 0.0
 
 
+# ── 指标评估函数 ────────────────────────────────────────────────────
+
 async def evaluate_faithfulness(
     question: str,
     answer: str,
@@ -211,10 +281,11 @@ async def evaluate_faithfulness(
 ) -> MetricResult:
     """评估回答忠实度（Faithfulness）。
 
-    检查回答是否基于检索到的上下文，有无幻觉。
+    检查回答中的每个声明是否在检索上下文中有依据，
+    用于检测 LLM 幻觉（编造内容）。
 
     Args:
-        question: 用户问题
+        question: 用户原始问题
         answer: LLM 生成的回答
         contexts: 检索到的文档片段列表
         model: 使用的 LLM 模型
@@ -242,10 +313,10 @@ async def evaluate_answer_relevancy(
 ) -> MetricResult:
     """评估回答相关性（Answer Relevancy）。
 
-    检查回答是否真正回答了用户的问题。
+    检查回答是否真正回答了用户的问题，而非答非所问。
 
     Args:
-        question: 用户问题
+        question: 用户原始问题
         answer: LLM 生成的回答
         model: 使用的 LLM 模型
 
@@ -270,10 +341,11 @@ async def evaluate_context_precision(
 ) -> MetricResult:
     """评估上下文精确率（Context Precision）。
 
-    检查检索到的上下文中，有多少是与问题相关的。
+    检查检索到的上下文中，有多少是与问题相关的，
+    用于评估检索系统的精确率。
 
     Args:
-        question: 用户问题
+        question: 用户原始问题
         contexts: 检索到的文档片段列表
         model: 使用的 LLM 模型
 
@@ -301,10 +373,10 @@ async def evaluate_context_recall(
     """评估上下文召回率（Context Recall）。
 
     检查检索是否覆盖了回答问题所需的所有信息。
-    需要 ground_truth 才能计算。
+    需要 ground_truth（标准答案）才能计算。
 
     Args:
-        question: 用户问题
+        question: 用户原始问题
         ground_truth: 标准答案
         contexts: 检索到的文档片段列表
         model: 使用的 LLM 模型
@@ -340,7 +412,7 @@ async def evaluate_answer_correctness(
     需要 ground_truth 才能计算。
 
     Args:
-        question: 用户问题
+        question: 用户原始问题
         answer: LLM 生成的回答
         ground_truth: 标准答案
         model: 使用的 LLM 模型
@@ -363,6 +435,8 @@ async def evaluate_answer_correctness(
     )
 
 
+# ── 样本级评估编排 ──────────────────────────────────────────────────
+
 async def evaluate_sample(
     query: str,
     contexts: list[str],
@@ -373,8 +447,11 @@ async def evaluate_sample(
 ) -> SampleEvaluation:
     """评估单条样本的所有指标。
 
+    并发执行不需要 ground_truth 的 3 个指标，
+    如果有 ground_truth 则额外执行 2 个指标。
+
     Args:
-        query: 用户问题
+        query: 用户原始问题
         contexts: 检索到的文档片段列表
         answer: LLM 生成的回答
         ground_truth: 标准答案（可选）
@@ -384,7 +461,7 @@ async def evaluate_sample(
     Returns:
         SampleEvaluation 包含所有指标的评估结果
     """
-    # 并发执行不需要 ground_truth 的指标
+    # 并发执行不需要 ground_truth 的核心指标
     tasks = [
         evaluate_faithfulness(query, answer, contexts, model),
         evaluate_answer_relevancy(query, answer, model),
@@ -414,13 +491,18 @@ async def evaluate_sample(
     )
 
 
+# ── 批量评估编排 ────────────────────────────────────────────────────
+
 async def evaluate_batch(
     samples: list[dict],
     include_ground_truth: bool = False,
     model: str = "deepseek-chat",
     max_concurrency: int = 3,
 ) -> EvaluationResult:
-    """批量评估多个样本。
+    """批量评估多个样本，支持并发控制。
+
+    使用 asyncio.Semaphore 控制并发数，避免 LLM API 过载。
+    每个样本独立评估，失败的样本不会影响其他样本。
 
     Args:
         samples: 样本列表，每个元素为 dict:
@@ -430,7 +512,7 @@ async def evaluate_batch(
             - ground_truth: 标准答案（可选）
         include_ground_truth: 是否计算需要 ground_truth 的指标
         model: 使用的 LLM 模型
-        max_concurrency: 最大并发数
+        max_concurrency: 最大并发评估数
 
     Returns:
         EvaluationResult 包含所有样本的评估结果

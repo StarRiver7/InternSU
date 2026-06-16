@@ -1,0 +1,837 @@
+{
+  "scores": {
+    "faithfulness": 0.9921568627450981,
+    "answer_relevancy": 0.9098039215686274,
+    "context_precision": 0.8745098039215686,
+    "context_recall": 0.9960784313725489,
+    "answer_correctness": 0.988235294117647
+  },
+  "sample_scores": [
+    {
+      "query": "知本中学的校训是什么？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学校是哪一年建校的？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学校的办学理念是什么？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学校地址在哪里？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学校的联系电话是多少？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "校风包括哪四个方面？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "教风是什么？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学风包括哪些内容？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学生行为准则一共有多少条？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.2,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学生行为准则中关于学习的要求是什么？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.2,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "上学期间着装有什么要求？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "男生的发型有什么规定？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.4,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "课前需要提前多久进入教室？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "上课时能不能随意讲话走动？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "课间能不能在走廊奔跑？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "课间能不能追逐打闹？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学校的作息时间是怎样的？上午几点上课？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "晚自习几点到几点？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "作业有什么要求？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "考试时需要提前多久进入考场？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "考试时能带手机进考场吗？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.8,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "到校时间最晚是几点？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "早读时间是几点？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "几点放学？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "请病假需要什么证明？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.4,
+      "context_precision": 0.8,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "请事假需要怎么做？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "迟到或早退累计几次视为旷课一节？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "无故旷课累计几次会受到警告处分？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "考勤记录由谁负责？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "考勤记录多久汇报一次？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学校有哪些优秀学生荣誉称号？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "奖励方式有哪些？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "处分等级从轻到重是怎么排列的？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "考试作弊会受到什么处分？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.6,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "打架斗殴会受到什么处分？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.2,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "偷窃财物会怎么处理？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.4,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "迟到早退怎么处理？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.4,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "不完成作业会怎么处理？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "能不能带管制刀具到学校？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "上下楼梯应该怎么走？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.8,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "能爬窗户和栏杆吗？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "过马路应该走哪里？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "能闯红灯吗？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "几岁以下不能骑车上路？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "饭前应该做什么？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.8,
+      "context_recall": 1.0,
+      "answer_correctness": 0.6
+    },
+    {
+      "query": "能不能买三无食品？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "能不能玩火？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.8,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "火灾时应该怎么做？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.4,
+      "context_precision": 0.8,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "火警电话是多少？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "匪警电话是多少？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "急救电话是多少？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "交通事故报警电话是多少？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "教务处的电话是多少？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学生处的电话号码是什么？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "心理咨询室的电话是多少？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "医务室的电话是多少？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "心理咨询室什么时候开放？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学校有哪些社团？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "暑假从什么时候开始到什么时候结束？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "寒假从几号到几号？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "国庆节放几天假？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "春节放几天假？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "元旦放几天假？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "第一节课几点开始？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "大课间/早操是什么时候？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "午休时间是几点到几点？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "最后一节课几点结束？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.2,
+      "context_recall": 0.6,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学校网址是什么？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "总务处电话是多少？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学校要求学生穿什么到校？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "能不能化妆去学校？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.2,
+      "context_recall": 1.0,
+      "answer_correctness": 0.6
+    },
+    {
+      "query": "作业抄袭会怎么处理？",
+      "faithfulness": 0.2,
+      "answer_relevancy": 0.6,
+      "context_precision": 0.2,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "教室卫生由谁负责？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.2,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "课间能不能在楼梯上奔跑？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学生行为准则中关于与同学相处的要求是什么？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.4,
+      "context_precision": 0.2,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "关于用水用电有什么要求？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.2,
+      "context_precision": 0.2,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学校对学生学习方法有什么建议？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学生可以参加哪些类型的活动？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.8,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学校对学生穿着打扮有什么具体禁止事项？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "遇到烦恼可以找谁倾诉？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学校医务室什么时候开放？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.4,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学生需要定期做什么健康检查？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.4,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "考试时能不能带资料？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 0.6
+    },
+    {
+      "query": "交卷后能不能在考场逗留？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.2,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "请假条需要写哪些信息？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学生手册是谁发布的？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.2,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "这个学生手册适用于哪个学期？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "消防安全方面要求学生会做什么？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.4,
+      "context_precision": 0.2,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "能不能私拉电线？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.2,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学生需要熟悉什么消防设施？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.2,
+      "context_precision": 0.2,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学校要求学生做到哪四方面的发展？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学习标兵属于什么类型的荣誉？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学生行为准则中关于尊敬师长的要求是什么？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.4,
+      "context_precision": 0.2,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "勤俭节约是学生行为准则中的第几条？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "能不能在走廊里跑？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "学生行为准则中关于爱护环境的要求体现在哪些方面？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.8,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "第二节课几点下课？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "第六节课几点开始？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "清明节放几天假？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "端午节放几天假？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "中秋节放几天假？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    },
+    {
+      "query": "劳动节放几天假？",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "answer_correctness": 1.0
+    }
+  ],
+  "summary": "============================================================\nRAG 评估报告 (Ragas 指标体系)\n============================================================\n样本数量: 102\n评估耗时: 40.2s\n评估指标: faithfulness, answer_relevancy, context_precision, context_recall, answer_correctness\n------------------------------------------------------------\n  faithfulness              0.9922  ★★★ 优秀\n  answer_relevancy          0.9098  ★★★ 优秀\n  context_precision         0.8745  ★★★ 优秀\n  context_recall            0.9961  ★★★ 优秀\n  answer_correctness        0.9882  ★★★ 优秀\n------------------------------------------------------------\n  综合评分                      0.9522\n  结论: RAG 系统表现优秀，检索和生成质量均达到高水平\n============================================================\n每条样本详细分数:\n------------------------------------------------------------\n  [1] 知本中学的校训是什么？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [2] 学校是哪一年建校的？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [3] 学校的办学理念是什么？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [4] 学校地址在哪里？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [5] 学校的联系电话是多少？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [6] 校风包括哪四个方面？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [7] 教风是什么？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [8] 学风包括哪些内容？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [9] 学生行为准则一共有多少条？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=0.20, context_recall=1.00, answer_correctness=1.00\n  [10] 学生行为准则中关于学习的要求是什么？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=0.20, context_recall=1.00, answer_correctness=1.00\n  [11] 上学期间着装有什么要求？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [12] 男生的发型有什么规定？...\n      faithfulness=1.00, answer_relevancy=0.40, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [13] 课前需要提前多久进入教室？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [14] 上课时能不能随意讲话走动？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [15] 课间能不能在走廊奔跑？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [16] 课间能不能追逐打闹？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [17] 学校的作息时间是怎样的？上午几点上课？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [18] 晚自习几点到几点？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [19] 作业有什么要求？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [20] 考试时需要提前多久进入考场？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [21] 考试时能带手机进考场吗？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=0.80, context_recall=1.00, answer_correctness=1.00\n  [22] 到校时间最晚是几点？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [23] 早读时间是几点？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [24] 几点放学？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [25] 请病假需要什么证明？...\n      faithfulness=1.00, answer_relevancy=0.40, context_precision=0.80, context_recall=1.00, answer_correctness=1.00\n  [26] 请事假需要怎么做？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [27] 迟到或早退累计几次视为旷课一节？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [28] 无故旷课累计几次会受到警告处分？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [29] 考勤记录由谁负责？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [30] 考勤记录多久汇报一次？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [31] 学校有哪些优秀学生荣誉称号？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [32] 奖励方式有哪些？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [33] 处分等级从轻到重是怎么排列的？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [34] 考试作弊会受到什么处分？...\n      faithfulness=1.00, answer_relevancy=0.60, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [35] 打架斗殴会受到什么处分？...\n      faithfulness=1.00, answer_relevancy=0.20, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [36] 偷窃财物会怎么处理？...\n      faithfulness=1.00, answer_relevancy=0.40, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [37] 迟到早退怎么处理？...\n      faithfulness=1.00, answer_relevancy=0.40, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [38] 不完成作业会怎么处理？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [39] 能不能带管制刀具到学校？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [40] 上下楼梯应该怎么走？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=0.80, context_recall=1.00, answer_correctness=1.00\n  [41] 能爬窗户和栏杆吗？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [42] 过马路应该走哪里？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [43] 能闯红灯吗？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [44] 几岁以下不能骑车上路？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [45] 饭前应该做什么？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=0.80, context_recall=1.00, answer_correctness=0.60\n  [46] 能不能买三无食品？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [47] 能不能玩火？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=0.80, context_recall=1.00, answer_correctness=1.00\n  [48] 火灾时应该怎么做？...\n      faithfulness=1.00, answer_relevancy=0.40, context_precision=0.80, context_recall=1.00, answer_correctness=1.00\n  [49] 火警电话是多少？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [50] 匪警电话是多少？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [51] 急救电话是多少？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [52] 交通事故报警电话是多少？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [53] 教务处的电话是多少？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [54] 学生处的电话号码是什么？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [55] 心理咨询室的电话是多少？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [56] 医务室的电话是多少？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [57] 心理咨询室什么时候开放？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [58] 学校有哪些社团？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [59] 暑假从什么时候开始到什么时候结束？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [60] 寒假从几号到几号？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [61] 国庆节放几天假？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [62] 春节放几天假？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [63] 元旦放几天假？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [64] 第一节课几点开始？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [65] 大课间/早操是什么时候？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [66] 午休时间是几点到几点？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [67] 最后一节课几点结束？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=0.20, context_recall=0.60, answer_correctness=1.00\n  [68] 学校网址是什么？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [69] 总务处电话是多少？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [70] 学校要求学生穿什么到校？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [71] 能不能化妆去学校？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=0.20, context_recall=1.00, answer_correctness=0.60\n  [72] 作业抄袭会怎么处理？...\n      faithfulness=0.20, answer_relevancy=0.60, context_precision=0.20, context_recall=1.00, answer_correctness=1.00\n  [73] 教室卫生由谁负责？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=0.20, context_recall=1.00, answer_correctness=1.00\n  [74] 课间能不能在楼梯上奔跑？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [75] 学生行为准则中关于与同学相处的要求是什么？...\n      faithfulness=1.00, answer_relevancy=0.40, context_precision=0.20, context_recall=1.00, answer_correctness=1.00\n  [76] 关于用水用电有什么要求？...\n      faithfulness=1.00, answer_relevancy=0.20, context_precision=0.20, context_recall=1.00, answer_correctness=1.00\n  [77] 学校对学生学习方法有什么建议？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [78] 学生可以参加哪些类型的活动？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=0.80, context_recall=1.00, answer_correctness=1.00\n  [79] 学校对学生穿着打扮有什么具体禁止事项？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [80] 遇到烦恼可以找谁倾诉？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [81] 学校医务室什么时候开放？...\n      faithfulness=1.00, answer_relevancy=0.40, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [82] 学生需要定期做什么健康检查？...\n      faithfulness=1.00, answer_relevancy=0.40, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [83] 考试时能不能带资料？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=0.60\n  [84] 交卷后能不能在考场逗留？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=0.20, context_recall=1.00, answer_correctness=1.00\n  [85] 请假条需要写哪些信息？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [86] 学生手册是谁发布的？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=0.20, context_recall=1.00, answer_correctness=1.00\n  [87] 这个学生手册适用于哪个学期？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [88] 消防安全方面要求学生会做什么？...\n      faithfulness=1.00, answer_relevancy=0.40, context_precision=0.20, context_recall=1.00, answer_correctness=1.00\n  [89] 能不能私拉电线？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=0.20, context_recall=1.00, answer_correctness=1.00\n  [90] 学生需要熟悉什么消防设施？...\n      faithfulness=1.00, answer_relevancy=0.20, context_precision=0.20, context_recall=1.00, answer_correctness=1.00\n  [91] 学校要求学生做到哪四方面的发展？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [92] 学习标兵属于什么类型的荣誉？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [93] 学生行为准则中关于尊敬师长的要求是什么？...\n      faithfulness=1.00, answer_relevancy=0.40, context_precision=0.20, context_recall=1.00, answer_correctness=1.00\n  [94] 勤俭节约是学生行为准则中的第几条？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [95] 能不能在走廊里跑？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [96] 学生行为准则中关于爱护环境的要求体现在哪些方面？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=0.80, context_recall=1.00, answer_correctness=1.00\n  [97] 第二节课几点下课？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [98] 第六节课几点开始？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [99] 清明节放几天假？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [100] 端午节放几天假？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [101] 中秋节放几天假？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n  [102] 劳动节放几天假？...\n      faithfulness=1.00, answer_relevancy=1.00, context_precision=1.00, context_recall=1.00, answer_correctness=1.00\n============================================================",
+  "elapsed_seconds": 40.164339780807495,
+  "metric_names": [
+    "faithfulness",
+    "answer_relevancy",
+    "context_precision",
+    "context_recall",
+    "answer_correctness"
+  ],
+  "sample_count": 102
+}

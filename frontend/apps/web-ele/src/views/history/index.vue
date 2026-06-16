@@ -1,3 +1,27 @@
+<!--
+  AI 对话历史会话页面 — 三栏布局的主交互界面
+
+  【核心职责】
+  该组件是 InternSU 前端的核心页面，提供完整的 AI 对话体验：
+  - 左侧：历史会话列表（按时间分组，支持搜索和删除）
+  - 中间：消息对话区（支持 SSE 流式显示、Markdown 渲染）
+  - 右侧：Trace 执行步骤面板（实时展示 AI 工作过程）
+
+  【数据流】
+  1. onMounted → 并行加载会话列表 + 知识库列表
+  2. 如果 URL 携带 sessionId 参数 → 自动消费 pendingQuestion 并发送
+  3. 用户输入 → prepareMessages() → sendChatMessage() → SSE 流
+  4. SSE 事件 → onEvent 回调 → 更新 currentTraces / currentMessages
+
+  【SSE 流式接收原理】
+  后端通过 POST /api/ai/chat 返回 SSE 事件流，前端通过 EventSource 或 fetch+ReadableStream
+  逐行解析 "event: xxx\ndata: {json}\n\n" 格式的事件。
+  每个 token 事件触发 AI 消息的 content 实时更新，实现"打字机"效果。
+
+  【知识库选择器】
+  左下角的知识库选择器允许用户指定检索范围，
+  选中的 space_ids 会自动传入 ChatStore.sendChatMessage() 的请求参数。
+-->
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted } from "vue";
 import { useRoute } from "vue-router";
@@ -18,14 +42,16 @@ import {
   Check,
 } from "lucide-vue-next";
 import NavBar from "#/components/NavBar.vue";
-import { useChatStore, useKnowledgeStore, type UIMessage } from "#/store";
+import { useChatStore, useKnowledgeStore } from "#/store";
 import { useUserStore } from "@vben/stores";
 
+// ── 路由与 Store 实例 ──────────────────────────────────────────
 const route = useRoute();
 const chatStore = useChatStore();
 const userStore = useUserStore();
 const knowledgeStore = useKnowledgeStore();
 
+/** 导航栏配置 */
 const navItems = [
   { name: "首页", url: "/home" },
   { name: "新聊天", url: "/chat" },
@@ -33,14 +59,26 @@ const navItems = [
   { name: "知识库", url: "/knowledge" },
 ];
 
-/** 侧边栏列表项 — 直接用 conversation_id 作为唯一标识 */
+// ── 侧边栏历史会话 ─────────────────────────────────────────────
+
+/** 侧边栏列表项数据结构 */
 interface HistoryItem {
+  /** 后端会话 ID */
   conversationId: string;
+  /** 会话标题（由 AI 自动生成或用户手动命名） */
   title: string;
+  /** 格式化后的相对时间文本 */
   time: string;
+  /** 原始时间戳（用于排序和分组） */
   timestamp: number;
 }
 
+/**
+ * 将 ISO 时间字符串格式化为中文相对时间
+ *
+ * @param isoString - ISO 8601 格式的时间字符串
+ * @returns 格式化后的中文时间文本（如"今天 14:30"、"昨天 09:15"、"3天前"）
+ */
 function formatRelativeTime(isoString: string): string {
   const date = new Date(isoString);
   const now = new Date();
@@ -54,7 +92,7 @@ function formatRelativeTime(isoString: string): string {
   return date.toLocaleDateString("zh-CN");
 }
 
-/** 会话列表 */
+/** 会话列表（从 ChatStore 转换为前端展示格式） */
 const historyList = computed<HistoryItem[]>(() => {
   return chatStore.conversations.map((conv) => ({
     conversationId: conv.conversation_id,
@@ -64,28 +102,49 @@ const historyList = computed<HistoryItem[]>(() => {
   }));
 });
 
+/** 当前选中的会话 ID */
 const selectedConversationId = ref<string>("");
+/** 输入框文本 */
 const inputText = ref("");
+/** textarea DOM 引用（用于动态调整高度） */
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 
+/** textarea 最小高度（px） */
 const MIN_HEIGHT = 56;
+/** textarea 最大高度（px） */
 const MAX_HEIGHT = 200;
 
-/** 当前选中会话 */
+/** 当前选中的会话对象 */
 const selectedHistory = computed(() => {
   if (!selectedConversationId.value) return null;
   return historyList.value.find((item) => item.conversationId === selectedConversationId.value) ?? null;
 });
 
+/**
+ * 动态调整 textarea 高度
+ *
+ * 根据内容自动伸缩高度，限制在 MIN_HEIGHT ~ MAX_HEIGHT 之间。
+ * reset=true 时强制重置为最小高度（发送消息后调用）。
+ *
+ * @param reset - 是否重置为最小高度
+ */
 function adjustHeight(reset = false) {
   const ta = textareaRef.value;
   if (!ta) return;
-  if (reset) { ta.style.height = `${MIN_HEIGHT}px`; return; }
+  if (reset) {
+    ta.style.height = `${MIN_HEIGHT}px`;
+    return;
+  }
   ta.style.height = `${MIN_HEIGHT}px`;
   const newHeight = Math.max(MIN_HEIGHT, Math.min(ta.scrollHeight, MAX_HEIGHT));
   ta.style.height = `${newHeight}px`;
 }
 
+/**
+ * 滚动消息容器到底部
+ *
+ * 使用 querySelector 获取 DOM 元素（而非 ref），因为消息容器是动态渲染的。
+ */
 function scrollToBottom() {
   nextTick(() => {
     const container = document.querySelector(".messages-container");
@@ -93,11 +152,14 @@ function scrollToBottom() {
   });
 }
 
-// ========== 知识库选择器 ==========
+// ══════════════════════════════════════════════════════════════
+// 知识库选择器
+// ══════════════════════════════════════════════════════════════
 
+/** 知识库选择器 Popover 的显示状态 */
 const showSpaceSelector = ref(false);
 
-/** 触发选择器按钮的文本 */
+/** 触发选择器按钮的文本（根据选中数量动态显示） */
 const spaceSelectorLabel = computed(() => {
   const count = knowledgeStore.selectedCount;
   if (count === 0) return "选择知识库";
@@ -107,9 +169,14 @@ const spaceSelectorLabel = computed(() => {
   return `已选 ${count} 个知识库`;
 });
 
-/** 关闭选择器（点击外部时触发） */
+/**
+ * 关闭知识库选择器（点击外部时触发）
+ *
+ * 使用延迟关闭 + DOM 事件检查，避免 checkbox 的 click 事件先触发导致无法选中。
+ *
+ * @param e - 点击事件（可选，用于检查点击目标是否在 Popover 内部）
+ */
 function closeSpaceSelector(e?: MouseEvent) {
-  // 延迟关闭，让 checkbox 的 click 先触发
   if (e) {
     const target = e.target as HTMLElement;
     if (target.closest(".space-selector-popover")) return;
@@ -119,12 +186,23 @@ function closeSpaceSelector(e?: MouseEvent) {
   }, 150);
 }
 
+// ══════════════════════════════════════════════════════════════
+// 消息发送
+// ══════════════════════════════════════════════════════════════
+
 /**
- * 发送消息 — 调用 POST /api/ai/chat (SSE)
- * 1. 准备用户消息 + AI 占位消息 → prepareMessages
- * 2. 调用 sendChatMessage（内部处理 SSE 流，自动携带 space_ids）
- * 3. trace 步骤自动写入 chatStore.currentTraces
- * 4. 最终回答自动回填到 AI 消息
+ * 发送消息 — 调用 POST /api/ai/chat (SSE 流式)
+ *
+ * 核心流程：
+ * 1. 校验输入和用户身份
+ * 2. chatStore.prepareMessages() 创建用户消息 + AI 占位消息
+ * 3. chatStore.sendChatMessage() 发起 SSE 流式请求
+ * 4. SSE 事件通过 onEvent 回调实时更新 currentTraces 和 currentMessages
+ * 5. 最终回答自动回填到 AI 消息的 content
+ *
+ * trace 步骤由 ChatStore 自动处理：
+ * - isTraceStep(event) → 累加到 chatStore.currentTraces
+ * - isFinalAnswer(event) → 回填到 AI 消息
  */
 async function handleSendMessage() {
   const text = inputText.value.trim();
@@ -133,7 +211,7 @@ async function handleSendMessage() {
   // 获取当前用户 ID
   const userId = userStore.userInfo?.userId;
   if (!userId) {
-    // 尝试从 authStore 刷新
+    // 尝试从 authStore 刷新用户信息
     const { useAuthStore } = await import("#/store");
     const authStore = useAuthStore();
     const userInfo = await authStore.fetchUserInfo();
@@ -146,13 +224,13 @@ async function handleSendMessage() {
   const effectiveUserId = userStore.userInfo?.userId ?? userId ?? "";
   if (!effectiveUserId) return;
 
-  // 准备消息（用户消息 + AI 占位）
+  // 准备消息（用户消息 + AI 占位），清空输入框
   chatStore.prepareMessages(text);
   inputText.value = "";
   nextTick(() => adjustHeight(true));
   scrollToBottom();
 
-  // 发送 — SSE 流会自动处理 trace 和最终回答，space_ids 由 ChatStore 从 KnowledgeStore 自动读取
+  // 发起 SSE 流式请求（space_ids 由 ChatStore 从 KnowledgeStore 自动读取）
   try {
     await chatStore.sendChatMessage(text, effectiveUserId);
   } catch {
@@ -161,6 +239,11 @@ async function handleSendMessage() {
   scrollToBottom();
 }
 
+/**
+ * 处理键盘事件 — Enter 发送，Shift+Enter 换行
+ *
+ * @param e - 键盘事件对象
+ */
 function handleKeydown(e: KeyboardEvent) {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
@@ -168,6 +251,16 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
+// ══════════════════════════════════════════════════════════════
+// 历史会话分组
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * 根据时间差将会话分组
+ *
+ * @param item - 会话列表项
+ * @returns 分组名称："最近" / "7天内" / "30天内" / "更早"
+ */
 function getTimeGroup(item: HistoryItem): string {
   const now = Date.now();
   const diff = now - item.timestamp;
@@ -178,6 +271,7 @@ function getTimeGroup(item: HistoryItem): string {
   return "更早";
 }
 
+/** 按时间分组的会话列表（保持固定顺序：最近 → 7天内 → 30天内 → 更早） */
 const groupedHistory = computed(() => {
   const groups = new Map<string, HistoryItem[]>();
   const order = ["最近", "7天内", "30天内", "更早"];
@@ -187,62 +281,95 @@ const groupedHistory = computed(() => {
     groups.get(group)!.push(item);
   });
   const sorted = new Map<string, HistoryItem[]>();
-  order.forEach((key) => { if (groups.has(key)) sorted.set(key, groups.get(key)!); });
+  order.forEach((key) => {
+    if (groups.has(key)) sorted.set(key, groups.get(key)!);
+  });
   return sorted;
 });
 
+// ══════════════════════════════════════════════════════════════
+// 会话操作
+// ══════════════════════════════════════════════════════════════
+
 /**
  * 点击左侧历史会话 → 加载该会话的消息并清空 trace
+ *
+ * @param conversationId - 要加载的会话 ID
  */
 async function handleSelectHistory(conversationId: string) {
   selectedConversationId.value = conversationId;
-  // 切换会话时清空 trace（fetchMessages 内部已处理）
+  // fetchMessages 内部会清空旧 trace
   await chatStore.fetchMessages(conversationId);
   nextTick(() => scrollToBottom());
 }
 
+/**
+ * 删除会话（前端侧移除选中状态）
+ *
+ * 注意：实际的后端删除尚未实现，此处仅处理前端状态。
+ *
+ * @param conversationId - 要删除的会话 ID
+ */
 function handleDelete(conversationId: string) {
   if (selectedConversationId.value === conversationId) {
     selectedConversationId.value = "";
   }
 }
 
-// ========== Trace panel helpers ==========
+// ══════════════════════════════════════════════════════════════
+// Trace 面板辅助
+// ══════════════════════════════════════════════════════════════
 
-/** 当前 trace 列表（来自 store） */
+/** 当前 trace 列表（来自 ChatStore） */
 const traces = computed(() => chatStore.currentTraces);
 
-/** 是否正在流式接收 */
+/** 是否正在流式接收 SSE 事件 */
 const isStreaming = computed(() => chatStore.isStreaming);
 
 /** 展开/折叠 detail 的步骤索引集合 */
 const expandedTraces = ref<Set<number>>(new Set());
 
+/**
+ * 切换 trace 步骤的详情展开/折叠状态
+ *
+ * Set 不是响应式的，需要创建新 Set 触发 Vue 的响应式更新。
+ *
+ * @param index - 步骤索引
+ */
 function toggleTraceDetail(index: number) {
   if (expandedTraces.value.has(index)) {
     expandedTraces.value.delete(index);
   } else {
     expandedTraces.value.add(index);
   }
-  // 触发响应式更新
+  // 创建新 Set 触发响应式更新
   expandedTraces.value = new Set(expandedTraces.value);
 }
 
-/** 格式化毫秒为可读时长 */
+/**
+ * 格式化毫秒为可读时长
+ *
+ * @param ms - 毫秒数
+ * @returns 格式化后的字符串（如"150ms"、"1.2s"）
+ */
 function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
-// ========== 页面挂载 ==========
+// ══════════════════════════════════════════════════════════════
+// 页面生命周期
+// ══════════════════════════════════════════════════════════════
 
 onMounted(async () => {
-  // 并行加载会话列表和知识库列表
+  // 并行加载会话列表和知识库列表（减少首屏加载时间）
   await Promise.all([
     chatStore.fetchConversations(),
     knowledgeStore.fetchSpaces(),
   ]);
 
+  // 如果 URL 携带 sessionId 参数（从 /chat 页面跳转而来）
+  // 自动消费 pendingQuestion 并发送
   const sid = route.query.sessionId as string | undefined;
   const { question } = chatStore.consumePending();
 
@@ -258,12 +385,13 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* ── 自定义滚动条样式 ── */
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { margin-right: 2px; }
 ::-webkit-scrollbar-thumb { background-color: #d1d5db; border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background-color: #9ca3af; }
 
-/* 知识库选择器自定义滚动条 */
+/* 知识库选择器列表的滚动条 */
 .space-list::-webkit-scrollbar { width: 4px; }
 .space-list::-webkit-scrollbar-thumb { background-color: #d1d5db; border-radius: 2px; }
 </style>
@@ -275,23 +403,26 @@ onMounted(async () => {
     <div class="flex-1 px-4 pb-4 pt-4 overflow-hidden -mt-4">
       <div class="w-full max-w-10xl mx-auto h-full flex gap-4 pt-4">
 
-        <!-- ====== Left: History List ====== -->
+        <!-- ═══ 左侧：历史会话列表 ═══ -->
         <div class="w-80 h-full bg-background/5 border border-border backdrop-blur-lg rounded-2xl shadow-lg p-4 flex flex-col flex-shrink-0">
           <div class="mb-4">
             <h1 class="text-xl text-gray-900 mb-1">历史记录</h1>
             <p class="text-gray-500 text-sm">共 {{ historyList.length }} 条</p>
           </div>
 
+          <!-- 加载中 -->
           <div v-if="chatStore.conversationsLoading" class="flex-1 flex flex-col items-center justify-center py-20">
             <Loader2 :size="32" class="text-teal-500 animate-spin mb-3" />
             <p class="text-gray-400 text-sm">加载中...</p>
           </div>
 
+          <!-- 加载失败 -->
           <div v-else-if="chatStore.conversationsError" class="flex-1 flex flex-col items-center justify-center py-20">
             <AlertCircle :size="32" class="text-red-400 mb-3" />
             <p class="text-gray-500 text-sm text-center px-4">{{ chatStore.conversationsError }}</p>
           </div>
 
+          <!-- 会话列表 -->
           <div v-else class="flex-1 overflow-y-auto space-y-4 pr-2">
             <div v-for="[groupName, items] in groupedHistory" :key="groupName">
               <div class="flex items-center gap-2 mb-2">
@@ -327,6 +458,7 @@ onMounted(async () => {
             </div>
           </div>
 
+          <!-- 空状态 -->
           <div v-if="!chatStore.conversationsLoading && !chatStore.conversationsError && historyList.length === 0"
             class="flex flex-col items-center justify-center py-20">
             <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
@@ -337,42 +469,51 @@ onMounted(async () => {
           </div>
         </div>
 
-        <!-- ====== Center: Messages ====== -->
+        <!-- ═══ 中间：消息对话区 ═══ -->
         <div class="flex-1 h-full flex min-w-0 pt-4 flex-col">
+          <!-- 有选中会话 -->
           <div v-if="selectedHistory" class="flex-1 bg-transparent rounded-2xl p-4 flex flex-col min-h-0">
+            <!-- 会话标题栏 -->
             <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-100">
               <MessageSquare :size="16" class="text-teal-500" />
               <span class="text-sm font-medium text-gray-700 truncate">{{ selectedHistory.title }}</span>
               <span class="text-xs text-gray-400 ml-auto">{{ selectedHistory.conversationId.slice(0, 8) }}...</span>
             </div>
 
+            <!-- 消息加载中 -->
             <div v-if="chatStore.messagesLoading" class="flex-1 flex flex-col items-center justify-center">
               <Loader2 :size="28" class="text-teal-500 animate-spin mb-3" />
               <p class="text-gray-400 text-sm">加载消息中...</p>
             </div>
 
+            <!-- 消息加载失败 -->
             <div v-else-if="chatStore.messagesError" class="flex-1 flex flex-col items-center justify-center">
               <AlertCircle :size="28" class="text-red-400 mb-3" />
               <p class="text-gray-500 text-sm">{{ chatStore.messagesError }}</p>
             </div>
 
+            <!-- 消息列表 -->
             <div v-else class="flex-1 overflow-y-auto space-y-4 messages-container mb-4">
               <div v-for="message in chatStore.currentMessages" :key="message.id"
                 :class="['flex', message.role === 'user' ? 'justify-end' : 'justify-start']">
+                <!-- 用户消息 -->
                 <div v-if="message.role === 'user'"
                   class="bg-[#e9e9e9]/80 text-gray-900 text-base px-4 py-3 rounded-2xl rounded-tr-sm max-w-[80%] break-words"
                   :style="{ minWidth: '80px' }">
                   <p class="whitespace-pre-wrap leading-relaxed">{{ message.content }}</p>
                 </div>
+                <!-- AI 消息 -->
                 <div v-else
                   class="bg-white/80 backdrop-blur-sm text-gray-900 text-base px-4 py-3 rounded-2xl rounded-tl-sm max-w-[80%] break-words">
                   <p v-if="message.content" class="whitespace-pre-wrap leading-relaxed">{{ message.content }}</p>
+                  <!-- 加载占位（content 为空时显示） -->
                   <div v-else class="flex items-center gap-2 text-gray-400">
                     <Loader2 :size="14" class="animate-spin" />
                     <span class="text-xs">正在思考...</span>
                   </div>
                 </div>
               </div>
+              <!-- 空消息状态 -->
               <div v-if="chatStore.currentMessages.length === 0"
                 class="flex flex-col items-center justify-center py-20">
                 <MessageSquare class="text-gray-300" :size="32" />
@@ -380,6 +521,7 @@ onMounted(async () => {
               </div>
             </div>
 
+            <!-- 输入区域 -->
             <div class="flex-shrink-0">
               <div class="relative w-full mx-auto bg-white rounded-2xl border border-gray-200 shadow-sm focus-within:border-teal-500 focus-within:ring-2 focus-within:ring-teal-500/20 transition-all">
                 <textarea ref="textareaRef" v-model="inputText" placeholder="输入消息..."
@@ -409,15 +551,12 @@ onMounted(async () => {
                         v-if="showSpaceSelector"
                         class="space-selector-popover absolute bottom-full left-0 mb-1 w-56 bg-white rounded-xl border border-gray-200 shadow-lg z-50 overflow-hidden"
                       >
-                        <!-- 头部 -->
                         <div class="px-3 py-2 border-b border-gray-100">
                           <p class="text-xs font-medium text-gray-700">选择知识库</p>
                           <p v-if="knowledgeStore.error" class="text-xs text-red-400 mt-0.5">
                             {{ knowledgeStore.error }}
                           </p>
                         </div>
-
-                        <!-- 列表 -->
                         <div class="space-list max-h-48 overflow-y-auto">
                           <div v-if="knowledgeStore.loading" class="px-3 py-4 text-center">
                             <Loader2 :size="14" class="animate-spin text-gray-400 mx-auto" />
@@ -457,8 +596,6 @@ onMounted(async () => {
                             />
                           </label>
                         </div>
-
-                        <!-- 底部操作 -->
                         <div class="px-3 py-2 border-t border-gray-100 flex justify-between items-center">
                           <span class="text-xs text-gray-400">
                             已选 {{ knowledgeStore.selectedCount }}
@@ -497,6 +634,7 @@ onMounted(async () => {
             </div>
           </div>
 
+          <!-- 未选中会话时的空状态 -->
           <div v-else class="flex-1 bg-transparent rounded-2xl flex flex-col items-center justify-center">
             <div class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
               <MessageSquare class="text-gray-400" :size="40" />
@@ -506,7 +644,7 @@ onMounted(async () => {
           </div>
         </div>
 
-        <!-- ====== Right: Trace / Progress Panel ====== -->
+        <!-- ═══ 右侧：Trace 执行步骤面板 ═══ -->
         <div class="w-80 h-100 bg-white/80 border border-gray-200 backdrop-blur-sm rounded-2xl p-4 flex flex-col flex-shrink-0"
           style="box-shadow: 0 1px 2px rgba(0,0,0,0.04)">
           <div class="mb-4">
@@ -538,25 +676,12 @@ onMounted(async () => {
               :key="index"
               class="bg-gray-50 rounded-lg p-3 border border-gray-100 text-xs"
             >
-              <!-- 步骤头部 -->
               <div class="flex items-start gap-2">
                 <!-- 状态图标 -->
                 <div class="flex-shrink-0 mt-0.5">
-                  <Loader2
-                    v-if="trace.status === 'running'"
-                    :size="14"
-                    class="text-blue-500 animate-spin"
-                  />
-                  <CheckCircle2
-                    v-else-if="trace.status === 'completed'"
-                    :size="14"
-                    class="text-green-500"
-                  />
-                  <XCircle
-                    v-else-if="trace.status === 'failed'"
-                    :size="14"
-                    class="text-red-500"
-                  />
+                  <Loader2 v-if="trace.status === 'running'" :size="14" class="text-blue-500 animate-spin" />
+                  <CheckCircle2 v-else-if="trace.status === 'completed'" :size="14" class="text-green-500" />
+                  <XCircle v-else-if="trace.status === 'failed'" :size="14" class="text-red-500" />
                   <Circle v-else :size="14" class="text-gray-300" />
                 </div>
 
@@ -565,41 +690,27 @@ onMounted(async () => {
                   <div class="flex items-center justify-between">
                     <span
                       class="font-medium text-gray-800 truncate"
-                      :class="{
-                        'text-red-600': trace.status === 'failed',
-                      }"
+                      :class="{ 'text-red-600': trace.status === 'failed' }"
                     >
                       {{ trace.step_order ? `${trace.step_order}. ` : "" }}{{ trace.step_name }}
                     </span>
-                    <span
-                      v-if="trace.duration_ms"
-                      class="text-gray-400 flex-shrink-0 ml-2"
-                    >
+                    <span v-if="trace.duration_ms" class="text-gray-400 flex-shrink-0 ml-2">
                       {{ formatDuration(trace.duration_ms) }}
                     </span>
                   </div>
 
                   <!-- 步骤消息 -->
-                  <p
-                    v-if="trace.message"
-                    class="text-gray-600 mt-1 leading-relaxed"
-                  >
+                  <p v-if="trace.message" class="text-gray-600 mt-1 leading-relaxed">
                     {{ trace.message }}
                   </p>
 
-                  <!-- Detail 展开/折叠（仅当有 detail 且非空对象时） -->
-                  <div
-                    v-if="trace.detail && Object.keys(trace.detail).length > 0"
-                    class="mt-2"
-                  >
+                  <!-- Detail 展开/折叠 -->
+                  <div v-if="trace.detail && Object.keys(trace.detail).length > 0" class="mt-2">
                     <button
                       class="flex items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors"
                       @click="toggleTraceDetail(index)"
                     >
-                      <ChevronRight
-                        v-if="!expandedTraces.has(index)"
-                        :size="12"
-                      />
+                      <ChevronRight v-if="!expandedTraces.has(index)" :size="12" />
                       <ChevronDown v-else :size="12" />
                       <span>详情</span>
                     </button>
@@ -607,11 +718,7 @@ onMounted(async () => {
                       v-if="expandedTraces.has(index)"
                       class="mt-1.5 bg-white rounded p-2 border border-gray-100 font-mono text-gray-600 leading-relaxed"
                     >
-                      <div
-                        v-for="(value, key) in trace.detail"
-                        :key="key"
-                        class="flex gap-1"
-                      >
+                      <div v-for="(value, key) in trace.detail" :key="key" class="flex gap-1">
                         <span class="text-gray-400">{{ key }}:</span>
                         <span class="text-gray-700">{{ typeof value === 'object' ? JSON.stringify(value) : value }}</span>
                       </div>
@@ -635,6 +742,7 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+/* 知识库选择器 Popover 的进入/离开动画 */
 .popover-enter-active,
 .popover-leave-active {
   transition: opacity 0.15s ease, transform 0.15s ease;

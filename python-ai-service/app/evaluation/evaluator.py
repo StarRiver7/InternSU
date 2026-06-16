@@ -142,7 +142,8 @@ class RAGEvaluator:
 
         # 生成报告
         report = self._generate_report(result, elapsed)
-        logger.info(f"评估完成: {elapsed:.1f}s, 综合分: {report.overall_average:.4f}")
+        avg = sum(report.scores.values()) / len(report.scores) if report.scores else 0
+        logger.info(f"评估完成: {elapsed:.1f}s, 综合分: {avg:.4f}")
         return report
 
     async def evaluate_from_file(

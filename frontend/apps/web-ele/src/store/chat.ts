@@ -1,27 +1,25 @@
 /**
- * 聊天状态管理 — 跨页面状态 + 历史会话列表 + 当前会话消息 + trace 步骤
+ * 聊天状态管理（Pinia Store）
  *
- * 工作流程：
- * 1. 用户在 /chat 页面输入问题并点击发送
- * 2. 前端生成 sessionId，将问题保存到 pendingQuestion
- * 3. 跳转到 /history?sessionId=xxx
- * 4. 历史页面 onMounted 时读取并自动发送 pendingQuestion
- * 5. 发送完成后清空 pendingQuestion
+ * 【核心职责】
+ * 管理 AI 对话的全部前端状态，包括：
+ * 1. 跨页面消息传递：/chat 页面输入问题 → Pinia 暂存 → /history 页面消费并发送
+ * 2. 历史会话列表：从 Java 后端加载会话列表，按更新时间降序排列
+ * 3. 当前会话消息：加载/显示/追加消息，维护 UIMessage 列表
+ * 4. SSE 流式接收：解析 SSE 事件流，实时更新 trace 步骤和最终回答
  *
- * 历史会话列表：
- * - fetchConversations() 从后端拉取列表
- * - conversations 存储完整列表，按 updated_at 降序排列
+ * 【数据流】
+ *   /chat 页面 → setPending(sessionId, question)
+ *   → 跳转 /history?sessionId=xxx
+ *   → onMounted 消费 pendingQuestion → sendChatMessage()
+ *   → SSE 流 → onEvent 回调 → 更新 currentTraces / currentMessages
  *
- * 点击会话 → 加载消息：
- * - setCurrentConversation(id) 设置当前会话
- * - fetchMessages(id) 加载该会话的全部消息
- * - currentMessages 存储当前显示的消息列表
+ * 【SSE 事件处理】
+ *   isTraceStep(event)  → 累加到 currentTraces（右侧面板实时展示）
+ *   isFinalAnswer(event) → 回填到 AI 消息的 content
  *
- * 发送消息 → SSE 流：
- * - sendChatMessage(message, userId) 调用 POST /api/ai/chat
- * - doc_ids 自动从 KnowledgeStore.selectedSpaceIds 读取
- * - trace 步骤 → 写入 currentTraces，右侧面板实时累加显示
- * - 最终回答 → 写入 currentMessages 中 AI 消息的 content
+ * @see app/sse/chat_stream.py — 后端 SSE 事件格式定义
+ * @see app/api/v1/chat_api.py — 后端 SSE 端点实现
  */
 import { defineStore } from "pinia";
 import { ref } from "vue";
@@ -35,39 +33,82 @@ import {
   type ChatTraceStep,
   type ChatSendRequest,
 } from "#/api";
-import { useUserStore } from "@vben/stores";
 
-/** 前端消息结构（从后端 ApiMessage 转换而来） */
+/**
+ * 前端消息结构
+ *
+ * 从后端 ApiMessage { role, content } 转换而来，
+ * 增加了 id 字段用于 Vue 列表渲染的 key 绑定。
+ */
 export interface UIMessage {
+  /** 消息唯一标识（自增计数器生成） */
   id: number;
+  /** 消息角色：user=用户输入，assistant=AI 回答 */
   role: "user" | "assistant";
+  /** 消息内容文本 */
   content: string;
 }
 
 export const useChatStore = defineStore("chat", () => {
-  // ========== 跨页面消息传递 ==========
+  // ══════════════════════════════════════════════════════════════
+  // 跨页面消息传递
+  // ══════════════════════════════════════════════════════════════
 
+  /** 当前会话的前端 Session ID（用于关联 /chat 和 /history 页面） */
   const sessionId = ref<string>("");
+
+  /** 待发送的用户问题（由 /chat 页面写入，/history 页面消费后清空） */
   const pendingQuestion = ref<string>("");
 
+  /**
+   * 暂存待发送的问题
+   *
+   * 在 /chat 页面调用，将用户问题和会话 ID 写入 Pinia，
+   * 跳转到 /history 页面后由 onMounted 消费。
+   *
+   * @param sid - 前端生成的会话 ID
+   * @param question - 用户输入的问题文本
+   */
   function setPending(sid: string, question: string) {
     sessionId.value = sid;
     pendingQuestion.value = question;
   }
 
+  /**
+   * 消费待发送的问题（读后清空）
+   *
+   * 在 /history 页面 onMounted 时调用，获取问题后立即清空，
+   * 确保同一问题不会被重复发送。
+   *
+   * @returns 包含 question 字段的对象
+   */
   function consumePending(): { question: string } {
     const question = pendingQuestion.value;
     pendingQuestion.value = "";
     return { question };
   }
 
-  // ========== 历史会话列表 ==========
+  // ══════════════════════════════════════════════════════════════
+  // 历史会话列表
+  // ══════════════════════════════════════════════════════════════
 
+  /** 会话列表（从 Java 后端 GET /api/ai/conversations 加载） */
   const conversations = ref<Conversation[]>([]);
+  /** 会话列表加载状态 */
   const conversationsLoading = ref(false);
+  /** 会话列表加载错误信息 */
   const conversationsError = ref<string>("");
 
+  /**
+   * 从后端加载会话列表
+   *
+   * 调用 GET /api/ai/conversations?userId=xxx，
+   * 返回的会话按 updated_at 降序排列（最新的在前）。
+   *
+   * @returns 加载是否成功
+   */
   async function fetchConversations(): Promise<boolean> {
+    // 动态导入避免循环依赖（chatStore → authStore → chatStore）
     const { useAuthStore } = await import("#/store");
     const authStore = useAuthStore();
     const userInfo = await authStore.fetchUserInfo();
@@ -83,6 +124,7 @@ export const useChatStore = defineStore("chat", () => {
 
     try {
       const response = await fetchConversationsApi(String(userId));
+      // 按更新时间降序排列（最新的会话在最前面）
       conversations.value = (response.conversations ?? []).sort((a, b) => {
         const dateA = a.updated_at ? new Date(a.updated_at).getTime() : 0;
         const dateB = b.updated_at ? new Date(b.updated_at).getTime() : 0;
@@ -90,8 +132,7 @@ export const useChatStore = defineStore("chat", () => {
       });
       return true;
     } catch (error: any) {
-      conversationsError.value =
-        error?.message || "加载历史记录失败";
+      conversationsError.value = error?.message || "加载历史记录失败";
       conversations.value = [];
       return false;
     } finally {
@@ -99,36 +140,36 @@ export const useChatStore = defineStore("chat", () => {
     }
   }
 
-  // ========== 当前会话 + 消息 ==========
+  // ══════════════════════════════════════════════════════════════
+  // 当前会话 + 消息
+  // ══════════════════════════════════════════════════════════════
 
   /** 当前选中的会话 ID（后端 conversation_id） */
   const currentConversationId = ref<string>("");
-
-  /** 当前会话的消息列表 */
+  /** 当前会话的消息列表（UIMessage 数组） */
   const currentMessages = ref<UIMessage[]>([]);
-
   /** 消息加载状态 */
   const messagesLoading = ref(false);
-
-  /** 消息加载错误 */
+  /** 消息加载错误信息 */
   const messagesError = ref<string>("");
-
-  /** 消息 ID 自增计数器 */
+  /** 消息 ID 自增计数器（用于 Vue 列表渲染的 key） */
   let messageIdCounter = 0;
 
   /**
    * 加载指定会话的历史消息
-   * GET /api/ai/conversations/{id}/messages
    *
-   * 后端返回的每条消息 { role, content } 转换为前端 UIMessage 结构
-   * { id, role: "user"|"assistant", content }
+   * 调用 GET /api/ai/conversations/{id}/messages，
+   * 将后端 ApiMessage { role, content } 转换为前端 UIMessage { id, role, content }。
+   *
+   * @param conversationId - 后端会话 ID
+   * @returns 加载是否成功
    */
   async function fetchMessages(conversationId: string): Promise<boolean> {
     if (!conversationId) return false;
 
     currentConversationId.value = conversationId;
     currentMessages.value = [];
-    // 切换会话时清空旧 trace，避免残留上一条会话的步骤
+    // 切换会话时清空旧 trace，避免残留上一条会话的执行步骤
     currentTraces.value = [];
     messagesLoading.value = true;
     messagesError.value = "";
@@ -142,8 +183,7 @@ export const useChatStore = defineStore("chat", () => {
       }));
       return true;
     } catch (error: any) {
-      messagesError.value =
-        error?.message || "加载历史消息失败";
+      messagesError.value = error?.message || "加载历史消息失败";
       currentMessages.value = [];
       return false;
     } finally {
@@ -152,34 +192,49 @@ export const useChatStore = defineStore("chat", () => {
   }
 
   /**
-   * 设置当前会话（不加载消息，仅设置 ID）
-   * 用于发送新消息时关联 conversation_id
+   * 设置当前会话 ID（不加载消息）
+   *
+   * 用于发送新消息时关联 conversation_id，
+   * 使后端能将消息持久化到正确的会话。
+   *
+   * @param id - 后端会话 ID
    */
   function setCurrentConversation(id: string) {
     currentConversationId.value = id;
   }
 
-  // ========== SSE 流 + trace 进度 ==========
+  // ══════════════════════════════════════════════════════════════
+  // SSE 流 + trace 进度面板
+  // ══════════════════════════════════════════════════════════════
 
-  /** 右侧 trace/进度面板显示的执行步骤列表 */
+  /** 右侧 trace 面板显示的执行步骤列表（由 SSE trace 事件累加） */
   const currentTraces = ref<ChatTraceStep[]>([]);
 
-  /** 是否正在通过 SSE 流接收回复 */
+  /** 是否正在通过 SSE 流接收 AI 回复 */
   const isStreaming = ref(false);
 
-  /** 流接收中的错误 */
+  /** 流接收过程中的错误信息 */
   const streamError = ref<string>("");
 
   /**
-   * 发送聊天消息 — POST /api/ai/chat (SSE)
+   * 发送聊天消息 — POST /api/ai/chat (SSE 流式)
+   *
+   * 核心流程：
+   * 1. 从 KnowledgeStore 读取用户选中的文档 ID
+   * 2. 构建 ChatSendRequest 请求体
+   * 3. 调用 sendChatApi 发起 SSE 流式请求
+   * 4. 通过 onEvent 回调实时处理 SSE 事件：
+   *    - isTraceStep → 累加到 currentTraces（右侧面板实时展示）
+   *    - isFinalAnswer → 回填到 AI 消息的 content
+   * 5. 通过 onError 回调处理连接/解析异常
    *
    * doc_ids 自动从 KnowledgeStore.selectedSpaceIds 读取，
-   * 用户未选择时发送空数组 path[] 表示普通聊天（由后端决定行为）。
+   * 用户未选择时发送空数组，由后端决定行为（普通聊天 vs 知识库检索）。
    *
-   * @param message    用户输入的消息文本
-   * @param userId     当前登录用户 ID
-   * @param model      可选模型名称
-   * @returns          最终 AI 回答文本（异常时返回错误提示）
+   * @param message - 用户输入的消息文本
+   * @param userId - 当前登录用户 ID
+   * @param model - 可选模型名称（如 deepseek-chat）
+   * @returns 最终 AI 回答文本（异常时返回错误提示）
    */
   async function sendChatMessage(
     message: string,
@@ -188,9 +243,9 @@ export const useChatStore = defineStore("chat", () => {
   ): Promise<string> {
     streamError.value = "";
     isStreaming.value = true;
-    currentTraces.value = []; 
+    currentTraces.value = [];
 
-    // 从 KnowledgeStore 读取当前选中的文档 ID
+    // 从 KnowledgeStore 读取当前选中的文档 ID（动态导入避免循环依赖）
     let docIds: number[] = [];
     try {
       const { useKnowledgeStore } = await import("#/store");
@@ -199,7 +254,7 @@ export const useChatStore = defineStore("chat", () => {
       // KnowledgeStore 不可用时使用空数组
     }
 
-    // 准备请求体
+    // 构建请求体
     const request: ChatSendRequest = {
       message,
       user_id: userId,
@@ -210,23 +265,23 @@ export const useChatStore = defineStore("chat", () => {
     };
 
     return new Promise<string>((resolve) => {
-      // 使用 void 调用避免 unhandled promise rejection（错误在回调中处理）
+      // 使用 void 调用避免 unhandled promise rejection（错误在 onError 回调中处理）
       void sendChatApi(
         request,
-        // onEvent — SSE 每一条消息
+        // ── onEvent: SSE 每一条事件的回调 ──
         (event) => {
           if (isTraceStep(event)) {
             // trace 进度步骤 → 累加到右侧面板
             currentTraces.value.push(event);
           } else if (isFinalAnswer(event)) {
-            // 最终回答 → 回填到 AI 消息的 content
+            // 最终回答 → 回填到 AI 占位消息的 content
             const aiMsg = currentMessages.value.find(
               (m) => m.role === "assistant" && m.id === aiMessageId,
             );
             if (aiMsg) {
               aiMsg.content = event.answer;
             }
-            // 如果后端返回了新的 conversation_id，更新 store
+            // 后端返回新的 conversation_id 时更新 store
             if (event.conversation_id) {
               currentConversationId.value = event.conversation_id;
             }
@@ -234,7 +289,7 @@ export const useChatStore = defineStore("chat", () => {
             resolve(event.answer);
           }
         },
-        // onError — 连接/解析异常
+        // ── onError: 连接/解析异常 ──
         (error) => {
           streamError.value = error.message;
           const aiMsg = currentMessages.value.find(
@@ -246,7 +301,7 @@ export const useChatStore = defineStore("chat", () => {
           isStreaming.value = false;
           resolve("发送消息失败");
         },
-        // onDone — 流正常结束（最终回答已 resolved）
+        // ── onDone: 流正常结束 ──
         () => {
           isStreaming.value = false;
         },
@@ -254,16 +309,22 @@ export const useChatStore = defineStore("chat", () => {
     });
   }
 
-  /** 当前轮次 AI 消息的占位 ID（在 sendChatMessage 中使用，确保回填正确） */
+  /** 当前轮次 AI 消息的占位 ID（在 prepareMessages 中生成，sendChatMessage 中回填） */
   let aiMessageId = 0;
 
   /**
    * 准备发送消息：创建用户消息 + AI 占位消息
-   * 返回 AI 占位消息的 ID，供 sendChatMessage 内部回填使用
+   *
+   * 在用户点击发送后立即调用，将用户消息和 AI 占位消息推入 currentMessages，
+   * 使 UI 立即显示用户消息和"正在思考..."的加载状态。
+   *
+   * @param userContent - 用户输入的消息文本
+   * @returns AI 占位消息的 ID（供 sendChatMessage 内部回填使用）
    */
   function prepareMessages(userContent: string): number {
-     // 发送新消息时清空上次对话的 trace 流
+    // 清空上次对话的 trace 流
     currentTraces.value = [];
+
     // 用户消息
     const userMsg: UIMessage = {
       id: ++messageIdCounter,
@@ -283,6 +344,9 @@ export const useChatStore = defineStore("chat", () => {
     return aiMsg.id;
   }
 
+  /**
+   * 重置所有状态（用于登出或切换用户时）
+   */
   function $reset() {
     sessionId.value = "";
     pendingQuestion.value = "";

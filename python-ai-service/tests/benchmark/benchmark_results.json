@@ -1,0 +1,409 @@
+{
+  "timestamp": "2026-06-15 23:58:53",
+  "elapsed_seconds": 33.82457518577576,
+  "total_requests": 50,
+  "successful": 50,
+  "failed": 0,
+  "results": [
+    {
+      "query": "你好",
+      "first_token_latency_ms": 5822.0,
+      "total_latency_ms": 5875.6,
+      "token_count": 35,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "学校有几个社团？",
+      "first_token_latency_ms": 5847.0,
+      "total_latency_ms": 5847.0,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "考试时能带手机吗？",
+      "first_token_latency_ms": 7141.9,
+      "total_latency_ms": 7141.9,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "请假需要什么手续？",
+      "first_token_latency_ms": 9234.2,
+      "total_latency_ms": 9234.2,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "校训是什么？",
+      "first_token_latency_ms": 5821.6,
+      "total_latency_ms": 7901.7,
+      "token_count": 51,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "迟到怎么处理？",
+      "first_token_latency_ms": 7150.4,
+      "total_latency_ms": 7150.4,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "心理咨询室什么时候开放？",
+      "first_token_latency_ms": 6837.1,
+      "total_latency_ms": 6837.1,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "暑假从几号到几号？",
+      "first_token_latency_ms": 5845.1,
+      "total_latency_ms": 5845.1,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "消防安全有什么要求？",
+      "first_token_latency_ms": 9166.7,
+      "total_latency_ms": 9166.7,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "作业有什么要求？",
+      "first_token_latency_ms": 5842.9,
+      "total_latency_ms": 5842.9,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "放学时间是几点？",
+      "first_token_latency_ms": 2032.2,
+      "total_latency_ms": 5633.9,
+      "token_count": 86,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "能不能化妆去学校？",
+      "first_token_latency_ms": 4060.6,
+      "total_latency_ms": 7408.8,
+      "token_count": 59,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "迟到早退累计几次算旷课？",
+      "first_token_latency_ms": 6020.8,
+      "total_latency_ms": 6020.8,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "火警电话是多少？",
+      "first_token_latency_ms": 2032.8,
+      "total_latency_ms": 2959.0,
+      "token_count": 53,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "学生行为准则有几条？",
+      "first_token_latency_ms": 5822.4,
+      "total_latency_ms": 5822.4,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "你好",
+      "first_token_latency_ms": 4328.3,
+      "total_latency_ms": 5338.0,
+      "token_count": 58,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "学校有几个社团？",
+      "first_token_latency_ms": 2410.5,
+      "total_latency_ms": 2410.5,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "考试时能带手机吗？",
+      "first_token_latency_ms": 6666.9,
+      "total_latency_ms": 6666.9,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "请假需要什么手续？",
+      "first_token_latency_ms": 6077.1,
+      "total_latency_ms": 6077.1,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "校训是什么？",
+      "first_token_latency_ms": 2635.7,
+      "total_latency_ms": 5414.9,
+      "token_count": 51,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "迟到怎么处理？",
+      "first_token_latency_ms": 5336.5,
+      "total_latency_ms": 5336.5,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "心理咨询室什么时候开放？",
+      "first_token_latency_ms": 7984.7,
+      "total_latency_ms": 7984.7,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "暑假从几号到几号？",
+      "first_token_latency_ms": 6810.0,
+      "total_latency_ms": 6810.0,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "消防安全有什么要求？",
+      "first_token_latency_ms": 4020.4,
+      "total_latency_ms": 4020.4,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "作业有什么要求？",
+      "first_token_latency_ms": 6248.5,
+      "total_latency_ms": 6248.5,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "放学时间是几点？",
+      "first_token_latency_ms": 2223.2,
+      "total_latency_ms": 3894.2,
+      "token_count": 82,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "能不能化妆去学校？",
+      "first_token_latency_ms": 4086.0,
+      "total_latency_ms": 5952.4,
+      "token_count": 124,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "迟到早退累计几次算旷课？",
+      "first_token_latency_ms": 4021.5,
+      "total_latency_ms": 4021.5,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "火警电话是多少？",
+      "first_token_latency_ms": 4081.8,
+      "total_latency_ms": 6908.6,
+      "token_count": 49,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "学生行为准则有几条？",
+      "first_token_latency_ms": 5942.2,
+      "total_latency_ms": 5942.2,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "你好",
+      "first_token_latency_ms": 4253.1,
+      "total_latency_ms": 5098.5,
+      "token_count": 46,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "学校有几个社团？",
+      "first_token_latency_ms": 4393.5,
+      "total_latency_ms": 4393.5,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "考试时能带手机吗？",
+      "first_token_latency_ms": 6363.7,
+      "total_latency_ms": 6363.7,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "请假需要什么手续？",
+      "first_token_latency_ms": 8824.3,
+      "total_latency_ms": 8824.3,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "校训是什么？",
+      "first_token_latency_ms": 2127.0,
+      "total_latency_ms": 3388.3,
+      "token_count": 74,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "迟到怎么处理？",
+      "first_token_latency_ms": 6638.4,
+      "total_latency_ms": 6638.4,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "心理咨询室什么时候开放？",
+      "first_token_latency_ms": 4177.3,
+      "total_latency_ms": 4177.3,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "暑假从几号到几号？",
+      "first_token_latency_ms": 5023.1,
+      "total_latency_ms": 5023.1,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "消防安全有什么要求？",
+      "first_token_latency_ms": 6341.4,
+      "total_latency_ms": 6341.4,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "作业有什么要求？",
+      "first_token_latency_ms": 4701.7,
+      "total_latency_ms": 4701.7,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "放学时间是几点？",
+      "first_token_latency_ms": 2802.3,
+      "total_latency_ms": 4462.9,
+      "token_count": 88,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "能不能化妆去学校？",
+      "first_token_latency_ms": 4284.0,
+      "total_latency_ms": 8566.7,
+      "token_count": 82,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "迟到早退累计几次算旷课？",
+      "first_token_latency_ms": 6345.7,
+      "total_latency_ms": 6345.7,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "火警电话是多少？",
+      "first_token_latency_ms": 4121.0,
+      "total_latency_ms": 7140.0,
+      "token_count": 49,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "学生行为准则有几条？",
+      "first_token_latency_ms": 8305.2,
+      "total_latency_ms": 8305.2,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "你好",
+      "first_token_latency_ms": 2189.9,
+      "total_latency_ms": 4837.9,
+      "token_count": 38,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "学校有几个社团？",
+      "first_token_latency_ms": 6441.4,
+      "total_latency_ms": 6441.4,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "考试时能带手机吗？",
+      "first_token_latency_ms": 4051.0,
+      "total_latency_ms": 4051.0,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "请假需要什么手续？",
+      "first_token_latency_ms": 6319.7,
+      "total_latency_ms": 6319.7,
+      "token_count": 0,
+      "success": true,
+      "error": null
+    },
+    {
+      "query": "校训是什么？",
+      "first_token_latency_ms": 4191.7,
+      "total_latency_ms": 7465.8,
+      "token_count": 80,
+      "success": true,
+      "error": null
+    }
+  ]
+}
