@@ -62,8 +62,9 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error("Tool Registry 初始化异常: %s", e, exc_info=True)
 
-    yield  # ── 以下为 Shutdown 阶段 ──
-
+    yield  
+    
+    # ── 以下为 Shutdown 阶段 ──
     # 关闭 Milvus 连接，释放文件锁（防止重启时 LOCK 残留）
     try:
         from app.retrieval.milvus_store import milvus_store
