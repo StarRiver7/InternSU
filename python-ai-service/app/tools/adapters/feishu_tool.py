@@ -1,10 +1,9 @@
 """
-FeishuTool — BaseTool adapter for Feishu Summary Agent.
+FeishuTool — 飞书总结代理的 BaseTool 适配器
 
-Wraps the Feishu message summary pipeline (fetch + filter + prompt + LLM)
-into the BaseTool interface.
+将飞书消息总结管道（获取 + 过滤 + 提示词 + LLM）包装到 BaseTool 接口中。
 
-Usage:
+使用方法:
     tool = FeishuTool()
     registry.register(tool)
     result = await manager.execute("feishu_summary", {"chat_id": "oc_xxx"})
@@ -21,17 +20,16 @@ logger = logging.getLogger(__name__)
 
 
 class FeishuTool(BaseTool):
-    """Feishu chat message summary tool.
+    """飞书群消息总结工具。
 
-    Fetches recent messages from a Feishu chat group, filters important ones,
-    and generates a structured LLM summary with sections: Notification, Task,
-    Meeting, Risk, Other.
+    从飞书群聊获取最近消息，筛选重要消息，并生成结构化的 LLM 摘要，包含以下部分：
+    通知、任务、会议、风险、其他。
 
-    Pipeline:
-      1. FEISHU_QUERY — Fetch messages via FeishuClient
-      2. MESSAGE_FILTER — Score and filter important messages
-      3. PROMPT_BUILD — Build structured summary prompt
-      4. LLM_GENERATION — Generate summary via LLM
+    处理流程:
+      1. FEISHU_QUERY — 通过 FeishuClient 获取消息
+      2. MESSAGE_FILTER — 评分并筛选重要消息
+      3. PROMPT_BUILD — 构建结构化摘要提示词
+      4. LLM_GENERATION — 通过 LLM 生成摘要
     """
 
     def get_metadata(self) -> ToolMetadata:
@@ -72,13 +70,13 @@ class FeishuTool(BaseTool):
         )
 
     async def _execute(self, params: Dict[str, Any]) -> ToolResult:
-        """Execute Feishu summary pipeline.
+        """执行飞书消息总结管道。
 
-        Args:
-            params: Optionally 'chat_id', 'hours' (default 24), 'max_messages' (default 100).
+        参数:
+            params: 可选 'chat_id', 'hours'（默认24）, 'max_messages'（默认100）。
 
-        Returns:
-            ToolResult with structured summary.
+        返回:
+            ToolResult，包含结构化摘要。
         """
         import time as _time
         t_start = _time.time()
@@ -87,12 +85,12 @@ class FeishuTool(BaseTool):
         hours: int = params.get("hours", 24)
         max_messages: int = params.get("max_messages", 100)
 
-        # ---- Phase 1: FEISHU_QUERY ----
+        # ---- 阶段 1: FEISHU_QUERY ----
         t1 = _time.time()
         trace_steps.append({
             "step_type": "feishu_query",
             "step_name": "飞书消息获取",
-                "message": "正在获取飞书消息...",
+            "message": "正在获取飞书消息...",
             "status": "running",
             "timestamp": _now(),
         })
@@ -109,7 +107,7 @@ class FeishuTool(BaseTool):
                 request_timeout=settings.feishu_request_timeout,
             )
 
-            # Resolve chat_id
+            # 解析 chat_id
             if not chat_id:
                 chats_result = await client.list_chats(page_size=20)
                 if not chats_result.items:
@@ -124,7 +122,7 @@ class FeishuTool(BaseTool):
             else:
                 chat_name = f"Chat-{chat_id[:8]}"
 
-            # Fetch messages
+            # 获取消息
             messages = await client.fetch_messages_for_summary(
                 chat_id=chat_id,
                 lookback_hours=hours,
@@ -166,7 +164,7 @@ class FeishuTool(BaseTool):
                 trace_steps=trace_steps,
             )
 
-        # ---- Phase 2: MESSAGE_FILTER ----
+        # ---- 阶段 2: MESSAGE_FILTER ----
         t2 = _time.time()
         trace_steps.append({
             "step_type": "message_filter",
@@ -189,7 +187,7 @@ class FeishuTool(BaseTool):
             logger.exception("Message filter failed")
             trace_steps[-1]["status"] = "completed"
             trace_steps[-1]["detail"] = {"error": str(exc), "fallback": True}
-            # Fallback: treat all as scored
+            # 降级：将所有消息视为已评分
             from app.tools.feishu.feishu_message_filter import ScoredMessage
             scored = [
                 ScoredMessage(
@@ -202,7 +200,7 @@ class FeishuTool(BaseTool):
                 for m in messages[:50]
             ]
 
-        # ---- Phase 3: PROMPT_BUILD ----
+        # ---- 阶段 3: PROMPT_BUILD ----
         t3 = _time.time()
         trace_steps.append({
             "step_type": "prompt_build",
@@ -225,7 +223,7 @@ class FeishuTool(BaseTool):
         trace_steps[-1]["duration_ms"] = int((_time.time() - t3) * 1000)
         trace_steps[-1]["detail"] = {"prompt_chars": len(user_prompt)}
 
-        # ---- Phase 4: LLM_GENERATION ----
+        # ---- 阶段 4: LLM_GENERATION ----
         t4 = _time.time()
         trace_steps.append({
             "step_type": "llm_generation",
@@ -254,7 +252,7 @@ class FeishuTool(BaseTool):
             logger.exception("LLM summary failed")
             trace_steps[-1]["status"] = "completed"
             trace_steps[-1]["detail"] = {"error": str(exc), "fallback": True}
-            # Fallback summary
+            # 降级摘要
             from app.tools.feishu.feishu_summary import _build_fallback_summary
             summary_text = _build_fallback_summary(scored, chat_name)
 
@@ -274,7 +272,7 @@ class FeishuTool(BaseTool):
         )
 
     # ----------------------------------------------------------
-    # Helpers
+    # 辅助方法
     # ----------------------------------------------------------
     @staticmethod
     def _count_categories(scored: list) -> dict:

@@ -1,22 +1,21 @@
-"""
-Agent Node — Unified tool dispatch via ToolManager.
+"""Agent 派遣节点 — 通过 ToolManager 进行统一工具调度。
 
-Architecture (v3):
-  This node is the single entry point for all tool-based operations.
-  It delegates execution to ToolManager, which handles:
-    - Tool lookup from ToolRegistry
-    - Parameter validation
-    - Execution with timeout
-    - AI Trace recording
+【架构设计 (v3)】
+该节点是所有工具操作的单一入口点。
+它将执行委托给 ToolManager，由其处理：
+  - 从 ToolRegistry 查找工具
+  - 参数验证
+  - 带超时的执行
+  - AI 追踪记录
 
-  The Router maps selected_tool to this node for all non-chat operations:
-    sql_query, rag_search, feishu_summary, etc.
+路由器将 selected_tool 映射到该节点以处理所有非聊天操作：
+  sql_query, rag_search, feishu_summary 等。
 
-  New tools only need to:
-    1. Extend BaseTool and implement _execute()
-    2. Register in bootstrap.py
-    3. Add tool description to TOOLS_PROMPT in intent_node
-  No routing changes needed.
+新增工具只需：
+  1. 继承 BaseTool 并实现 _execute()
+  2. 在 bootstrap.py 中注册
+  3. 在 intent_node 的 TOOLS_PROMPT 中添加工具描述
+无需修改路由逻辑。
 """
 
 import time
@@ -27,8 +26,7 @@ from app.core.logger import get_logger
 
 logger = get_logger(__name__)
 
-# Tool-to-param mapping: maps selected_tool names to the params
-# expected by ToolManager.execute()
+# 工具到参数的映射：将 selected_tool 名称映射到 ToolManager.execute() 期望的参数
 TOOL_PARAM_MAP = {
     "sql_query": lambda state: {
         "question": state.get("user_message", ""),
@@ -51,20 +49,20 @@ TOOL_PARAM_MAP = {
 
 
 async def agent_node(state: InternState) -> InternState:
-    """Agent dispatch node — unified tool execution via ToolManager.
+    """Agent 派遣节点 — 通过 ToolManager 进行统一工具执行。
 
-    Routes based on selected_tool:
+    根据 selected_tool 路由：
       - sql_query      → ToolManager → SqlTool
       - rag_search     → ToolManager → RagTool
       - feishu_agent   → ToolManager → FeishuTool
 
-    Fallback for unrecognized tools returns placeholder response.
+    对于未识别的工具，返回占位响应作为回退。
 
-    Args:
-        state: LangGraph workflow state.
+    参数：
+        state: LangGraph 工作流状态。
 
-    Returns:
-        Updated state with final_answer, trace_steps, done.
+    返回：
+        更新后的状态，包含 final_answer、trace_steps、done。
     """
     t_start = time.time()
     state["current_node"] = "agent_node"
@@ -72,7 +70,7 @@ async def agent_node(state: InternState) -> InternState:
     tool_name = state.get("selected_tool", "")
     trace_steps = state.get("trace_steps", [])
 
-    # ---- Tool dispatch header trace ----
+    # ---- 工具调度头部追踪 ----
     trace_steps.append({
         "node": "agent_node",
         "step_type": "agent_dispatch",
@@ -82,13 +80,13 @@ async def agent_node(state: InternState) -> InternState:
         "timestamp": _now(),
     })
 
-    # ---- Execute via ToolManager ----
+    # ---- 通过 ToolManager 执行 ----
     if tool_name in TOOL_PARAM_MAP:
         state = await _execute_via_manager(state, tool_name)
     else:
         state = await _unknown_tool(state, tool_name)
 
-    # ---- Finalize header trace ----
+    # ---- 完成头部追踪 ----
     duration_ms = int((time.time() - t_start) * 1000)
     for step in trace_steps:
         if step.get("step_type") == "agent_dispatch" and step.get("status") == "running":
@@ -105,20 +103,20 @@ async def agent_node(state: InternState) -> InternState:
 async def _execute_via_manager(
     state: InternState, tool_name: str
 ) -> InternState:
-    """Execute tool through ToolManager and merge results into state.
+    """通过 ToolManager 执行工具并将结果合并到状态中。
 
-    Args:
-        state: Current workflow state.
-        tool_name: Registered tool name (matches ToolMetadata.name).
+    参数：
+        state: 当前工作流状态。
+        tool_name: 已注册的工具名称（与 ToolMetadata.name 匹配）。
 
-    Returns:
-        Updated state with final_answer and trace_steps.
+    返回：
+        更新后的状态，包含 final_answer 和 trace_steps。
     """
     from app.tools.manager import tool_manager
 
     trace_steps = state.get("trace_steps", [])
 
-    # Build params from state
+    # 从状态构建参数
     param_fn = TOOL_PARAM_MAP.get(tool_name)
     params = param_fn(state) if param_fn else {}
 
@@ -127,20 +125,20 @@ async def _execute_via_manager(
         "conversation_id": state.get("conversation_id", ""),
     }
 
-    # Execute
+    # 执行
     result = await tool_manager.execute(
         tool_name=tool_name,
         params=params,
         trace_context=trace_context,
     )
 
-    # Merge tool trace_steps into state trace_steps
+    # 将工具的 trace_steps 合并到状态的 trace_steps
     if result.trace_steps:
         for ts in result.trace_steps:
             ts["node"] = "agent_node"
         trace_steps.extend(result.trace_steps)
 
-    # Set final answer
+    # 设置最终回答
     if result.success:
         state["final_answer"] = result.summary
     else:
@@ -165,21 +163,21 @@ async def _execute_via_manager(
 async def _unknown_tool(
     state: InternState, tool_name: str
 ) -> InternState:
-    """Handle unrecognized tool names with a placeholder response.
+    """处理未识别的工具名称，返回占位响应。
 
-    Args:
-        state: Current workflow state.
-        tool_name: Unrecognized tool name.
+    参数：
+        state: 当前工作流状态。
+        tool_name: 未识别的工具名称。
 
-    Returns:
-        State with placeholder answer.
+    返回：
+        包含占位回答的状态。
     """
     trace_steps = state.get("trace_steps", [])
 
     trace_steps.append({
         "node": "agent_node",
         "step_type": "agent_unknown",
-        "step_name": "Unknown Tool",
+        "step_name": "未知工具",
         "message": f"工具 '{tool_name}' 未被识别",
         "status": "completed",
         "timestamp": _now(),
@@ -197,5 +195,5 @@ async def _unknown_tool(
 
 
 def _now() -> str:
-    """UTC ISO timestamp."""
+    """UTC ISO 时间戳。"""
     return datetime.now(timezone.utc).isoformat()

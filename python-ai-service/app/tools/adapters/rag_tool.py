@@ -1,10 +1,9 @@
 """
-RagTool — BaseTool adapter for RAG (Retrieval-Augmented Generation).
+RagTool — RAG（检索增强生成）的 BaseTool 适配器
 
-Wraps the existing RAG pipeline (query rewrite, hybrid retrieval,
-rerank, citation, answer generation) into the BaseTool interface.
+将现有的 RAG 管道（查询重写、混合检索、重排序、引用、答案生成）包装到 BaseTool 接口中。
 
-Usage:
+使用方法:
     tool = RagTool()
     registry.register(tool)
     result = await manager.execute("rag_search", {"question": "公司报销流程?"})
@@ -21,17 +20,16 @@ logger = logging.getLogger(__name__)
 
 
 class RagTool(BaseTool):
-    """RAG knowledge base search tool.
+    """RAG 知识库搜索工具。
 
-    Searches the company knowledge base for documents relevant to the
-    user's question, then generates an answer with citations.
+    搜索公司知识库中与用户问题相关的文档，然后生成带有引用的答案。
 
-    Pipeline:
-      1. Query Rewrite — LLM expands/enhances the query
-      2. Hybrid Retrieval — Dense + Sparse vector search
-      3. Rerank — Cross-encoder re-scoring
-      4. Citation — Build source citations
-      5. Answer Generation — LLM generates answer with sources
+    处理流程:
+      1. 查询重写 — LLM 扩展/增强查询
+      2. 混合检索 — 稠密 + 稀疏向量搜索
+      3. 重排序 — 交叉编码器重新评分
+      4. 引用 — 构建来源引用
+      5. 答案生成 — LLM 生成带来源的答案
     """
 
     def get_metadata(self) -> ToolMetadata:
@@ -70,16 +68,15 @@ class RagTool(BaseTool):
         )
 
     async def _execute(self, params: Dict[str, Any]) -> ToolResult:
-        """Execute RAG search pipeline.
+        """执行 RAG 搜索管道。
 
-        Calls the internal RAG retrieval + rerank + citation + answer nodes
-        through a simplified inline pipeline.
+        通过简化的内联管道调用内部的 RAG 检索 + 重排序 + 引用 + 答案节点。
 
-        Args:
-            params: Must contain 'question', optionally 'space_ids' / 'doc_ids'.
+        参数:
+            params: 必须包含 'question'，可选 'space_ids' / 'doc_ids'。
 
-        Returns:
-            ToolResult with answer text as summary and sources as data.
+        返回:
+            ToolResult，其中 summary 为答案文本，data 为来源信息。
         """
         import time as _time
         t_start = _time.time()
@@ -88,23 +85,23 @@ class RagTool(BaseTool):
         space_ids = params.get("space_ids", [])
         doc_ids = params.get("doc_ids", [])
 
-        # ---- Phase 1: Query Rewrite ----
+        # ---- 阶段 1: 查询重写 ----
         t1 = _time.time()
         trace_steps.append({
             "step_type": "rag_query_rewrite",
-            "step_name": "Query Rewrite",
-            "message": "Optimizing search query...",
+            "step_name": "查询重写",
+            "message": "优化搜索查询...",
             "status": "running",
             "timestamp": _now(),
             "duration_ms": 0,
         })
-        rewritten = question  # Default: use original question
+        rewritten = question  # 默认：使用原始问题
         try:
             rewrite_prompt = (
-                "You are a search query optimizer. Rewrite the user's question "
-                "into a concise, keyword-rich search query in Chinese. "
-                "Remove polite phrases, keep only core concepts.\n\n"
-                f"Question: {question}\nRewritten query:"
+                "你是一个搜索查询优化器。将用户的问题重写为"
+                "简洁、富含关键词的中文搜索查询。"
+                "移除礼貌用语，只保留核心概念。\n\n"
+                f"问题: {question}\n重写后的查询:"
             )
             resp = await llm_gateway.chat(
                 [{"role": "user", "content": rewrite_prompt}],
@@ -116,15 +113,15 @@ class RagTool(BaseTool):
             trace_steps[-1]["detail"] = {"original": question[:80], "rewritten": rewritten[:80]}
         except Exception:
             trace_steps[-1]["status"] = "completed"
-            trace_steps[-1]["detail"] = {"fallback": "using original query"}
+            trace_steps[-1]["detail"] = {"fallback": "使用原始查询"}
             rewritten = question
 
-        # ---- Phase 2: Retrieval ----
+        # ---- 阶段 2: 检索 ----
         t2 = _time.time()
         trace_steps.append({
             "step_type": "rag_retrieval",
-            "step_name": "Hybrid Retrieval",
-            "message": "Searching knowledge base...",
+            "step_name": "混合检索",
+            "message": "搜索知识库...",
             "status": "running",
             "timestamp": _now(),
         })
@@ -151,7 +148,7 @@ class RagTool(BaseTool):
             trace_steps[-1]["status"] = "failed"
             return ToolResult(
                 success=False,
-                error=f"Knowledge base search failed: {exc}",
+                error=f"知识库搜索失败: {exc}",
                 trace_steps=trace_steps,
             )
 
@@ -159,16 +156,16 @@ class RagTool(BaseTool):
             return ToolResult(
                 success=True,
                 data={"sources": [], "hit_count": 0},
-                summary="No relevant documents found in the knowledge base.",
+                summary="知识库中未找到相关文档。",
                 trace_steps=trace_steps,
             )
 
-        # ---- Phase 3: Rerank ----
+        # ---- 阶段 3: 重排序 ----
         t3 = _time.time()
         trace_steps.append({
             "step_type": "rag_rerank",
-            "step_name": "Rerank",
-            "message": "Re-ranking results...",
+            "step_name": "重排序",
+            "message": "重新排序结果...",
             "status": "running",
             "timestamp": _now(),
         })
@@ -187,28 +184,28 @@ class RagTool(BaseTool):
             trace_steps[-1]["duration_ms"] = int((_time.time() - t3) * 1000)
             trace_steps[-1]["detail"] = {"reranked": rerank_count}
         except Exception:
-            # Fallback: use retrieval results directly
+            # 降级：直接使用检索结果
             reranked = retrieval_results[:5]
             trace_steps[-1]["status"] = "completed"
             trace_steps[-1]["detail"] = {"fallback": True}
 
-        # ---- Phase 4: Build Context & Generate Answer ----
+        # ---- 阶段 4: 构建上下文并生成答案 ----
         t4 = _time.time()
         trace_steps.append({
             "step_type": "llm_generation",
-            "step_name": "Answer Generation",
-            "message": "Generating answer...",
+            "step_name": "答案生成",
+            "message": "生成答案...",
             "status": "running",
             "timestamp": _now(),
         })
         try:
-            # Build context from reranked documents
+            # 从重排序后的文档构建上下文
             context_parts = []
             sources = []
             for i, doc in enumerate(reranked[:5], 1):
                 content = doc.get("content", "")[:500]
-                title = doc.get("title") or doc.get("file_name", f"Document {i}")
-                context_parts.append(f"[Source {i}: {title}]\n{content}")
+                title = doc.get("title") or doc.get("file_name", f"文档 {i}")
+                context_parts.append(f"[来源 {i}: {title}]\n{content}")
                 sources.append({
                     "index": i,
                     "title": title,
@@ -217,18 +214,17 @@ class RagTool(BaseTool):
 
             context = "\n\n".join(context_parts)
 
-            # Generate answer
+            # 生成答案
             system_prompt = (
-                "You are xiaoSU, an AI intern at a company. Answer the user's "
-                "question based on the provided document excerpts. "
-                "Cite sources using [Source N] notation. "
-                "If the documents don't contain enough information, say so honestly. "
-                "Keep answers concise and helpful."
+                "你是小苏，一家公司的AI实习生。根据提供的文档摘录回答用户的问题。"
+                "使用 [来源 N] 符号引用来源。"
+                "如果文档中没有足够的信息，请如实说明。"
+                "保持回答简洁有用。"
             )
             user_prompt = (
-                f"Documents:\n{context}\n\n"
-                f"Question: {question}\n\n"
-                f"Answer (cite sources):"
+                f"文档:\n{context}\n\n"
+                f"问题: {question}\n\n"
+                f"答案（引用来源）:"
             )
 
             resp = await llm_gateway.chat(
@@ -248,7 +244,7 @@ class RagTool(BaseTool):
             trace_steps[-1]["status"] = "failed"
             return ToolResult(
                 success=False,
-                error=f"Answer generation failed: {exc}",
+                error=f"答案生成失败: {exc}",
                 trace_steps=trace_steps,
             )
 

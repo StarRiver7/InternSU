@@ -1,10 +1,9 @@
 """
-SqlTool — BaseTool adapter for SQL Agent.
+SqlTool — SQL Agent 的 BaseTool 适配器
 
-Wraps the existing SQL Agent pipeline (schema loading, SQL generation,
-security check, execution, summarization) into the BaseTool interface.
+将现有的 SQL Agent 管道（模式加载、SQL生成、安全检查、执行、总结）包装到 BaseTool 接口中。
 
-Usage:
+使用方法:
     tool = SqlTool()
     registry.register(tool)
     result = await manager.execute("sql_query", {"question": "本月入职多少人?"})
@@ -22,17 +21,16 @@ logger = logging.getLogger(__name__)
 
 
 class SqlTool(BaseTool):
-    """SQL Agent tool — natural language to SQL query.
+    """SQL Agent 工具 — 自然语言转 SQL 查询。
 
-    Converts user questions into SQL, executes safely (read-only),
-    and returns natural language summaries.
+    将用户问题转换为 SQL，安全执行（只读），并返回自然语言总结。
 
-    Pipeline:
-      1. Schema Analysis — Load database table structure
-      2. SQL Generation — LLM converts NL to SQL
-      3. Security Check — Block dangerous operations
-      4. SQL Execution — Run query (SELECT only)
-      5. Result Summary — LLM summarizes results
+    处理流程:
+      1. 模式分析 — 加载数据库表结构
+      2. SQL 生成 — LLM 将自然语言转换为 SQL
+      3. 安全检查 — 阻止危险操作
+      4. SQL 执行 — 运行查询（仅 SELECT）
+      5. 结果总结 — LLM 总结结果
     """
 
     def get_metadata(self) -> ToolMetadata:
@@ -65,13 +63,13 @@ class SqlTool(BaseTool):
         )
 
     async def _execute(self, params: Dict[str, Any]) -> ToolResult:
-        """Execute SQL Agent pipeline.
+        """执行 SQL Agent 管道。
 
-        Args:
-            params: Must contain 'question' (str), optionally 'context_hint'.
+        参数:
+            params: 必须包含 'question' (str)，可选 'context_hint'。
 
-        Returns:
-            ToolResult with NL summary as data.summary.
+        返回:
+            ToolResult，其中 data.summary 为自然语言总结。
         """
         import time as _time
         t_start = _time.time()
@@ -79,7 +77,7 @@ class SqlTool(BaseTool):
         question = params["question"]
         context_hint = params.get("context_hint", "")
 
-        # ---- Phase 1: Schema Analysis ----
+        # ---- 阶段 1: 模式分析 ----
         t1 = _time.time()
         trace_steps.append({
             "step_type": "sql_schema",
@@ -104,7 +102,7 @@ class SqlTool(BaseTool):
                 trace_steps=trace_steps,
             )
 
-        # ---- Phase 2: SQL Generation ----
+        # ---- 阶段 2: SQL 生成 ----
         t2 = _time.time()
         trace_steps.append({
             "step_type": "sql_generation",
@@ -137,7 +135,7 @@ class SqlTool(BaseTool):
             if not sql or sql.upper().strip() == "NEED_CLARIFY":
                 return ToolResult(
                     success=False,
-                    error="Unable to generate SQL. Please rephrase your question.",
+                    error="无法生成 SQL。请重新表述您的问题。",
                     trace_steps=trace_steps,
                 )
 
@@ -149,11 +147,11 @@ class SqlTool(BaseTool):
             trace_steps[-1]["status"] = "failed"
             return ToolResult(
                 success=False,
-                error=f"SQL generation failed: {exc}",
+                error=f"SQL 生成失败: {exc}",
                 trace_steps=trace_steps,
             )
 
-        # ---- Phase 3: Security Check ----
+        # ---- 阶段 3: 安全检查 ----
         t3 = _time.time()
         trace_steps.append({
             "step_type": "sql_security",
@@ -170,7 +168,7 @@ class SqlTool(BaseTool):
                 trace_steps[-1]["detail"] = {"失败原因": sec_result["reason"]}
                 return ToolResult(
                     success=False,
-                    error=f"SQL blocked: {sec_result['reason']}",
+                    error=f"SQL 被阻止: {sec_result['reason']}",
                     trace_steps=trace_steps,
                 )
             sql = sec_result["sanitized_sql"]
@@ -185,7 +183,7 @@ class SqlTool(BaseTool):
                 trace_steps=trace_steps,
             )
 
-        # ---- Phase 4: Execution ----
+        # ---- 阶段 4: 执行 ----
         t4 = _time.time()
         trace_steps.append({
             "step_type": "sql_execution",
@@ -206,11 +204,11 @@ class SqlTool(BaseTool):
             trace_steps[-1]["status"] = "failed"
             return ToolResult(
                 success=False,
-                error=f"Query execution failed: {exc}",
+                error=f"查询执行失败: {exc}",
                 trace_steps=trace_steps,
             )
 
-        # ---- Phase 5: Summary ----
+        # ---- 阶段 5: 总结 ----
         t5 = _time.time()
         trace_steps.append({
             "step_type": "sql_summarize",
@@ -228,7 +226,7 @@ class SqlTool(BaseTool):
             trace_steps[-1]["duration_ms"] = int((_time.time() - t5) * 1000)
         except Exception:
             row_count = exec_result.get("row_count", 0)
-            summary = f"Query complete. Found {row_count} records."
+            summary = f"查询完成。找到 {row_count} 条记录。"
             trace_steps[-1]["status"] = "completed"
             trace_steps[-1]["detail"] = {"fallback": True}
 
@@ -240,11 +238,11 @@ class SqlTool(BaseTool):
         )
 
     # ----------------------------------------------------------
-    # Helpers
+    # 辅助方法
     # ----------------------------------------------------------
     @staticmethod
     def _extract_sql(text: str) -> str:
-        """Extract pure SQL from LLM response (strip markdown fences)."""
+        """从 LLM 响应中提取纯 SQL（去除 markdown 围栏）。"""
         text = text.strip()
         if text.startswith("`"):
             lines = text.split("\n")

@@ -1,15 +1,14 @@
 """
-ToolManager — Unified tool execution orchestrator.
+ToolManager — 统一的工具执行编排器
 
-Receives tool_name + params, delegates to the registered tool,
-and provides unified:
-  - Exception handling
-  - Parameter validation
-  - AI Trace recording (via trace_steps)
-  - Execution timeout
-  - Call logging
+接收 tool_name + params，委托给已注册的工具，并提供统一的：
+  - 异常处理
+  - 参数验证
+  - AI 跟踪记录（通过 trace_steps）
+  - 执行超时
+  - 调用日志
 
-Usage:
+使用方法:
     manager = ToolManager(registry)
     result = await manager.execute("sql_query", {"question": "..."})
 """
@@ -27,31 +26,33 @@ logger = get_logger(__name__)
 
 
 def _now() -> str:
-    """UTC ISO timestamp for trace steps."""
+    """用于跟踪步骤的 UTC ISO 时间戳。"""
     return datetime.now(timezone.utc).isoformat()
 
 
 class ToolManager:
     """统一的工具执行管理器。
+
     职责：
     1. 从工具注册表中按名称查找工具
     2. 验证工具是否存在且已启用
     3. 执行工具，并进行参数验证和超时处理
     4. 记录 AI 跟踪步骤（状态、时长、摘要）
     5. 记录执行日志以便审计
+
     这是系统中所有工具调用的唯一入口。
     """
 
     def __init__(self, registry: Optional[ToolRegistry] = None):
-        """Initialize ToolManager.
+        """初始化 ToolManager。
 
-        Args:
-            registry: ToolRegistry instance (defaults to global singleton).
+        参数:
+            registry: ToolRegistry 实例（默认为全局单例）。
         """
         self._registry = registry or ToolRegistry.get_instance()
 
     # ----------------------------------------------------------
-    # Core Execution
+    # 核心执行
     # ----------------------------------------------------------
     async def execute(
         self,
@@ -67,23 +68,23 @@ class ToolManager:
         3. 通过 BaseTool.execute() 执行工具
         4. 记录跟踪，包括状态/耗时/摘要
         5. 返回 ToolResult
-        
+
         参数：
         tool_name：已注册的工具名称（例如 'sql_query', 'feishu_summary'）。
         params：工具的参数字典。
         trace_context：可选的跟踪上下文，用于丰富跟踪信息
         （例如 {'user_id': '...', 'conversation_id': '...'}）。
-        
+
         返回：
         带有执行结果的 ToolResult。
         """
         params = params or {}
         t_start = time.time()
 
-        # ---- Step 1: Lookup ----
+        # ---- 步骤 1: 查找工具 ----
         tool = self._registry.get(tool_name)
         if tool is None:
-            logger.error("在注册中心没有发现tool: %s", tool_name)
+            logger.error("在注册中心没有发现工具: %s", tool_name)
             return ToolResult(
                 success=False,
                 error=f"工具 '{tool_name}' 未注册",
@@ -92,7 +93,7 @@ class ToolManager:
 
         meta = tool.get_metadata()
 
-        # ---- Step 2: Trace header ----
+        # ---- 步骤 2: 跟踪头 ----
         trace_steps: list = []
         trace_steps.append({
             "step_type": "tool_execution",
@@ -110,24 +111,24 @@ class ToolManager:
         if trace_context:
             trace_steps[-1]["detail"].update(trace_context)
 
-        # ---- Step 3: Execute ----
+        # ---- 步骤 3: 执行 ----
         try:
             result = await tool.execute(params)
         except Exception as exc:
-            # Catch truly unexpected errors (BaseTool.execute should catch most)
-            logger.exception("ToolManager: unhandled error in %s", tool_name)
+            # 捕获真正意外的错误（BaseTool.execute 应该捕获大多数错误）
+            logger.exception("ToolManager: %s 中发生未处理错误", tool_name)
             result = ToolResult(
                 success=False,
                 error=f"未知错误：{type(exc).__name__}: {exc}",
                 duration_ms=(time.time() - t_start) * 1000,
             )
 
-        # ---- Step 4: Merge traces ----
-        # Tool may have its own trace_steps; we prepend our header
+        # ---- 步骤 4: 合并跟踪 ----
+        # 工具可能有自己的 trace_steps；我们在前面添加头部
         if result.trace_steps:
             trace_steps.extend(result.trace_steps)
 
-        # Update header with final status
+        # 更新头部的最终状态
         trace_steps[0]["status"] = "已完成" if result.success else "失败"
         trace_steps[0]["duration_ms"] = result.duration_ms
         trace_steps[0]["message"] = (
@@ -138,7 +139,7 @@ class ToolManager:
 
         result.trace_steps = trace_steps
 
-        # ---- Step 5: Log ----
+        # ---- 步骤 5: 日志 ----
         if result.success:
             logger.info(
                 "ToolManager: %s 成功执行 (%.0fms, summary: %s)",
@@ -157,25 +158,25 @@ class ToolManager:
         return result
 
     # ----------------------------------------------------------
-    # Batch Execution
+    # 批量执行
     # ----------------------------------------------------------
     async def execute_sequential(
         self,
         calls: list,
         trace_context: Optional[Dict[str, Any]] = None,
     ) -> list:
-        """Execute multiple tools sequentially.
+        """按顺序执行多个工具。
 
-        Each call is a dict: {"tool_name": "...", "params": {...}}.
-        If any call fails, subsequent calls are still executed
-        (fail-fast is not the default — change if needed).
+        每个调用是一个字典：{"tool_name": "...", "params": {...}}。
+        如果某个调用失败，后续调用仍会执行
+        （默认不采用快速失败策略 - 如有需要可修改）。
 
-        Args:
-            calls: List of call dicts.
-            trace_context: Shared trace context.
+        参数:
+            calls: 调用字典列表。
+            trace_context: 共享的跟踪上下文。
 
-        Returns:
-            List of ToolResult in execution order.
+        返回:
+            ToolResult 列表，按执行顺序排列。
         """
         results = []
         for call in calls:
@@ -188,13 +189,13 @@ class ToolManager:
         return results
 
     # ----------------------------------------------------------
-    # Introspection
+    # 内省
     # ----------------------------------------------------------
     def get_available_tools(self) -> list:
-        """Get list of enabled tool metadata summaries.
+        """获取已启用工具的元数据摘要列表。
 
-        Returns:
-            List of dicts with name, display_name, description, category.
+        返回:
+            包含 name, display_name, description, category 的字典列表。
         """
         return [
             {
@@ -208,20 +209,20 @@ class ToolManager:
         ]
 
     def get_tool(self, name: str) -> Optional[BaseTool]:
-        """Direct access to a tool instance (bypass execution).
+        """直接访问工具实例（绕过执行）。
 
-        Args:
-            name: Tool name.
+        参数:
+            name: 工具名称。
 
-        Returns:
-            BaseTool instance or None.
+        返回:
+            BaseTool 实例或 None。
         """
         return self._registry.get(name)
 
 
 # ============================================================
-# Global singleton
+# 全局单例
 # ============================================================
 
-# ToolManager singleton (initialized on first import)
+# ToolManager 单例（首次导入时初始化）
 tool_manager = ToolManager()

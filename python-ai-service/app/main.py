@@ -48,7 +48,7 @@ async def lifespan(app: FastAPI):
             "LLM Gateway 初始化失败 —— 所有 Provider 均不可用: %s",
             e.message,
         )
-        logger.critical("  请检查 .env 中的 DEEPSEEK_API_KEY 或 OPENAI_API_KEY")
+        logger.critical("请检查 .env 中的 DEEPSEEK_API_KEY 或 OPENAI_API_KEY")
         # 不阻止启动 —— 允许运维人员通过 health API 查看状态后修复
     except Exception as e:
         logger.error("LLM Gateway 初始化异常: %s", e, exc_info=True)
@@ -79,6 +79,7 @@ app = FastAPI(
     title="InternSU - 你的实习生同事 小su",
     version="1.0.0",
     description="企业内部 AI 实习生产品 - AI Engine",
+    # 应用生命周期管理
     lifespan=lifespan,
 )
 
@@ -97,9 +98,11 @@ app.add_middleware(
 app.add_middleware(RequestTracingMiddleware)
 app.add_middleware(ApiKeyMiddleware)
 
+# 异常处理
 app.add_exception_handler(AppException, app_exception_handler)
 app.add_exception_handler(Exception, general_exception_handler)
 
+# 路由挂载
 app.include_router(chat_router)
 app.include_router(rag_router)
 app.include_router(sql_router)

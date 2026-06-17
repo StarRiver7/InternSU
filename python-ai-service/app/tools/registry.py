@@ -1,16 +1,16 @@
 """
-ToolRegistry — Central tool registration and discovery.
+ToolRegistry — 工具注册中心和发现模块
 
-Singleton registry that maintains name-to-tool mappings.
-Supports:
-  - register/unregister tools at runtime
-  - query by name, category
-  - generate OpenAI function-calling tools array
-  - thread-safe for async usage
+单例注册表，维护名称到工具的映射关系。
+支持:
+  - 在运行时注册/注销工具
+  - 按名称、类别查询工具
+  - 生成 OpenAI 函数调用工具数组
+  - 支持异步线程安全
 
-Design principle:
-  New tools only need to call registry.register(tool_instance).
-  No changes to routing logic required.
+设计原则:
+  新工具只需调用 registry.register(tool_instance) 即可注册。
+  无需修改路由逻辑。
 """
 
 import logging
@@ -22,16 +22,16 @@ logger = logging.getLogger(__name__)
 
 
 class ToolRegistry:
-    """Central tool registry (singleton pattern).
+    """中央工具注册表（单例模式）。
 
-    Usage:
+    使用方法:
         registry = ToolRegistry.get_instance()
         registry.register(my_tool)
         tool = registry.get("sql_query")
 
-    Thread-safety:
-        Uses dict operations which are atomic in CPython for single-threaded
-        async. For multi-threaded scenarios, add asyncio.Lock around mutations.
+    线程安全:
+        在 CPython 中，字典操作对于单线程异步是原子的。
+        对于多线程场景，请在修改操作周围添加 asyncio.Lock。
     """
 
     _instance: Optional["ToolRegistry"] = None
@@ -42,34 +42,33 @@ class ToolRegistry:
 
     @classmethod
     def get_instance(cls) -> "ToolRegistry":
-        """Get or create the global singleton instance."""
+        """获取或创建全局单例实例。"""
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance
 
     @classmethod
     def reset_instance(cls) -> None:
-        """Reset singleton (primarily for testing)."""
+        """重置单例（主要用于测试）。"""
         cls._instance = None
 
     # ----------------------------------------------------------
-    # Registration
+    # 注册操作
     # ----------------------------------------------------------
     def register(self, tool: BaseTool) -> None:
-        """Register a tool instance.
+        """注册工具实例。
 
-        If a tool with the same name already exists, it is overwritten
-        with a warning log.
+        如果同名工具已存在，将覆盖并记录警告日志。
 
-        Args:
-            tool: Tool instance extending BaseTool.
+        参数:
+            tool: 继承自 BaseTool 的工具实例。
 
-        Raises:
-            TypeError: If tool does not extend BaseTool.
+        异常:
+            TypeError: 如果工具不是 BaseTool 的实例。
         """
         if not isinstance(tool, BaseTool):
             raise TypeError(
-                f"Expected BaseTool instance, got {type(tool).__name__}"
+                f"期望 BaseTool 实例，得到 {type(tool).__name__}"
             )
 
         meta = tool.get_metadata()
@@ -77,7 +76,7 @@ class ToolRegistry:
 
         if name in self._tools:
             logger.warning(
-                "Tool '%s' already registered (old: %s, new: %s), overwriting.",
+                "工具 '%s' 已注册 (旧: %s, 新: %s)，将被覆盖。",
                 name,
                 type(self._tools[name]).__name__,
                 type(tool).__name__,
@@ -85,65 +84,65 @@ class ToolRegistry:
 
         self._tools[name] = tool
         logger.info(
-            "Tool registered: name=%s category=%s version=%s",
+            "工具已注册: name=%s category=%s version=%s",
             name, meta.category, meta.version,
         )
 
     def register_many(self, tools: List[BaseTool]) -> None:
-        """Batch register multiple tools.
+        """批量注册多个工具。
 
-        Args:
-            tools: List of BaseTool instances.
+        参数:
+            tools: BaseTool 实例列表。
         """
         for tool in tools:
             self.register(tool)
 
     def unregister(self, name: str) -> bool:
-        """Remove a tool from the registry.
+        """从注册表中移除工具。
 
-        Args:
-            name: Tool name to remove.
+        参数:
+            name: 要移除的工具名称。
 
-        Returns:
-            True if tool was found and removed, False otherwise.
+        返回:
+            如果工具找到并移除返回 True，否则返回 False。
         """
         if name in self._tools:
             del self._tools[name]
-            logger.info("Tool unregistered: %s", name)
+            logger.info("工具已注销: %s", name)
             return True
-        logger.warning("Tool not found for unregister: %s", name)
+        logger.warning("未找到要注销的工具: %s", name)
         return False
 
     # ----------------------------------------------------------
-    # Query
+    # 查询操作
     # ----------------------------------------------------------
     def get(self, name: str) -> Optional[BaseTool]:
-        """Get a tool by name.
+        """按名称获取工具。
 
-        Args:
-            name: Exact tool name.
+        参数:
+            name: 工具的精确名称。
 
-        Returns:
-            Tool instance or None if not found.
+        返回:
+            工具实例，如果未找到返回 None。
         """
         return self._tools.get(name)
 
     def list_all(self) -> List[BaseTool]:
-        """List all registered tools.
+        """列出所有已注册的工具。
 
-        Returns:
-            List of tool instances (no guaranteed order).
+        返回:
+            工具实例列表（顺序不保证）。
         """
         return list(self._tools.values())
 
     def list_by_category(self, category: str) -> List[BaseTool]:
-        """Filter tools by category.
+        """按类别筛选工具。
 
-        Args:
-            category: Category name (rag / sql / feishu / builtin / custom).
+        参数:
+            category: 类别名称 (rag / sql / feishu / builtin / custom)。
 
-        Returns:
-            List of matching tools.
+        返回:
+            匹配类别的工具列表。
         """
         return [
             tool for tool in self._tools.values()
@@ -151,10 +150,10 @@ class ToolRegistry:
         ]
 
     def list_enabled(self) -> List[BaseTool]:
-        """List only enabled tools.
+        """列出所有已启用的工具。
 
-        Returns:
-            List of tools where metadata.enabled is True.
+        返回:
+            metadata.enabled 为 True 的工具列表。
         """
         return [
             tool for tool in self._tools.values()
@@ -162,24 +161,24 @@ class ToolRegistry:
         ]
 
     def get_names(self) -> List[str]:
-        """Get all registered tool names.
+        """获取所有已注册工具的名称。
 
-        Returns:
-            Sorted list of tool name strings.
+        返回:
+            工具名称的排序列表。
         """
         return sorted(self._tools.keys())
 
     # ----------------------------------------------------------
-    # OpenAI Integration
+    # OpenAI 集成
     # ----------------------------------------------------------
     def to_openai_functions(self) -> List[Dict]:
-        """Generate OpenAI function-calling tools array.
+        """生成 OpenAI 函数调用工具数组。
 
-        Converts all enabled tools to OpenAI-compatible function definitions.
-        Used when sending tool definitions to LLM for autonomous tool selection.
+        将所有已启用的工具转换为 OpenAI 兼容的函数定义。
+        用于向 LLM 发送工具定义以进行自主工具选择。
 
-        Returns:
-            List of OpenAI function definition dicts.
+        返回:
+            OpenAI 函数定义字典列表。
         """
         return [
             tool.to_openai_function()
@@ -188,13 +187,13 @@ class ToolRegistry:
         ]
 
     # ----------------------------------------------------------
-    # Introspection
+    # 内省功能
     # ----------------------------------------------------------
     def get_summary(self) -> Dict[str, Any]:
-        """Get a summary of the registry state.
+        """获取注册表状态摘要。
 
-        Returns:
-            Dict with tool_count, categories, names, etc.
+        返回:
+            包含 tool_count、categories、names 等信息的字典。
         """
         tools = list(self._tools.values())
         categories: Dict[str, int] = {}
