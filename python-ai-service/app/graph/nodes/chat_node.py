@@ -49,14 +49,14 @@ async def chat_node(state: InternState, config: dict = None) -> InternState:
     t0 = time.time()
     state["current_node"] = "chat_node"
 
-    # ── 提取令牌队列（流式通路的关键桥梁） ────────────────────────
+    # —————第 1 步：提取 token_queue————————————————————————————
     # 队列是 chat_node 与上层 _sse_generator() 之间的通信通道
     token_queue = state.get("token_queue")
     if token_queue is None and config and isinstance(config.get("configurable"), dict):
         token_queue = config["configurable"].get("token_queue")
     logger.info("ChatNode: token_queue=%s", token_queue is not None)
 
-    # ── 初始化 Trace 追踪步骤 ─────────────────────────────────────
+    # —————第 2 步：写 trace "正在整理回答"————————————————————————————
     step_idx = len(state.get("trace_steps", []))
     trace_running = {
         "node": "chat_node",
@@ -76,7 +76,7 @@ async def chat_node(state: InternState, config: dict = None) -> InternState:
                     detail={"message": "正在整理回答..."},
                     step_type="llm_generation", step_name="LLM生成")
 
-    # ── 构建 LLM 消息列表 ─────────────────────────────────────────
+    # —————第 3 步：构建 LLM 消息列表————————————————————————————
     # 消息结构: [System Prompt] + [最近 5 轮对话历史] + [当前用户消息]
     message = state["user_message"]
     history = state.get("conversation_context", [])
@@ -89,7 +89,7 @@ async def chat_node(state: InternState, config: dict = None) -> InternState:
 
     state["system_prompt"] = InternSUPrompts.get(PromptType.SYSTEM)
 
-    # ── 调用 LLM 生成回答 ─────────────────────────────────────────
+    # —————第 4 步：调用 LLM 生成回答————————————————————————————
     try:
         if token_queue:
             # ======== 真流式通道 ========
@@ -136,7 +136,7 @@ async def chat_node(state: InternState, config: dict = None) -> InternState:
                 "message": f"LLM 调用失败: {str(e)}",
             })
 
-    # ── 收尾：更新 Trace 和完成标记 ────────────────────────────────
+    # —————第 5 步：收尾：更新 Trace 和完成标记————————————————————————————
     state["done"] = True
 
     duration_ms = int((time.time() - t0) * 1000)
