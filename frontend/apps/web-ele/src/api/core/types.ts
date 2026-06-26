@@ -88,8 +88,13 @@ export interface ChatFinalAnswer {
   trace_id: string;
 }
 
-/** SSE 流中每一帧可能是 trace 步 or 最终回答 */
-export type ChatStreamEvent = ChatTraceStep | ChatFinalAnswer;
+/** 后端 SSE 流返回的单个 token（用于打字机效果） */
+export interface ChatTokenEvent {
+  content: string;
+}
+
+/** SSE 流中每一帧 */
+export type ChatStreamEvent = ChatTraceStep | ChatFinalAnswer | ChatTokenEvent;
 
 /** 判断一个 SSE 事件是否为最终回答（有 answer 字段） */
 export function isFinalAnswer(event: ChatStreamEvent): event is ChatFinalAnswer {
@@ -99,6 +104,11 @@ export function isFinalAnswer(event: ChatStreamEvent): event is ChatFinalAnswer 
 /** 判断一个 SSE 事件是否为 trace 步骤 */
 export function isTraceStep(event: ChatStreamEvent): event is ChatTraceStep {
   return 'step' in event;
+}
+
+/** 判断一个 SSE 事件是否为 token（有 content 字段但没有 step/answer） */
+export function isTokenEvent(event: ChatStreamEvent): event is ChatTokenEvent {
+  return 'content' in event && !('step' in event) && !('answer' in event);
 }
 
 export interface Conversation {

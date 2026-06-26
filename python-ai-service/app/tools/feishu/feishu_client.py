@@ -37,6 +37,7 @@ class FeishuMessage:
     plain_text: str = ""
     mentions: List[str] = field(default_factory=list)
     create_time: Optional[datetime] = None
+    update_time: Optional[datetime] = None
     thread_id: Optional[str] = None
     parent_id: Optional[str] = None
 
@@ -394,6 +395,15 @@ class FeishuClient:
             except (ValueError, TypeError, OSError):
                 logger.warning("Failed to parse create_time: %s", raw_time)
 
+        # 解析更新时间 (毫秒时间戳，消息被编辑时更新)
+        update_time = None
+        raw_update = raw.get("update_time", "")
+        if raw_update:
+            try:
+                update_time = datetime.fromtimestamp(int(raw_update) / 1000)
+            except (ValueError, TypeError, OSError):
+                pass
+
         msg = FeishuMessage(
             message_id=raw.get("message_id", ""),
             chat_id=raw.get("chat_id", default_chat_id),
@@ -405,6 +415,7 @@ class FeishuClient:
             plain_text=plain_text,
             mentions=mentions,
             create_time=create_time,
+            update_time=update_time,
             thread_id=raw.get("thread_id"),
             parent_id=raw.get("parent_id"),
         )
@@ -497,7 +508,59 @@ class FeishuClient:
 
         # 按时间升序排序 (最旧的在前，用于 LLM 上下文)
         all_msgs.sort(key=lambda m: m.create_time or datetime.min)
-        return all_msgs[:max_messages]
+        result_msgs = all_msgs[:max_messages]
+
+        # 批量获取发送者名称（飞书消息列表 API 不返回 sender.name）
+        await self._fill_sender_names(result_msgs)
+
+        return result_msgs
+
+    # ----------------------------------------------------------
+    # 批量用户信息
+    # ----------------------------------------------------------
+    async def _fill_sender_names(self, messages: List[FeishuMessage]) -> None:
+        """批量获取消息发送者的显示名称。
+
+        飞书消息列表 API 的 sender 对象只有 id，没有 name。
+        使用 POST /open-apis/contact/v3/users/batch 批量查询用户信息，
+        回填到消息的 sender_name 字段。
+
+        参数:
+            messages: 要回填发送者名称的消息列表（原地修改）。
+        """
+        # 收集所有唯一的 sender_id（排除机器人和空 ID）
+        sender_ids = set()
+        for m in messages:
+            if m.sender_id and m.sender_id.startswith("ou_"):
+                sender_ids.add(m.sender_id)
+
+        if not sender_ids:
+            return
+
+        # 飞书 batch API 限制每次最多 50 个用户
+        id_list = list(sender_ids)
+        name_map: Dict[str, str] = {}
+
+        for i in range(0, len(id_list), 50):
+            batch = id_list[i:i + 50]
+            try:
+                data = await self._request(
+                    "POST",
+                    "/open-apis/contact/v3/users/batch",
+                    json_body={"user_ids": batch},
+                )
+                for user in data.get("items", []):
+                    uid = user.get("open_id", "")
+                    name = user.get("name", "")
+                    if uid and name:
+                        name_map[uid] = name
+            except Exception as exc:
+                logger.warning("Failed to batch fetch user info: %s", exc)
+
+        # 回填 sender_name
+        for m in messages:
+            if m.sender_id in name_map:
+                m.sender_name = name_map[m.sender_id]
 
     # ----------------------------------------------------------
     # 清理

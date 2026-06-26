@@ -29,6 +29,7 @@ import {
   sendChatApi,
   isFinalAnswer,
   isTraceStep,
+  isTokenEvent,
   type Conversation,
   type ChatTraceStep,
   type ChatSendRequest,
@@ -273,8 +274,16 @@ export const useChatStore = defineStore("chat", () => {
           if (isTraceStep(event)) {
             // trace 进度步骤 → 累加到右侧面板
             currentTraces.value.push(event);
+          } else if (isTokenEvent(event)) {
+            // 单个 token → 追加到 AI 消息（打字机效果）
+            const aiMsg = currentMessages.value.find(
+              (m) => m.role === "assistant" && m.id === aiMessageId,
+            );
+            if (aiMsg) {
+              aiMsg.content += event.content;
+            }
           } else if (isFinalAnswer(event)) {
-            // 最终回答 → 回填到 AI 占位消息的 content
+            // 最终回答 → 回填到 AI 占位消息的 content（兜底）
             const aiMsg = currentMessages.value.find(
               (m) => m.role === "assistant" && m.id === aiMessageId,
             );

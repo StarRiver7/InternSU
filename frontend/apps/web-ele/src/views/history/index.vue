@@ -23,7 +23,7 @@
   选中的 space_ids 会自动传入 ChatStore.sendChatMessage() 的请求参数。
 -->
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted } from "vue";
+import { ref, computed, nextTick, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import {
   MessageSquare,
@@ -104,6 +104,8 @@ const historyList = computed<HistoryItem[]>(() => {
 
 /** 当前选中的会话 ID */
 const selectedConversationId = ref<string>("");
+/** 从 /chat 跳转来时暂存的用户问题（用于临时会话标题） */
+const pendingQuestionTitle = ref("");
 /** 输入框文本 */
 const inputText = ref("");
 /** textarea DOM 引用（用于动态调整高度） */
@@ -114,10 +116,22 @@ const MIN_HEIGHT = 56;
 /** textarea 最大高度（px） */
 const MAX_HEIGHT = 200;
 
-/** 当前选中的会话对象 */
+/**
+ * 当前选中的会话对象
+ *
+ * 优先从 historyList 中查找已存在的会话；
+ * 若不存在（如从 /chat 跳转来的新会话），则用 selectedConversationId 构造一个临时对象，
+ * 使消息区域仍然可以渲染。
+ */
 const selectedHistory = computed(() => {
   if (!selectedConversationId.value) return null;
-  return historyList.value.find((item) => item.conversationId === selectedConversationId.value) ?? null;
+  return historyList.value.find((item) => item.conversationId === selectedConversationId.value)
+    ?? {
+      conversationId: selectedConversationId.value,
+      title: pendingQuestionTitle.value || "新对话",
+      time: "刚刚",
+      timestamp: Date.now(),
+    };
 });
 
 /**
@@ -373,13 +387,21 @@ onMounted(async () => {
   const sid = route.query.sessionId as string | undefined;
   const { question } = chatStore.consumePending();
 
-  if (sid && question) {
+    if (sid && question) {
     chatStore.setCurrentConversation(sid);
     selectedConversationId.value = sid;
+    pendingQuestionTitle.value = question;
     inputText.value = question;
     await nextTick();
     adjustHeight();
     handleSendMessage();
+  }
+});
+
+// SSE 流结束后刷新会话列表（后端在 SSE 流完成时才持久化新会话到 MySQL）
+watch(isStreaming, (streaming, prev) => {
+  if (prev === true && streaming === false) {
+    chatStore.fetchConversations();
   }
 });
 </script>

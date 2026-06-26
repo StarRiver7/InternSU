@@ -123,6 +123,7 @@ class ScoredMessage:
     sender_name: str
     plain_text: str
     create_time: Optional[datetime] = None
+    update_time: Optional[datetime] = None
     score: int = 0
     matched_keywords: List[str] = field(default_factory=list)
     is_at_everyone: bool = False
@@ -257,6 +258,7 @@ class MessageFilter:
         sender = getattr(msg, "sender_name", "") or "unknown"
         msg_id = getattr(msg, "message_id", "") or ""
         create_time = getattr(msg, "create_time", None)
+        update_time = getattr(msg, "update_time", None)
         content = getattr(msg, "content", "") or ""
 
         # 组成部分 1: 关键词匹配
@@ -304,6 +306,7 @@ class MessageFilter:
             sender_name=sender,
             plain_text=plain_text,
             create_time=create_time,
+            update_time=update_time,
             score=score,
             matched_keywords=matched_kws,
             is_at_everyone=is_at_everyone,
@@ -350,10 +353,11 @@ class MessageFilter:
         """移除近似重复的消息。
 
         同一发送者在 time_window_minutes 内的两条消息
-        被视为重复；保留分数更高的那条。
+        被视为重复。优先保留编辑过的（有 update_time）消息，
+        其次保留更新的消息，最后保留分数更高的消息。
 
         这可以防止同一公告被多人重复发送
-        而占据摘要的大部分内容。
+        而占据摘要的大部分内容，同时确保更正/编辑的消息不会丢失。
         """
         if len(scored) <= 1:
             return scored
@@ -373,11 +377,25 @@ class MessageFilter:
             key = (sender, bucket)
 
             if key in seen:
-                # 保留分数更高的那条
-                if sm.score > seen[key].score:
-                    # 替换: 移除旧的，添加新的
+                existing = seen[key]
+                # 优先保留编辑过的消息（有 update_time = 被更正/修改过）
+                existing_is_edited = existing.update_time is not None
+                current_is_edited = sm.update_time is not None
+
+                should_replace = False
+                if current_is_edited and not existing_is_edited:
+                    # 当前消息被编辑过，旧的没有 → 替换
+                    should_replace = True
+                elif current_is_edited and existing_is_edited:
+                    # 两者都被编辑过 → 保留更新的
+                    should_replace = sm.update_time > existing.update_time
+                elif not current_is_edited and not existing_is_edited:
+                    # 都没编辑过 → 保留更新的（更接近现在）
+                    should_replace = sm.create_time > existing.create_time
+
+                if should_replace:
                     try:
-                        result.remove(seen[key])
+                        result.remove(existing)
                     except ValueError:
                         pass
                     result.append(sm)

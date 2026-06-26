@@ -40,7 +40,7 @@ SUMMARY_SYSTEM_PROMPT = """你是一位资深企业助理 AI。你的任务是�
    - [其他]: 不符合上述类别的重要讨论
 
 2. 对于每个条目，包含:
-   - 谁 (发送者姓名，如有)
+   - 谁 (发送者姓名，如有；如果显示为 unknown 或没有发送者则省略此字段)
    - 什么 (核心内容，1-2 行)
    - 何时 (时间或截止日期)
 
@@ -50,6 +50,7 @@ SUMMARY_SYSTEM_PROMPT = """你是一位资深企业助理 AI。你的任务是�
    - 如果一个主题跨越多条消息，将其合并为一个条目
    - 略去琐碎对话 (问候、表情符号、无关话题)
    - 使用专业但友好的语气
+   - **重要**: 标记为 [已更正] 的消息是更正/修正版本，应以其内容为准，替代之前的旧版本
 
 4. 输出格式:
    每个部分以标记开头，后跟要点 (- )。
@@ -115,7 +116,9 @@ def format_messages_for_prompt(
         # 格式: [HH:MM] 姓名: 文本
         time_str = sm.time_str or "--:--"
         at_flag = " [@所有人]" if sm.is_at_everyone else ""
-        lines.append(f"[{time_str}] {sm.sender_name}{at_flag}: {text}")
+        edit_flag = " [已更正]" if getattr(sm, "update_time", None) else ""
+        sender_part = f" {sm.sender_name}" if sm.sender_name and sm.sender_name != "unknown" else ""
+        lines.append(f"[{time_str}]{sender_part}{at_flag}{edit_flag}: {text}")
 
     return "\n".join(lines)
 
@@ -375,7 +378,9 @@ def _build_fallback_summary(
         lines.append(cat_labels.get(cat, f"[{cat}]"))
         for sm in items[:5]:
             text = sm.plain_text[:120]
-            lines.append(f"  - [{sm.time_str}] {sm.sender_name}: {text}")
+            edit_flag = " [已更正]" if getattr(sm, "update_time", None) else ""
+            sender_part = f" {sm.sender_name}" if sm.sender_name and sm.sender_name != "unknown" else ""
+            lines.append(f"  - [{sm.time_str}]{sender_part}{edit_flag}: {text}")
         lines.append("")
 
     return "\n".join(lines)
