@@ -1,5 +1,5 @@
-﻿# ============================================================
-# Enterprise AI Agent Platform - .gitignore
+# ============================================================
+# InternSU - .gitignore
 # ============================================================
 
 # === Secrets (production keys) ===
@@ -17,8 +17,8 @@ java-service/*.iml
 java-service/.mvn/
 
 # === Python ===
-python-ai-service/__pycache__/
-python-ai-service/*.py[cod]
+**/__pycache__/
+*.py[cod]
 python-ai-service/*.egg-info/
 python-ai-service/.venv/
 python-ai-service/venv/
